@@ -35,6 +35,7 @@ import {
   levelUpCost,
   scaleStats,
   type ElementId,
+  type Rarity,
   type Role,
   type GearSlot,
   type OwnedCharacterDTO,
@@ -330,7 +331,8 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
   // What auto-equip would add: the best free gear per slot, compared with what's worn.
   const combatBase = applyPassiveCombat(roleCombat(c.role), c.passive);
   const combat = applyGearCombat(combatBase, worn, sets);
-  const best = bestLoadout(base, profile.gear, charId, sets, combatBase);
+  const targetSet = owned?.gearSet && sets[owned.gearSet] ? owned.gearSet : null;
+  const best = bestLoadout(base, profile.gear, charId, sets, combatBase, targetSet);
   const bestGear = best.flatMap((s) => (s.best ? [s.best] : []));
   const loadoutGain = owned
     ? statPower(applyGear(base, bestGear, sets), applyGearCombat(combatBase, bestGear, sets)) - statPower(applyGear(base, worn, sets), combat)
@@ -484,14 +486,38 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
 
             <div className="gear-head">
               <b className="small">Gear</b>
-              <button
-                className="btn small"
-                disabled={!loadoutGain}
-                onClick={() => mutate(() => api.autoEquip(charId), 'Equipped the best gear')}
-                title="Puts on the best free gear from your bag. Gear worn by other heroes is left alone."
-              >
-                ✨ Auto-equip{loadoutGain ? ` · +${loadoutGain.toLocaleString()} power` : ' · already best'}
-              </button>
+              <span className="gear-head-actions">
+                {owned && (
+                  <label className="small" title="Auto-equip fills every slot it can with this set first, then takes the strongest gear for the rest.">
+                    Aim for{' '}
+                    <select
+                      className="sort-select"
+                      value={targetSet ?? ''}
+                      onChange={(e) => void mutate(() => api.setGearSet(charId, e.target.value || null))}
+                    >
+                      <option value="">Strongest</option>
+                      {content.bundle.gearSets.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.emoji} {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <button
+                  className="btn small"
+                  disabled={!best.some((s) => s.best && s.best.id !== s.current?.id)}
+                  onClick={() => mutate(() => api.autoEquip(charId), 'Equipped the best gear')}
+                  title={`Puts on the best free gear from your bag${targetSet ? `, ${sets[targetSet]!.name} pieces first` : ''}. Gear worn by other heroes is left alone.`}
+                >
+                  ✨ Auto-equip
+                  {best.some((s) => s.best && s.best.id !== s.current?.id)
+                    ? loadoutGain
+                      ? ` · ${loadoutGain > 0 ? '+' : ''}${loadoutGain.toLocaleString()} power`
+                      : ''
+                    : ' · already best'}
+                </button>
+              </span>
             </div>
             <div className="gear-slots">
               {GEAR_SLOTS.map((slot) => {
@@ -709,11 +735,11 @@ function SalvageBar() {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const auto = profile.prefs.autoSalvage;
-  const spares = (r: number) => profile.gear.filter((g) => g.rarity <= r && g.level === 0 && !g.equippedTo).length;
+  const spares = (r: number) => profile.gear.filter((g) => g.rarity <= r && g.level === 0 && !g.equippedTo && !g.locked).length;
 
   async function bulk(maxRarity: 3 | 4) {
     const n = spares(maxRarity);
-    if (!n || !window.confirm(`Salvage ${n} unequipped, unupgraded item${n === 1 ? '' : 's'} of ★${maxRarity} or lower?`)) return;
+    if (!n || !window.confirm(`Salvage ${n} unequipped, unupgraded, unlocked item${n === 1 ? '' : 's'} of ★${maxRarity} or lower?`)) return;
     setBusy(true);
     try {
       const res = await api.salvageBulk(maxRarity);
@@ -753,15 +779,28 @@ function SalvageBar() {
   );
 }
 
+type GearState = 'all' | 'free' | 'worn' | 'locked';
+
 function GearTab() {
   const { profile } = useProfile();
   const content = useContent();
   const [slot, setSlot] = useState<GearSlot | 'all'>('all');
   const [sort, setSort] = useState<GearSort>('score');
+  const [setFilter, setSetFilter] = useState<string>('all');
+  const [main, setMain] = useState<string>('all');
+  const [rarity, setRarity] = useState<'all' | Rarity>('all');
+  const [state, setState] = useState<GearState>('all');
   const [selected, setSelected] = useState<string | null>(null);
 
+  // Only offer main stats that are in the bag.
+  const mains = [...new Set(profile.gear.map((g) => g.main.stat))].sort((a, b) => gearStatLabel(a).localeCompare(gearStatLabel(b)));
+  const filtered = setFilter !== 'all' || main !== 'all' || rarity !== 'all' || state !== 'all';
   const items = profile.gear
     .filter((g) => slot === 'all' || g.slot === slot)
+    .filter((g) => setFilter === 'all' || (g.set ?? 'none') === setFilter)
+    .filter((g) => main === 'all' || g.main.stat === main)
+    .filter((g) => rarity === 'all' || g.rarity === rarity)
+    .filter((g) => state === 'all' || (state === 'free' ? !g.equippedTo : state === 'worn' ? Boolean(g.equippedTo) : g.locked))
     .sort((a, b) => {
       if (sort === 'rarity') return b.rarity - a.rarity || gearScore(b) - gearScore(a);
       if (sort === 'level') return b.level - a.level || gearScore(b) - gearScore(a);
@@ -787,6 +826,55 @@ function GearTab() {
             <option value="new">Newest</option>
           </select>
         </div>
+        <div className="filters gear-filters">
+          <select className="sort-select" value={setFilter} onChange={(e) => setSetFilter(e.target.value)} aria-label="Set">
+            <option value="all">Any set</option>
+            {content.bundle.gearSets.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.emoji} {s.name}
+              </option>
+            ))}
+            {profile.gear.some((g) => !g.set) && <option value="none">No set</option>}
+          </select>
+          <select className="sort-select" value={main} onChange={(e) => setMain(e.target.value)} aria-label="Main stat">
+            <option value="all">Any main stat</option>
+            {mains.map((s) => (
+              <option key={s} value={s}>
+                {gearStatLabel(s)}
+              </option>
+            ))}
+          </select>
+          <select className="sort-select" value={rarity} onChange={(e) => setRarity(e.target.value === 'all' ? 'all' : (Number(e.target.value) as Rarity))} aria-label="Rarity">
+            <option value="all">Any rarity</option>
+            {([5, 4, 3] as const).map((r) => (
+              <option key={r} value={r}>
+                {'★'.repeat(r)}
+              </option>
+            ))}
+          </select>
+          <select className="sort-select" value={state} onChange={(e) => setState(e.target.value as GearState)} aria-label="Worn or free">
+            <option value="all">Worn and free</option>
+            <option value="free">Free only</option>
+            <option value="worn">Worn only</option>
+            <option value="locked">🔒 Locked</option>
+          </select>
+          {filtered && (
+            <button
+              className="btn small"
+              onClick={() => {
+                setSetFilter('all');
+                setMain('all');
+                setRarity('all');
+                setState('all');
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <p className="small muted gear-count">
+          {items.length} of {profile.gear.length} items
+        </p>
         {items.length ? (
           <div className="gear-grid">
             {items.map((g) => {
@@ -795,7 +883,7 @@ function GearTab() {
             })}
           </div>
         ) : (
-          <p className="muted center">No gear yet. Win campaign stages to find weapons, armor and charms.</p>
+          <p className="muted center">{profile.gear.length ? 'No gear matches these filters.' : 'No gear yet. Win campaign stages to find weapons, armor and charms.'}</p>
         )}
       </section>
       <aside className="panel detail">

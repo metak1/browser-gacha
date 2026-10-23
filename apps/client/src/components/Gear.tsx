@@ -1,4 +1,11 @@
 import {
+  applyGear,
+  applyGearCombat,
+  applyPassiveCombat,
+  ascensionBonus,
+  COMBAT_LABEL,
+  COMBAT_STATS,
+  constellationOf,
   formatGearRoll,
   GEAR_SLOT_INFO,
   gearSalvageValue,
@@ -7,12 +14,16 @@ import {
   mainStatValue,
   heroBuild,
   reforgeGold,
+  roleCombat,
   salvageStones,
+  scaleStats,
+  statPower,
   subQuality,
   subRolls,
   wornSets,
   type GearItem,
   type GearSlot,
+  type OwnedCharacterDTO,
 } from '@gacha/shared';
 import { useState } from 'react';
 import { api } from '../api';
@@ -54,6 +65,11 @@ export function GearChip({ item, selected, onClick, note }: { item: GearItem; se
         <IconOr icon={icon} emoji={emoji} size={32} />
       </span>
       {item.level > 0 && <span className="gear-level">+{item.level}</span>}
+      {item.locked && (
+        <span className="gear-lock" title="Locked">
+          🔒
+        </span>
+      )}
       <span className="gear-main">{formatGearRoll(item.main)}</span>
       {note && <span className="gear-note">{note}</span>}
     </button>
@@ -66,12 +82,16 @@ export function GearChip({ item, selected, onClick, note }: { item: GearItem; se
  */
 export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: boolean }) {
   const settings = useContent().settings;
-  const { mutate } = useProfile();
+  const { profile, mutate } = useProfile();
   const [open, setOpen] = useState<string | null>(null);
   const [sold, setSold] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   if (!drops.length) return null;
-  const kept = drops.filter((g) => !sold.includes(g.id));
+  // Locking or equipping a drop shows up in the profile, so read items from there.
+  const live = drops.map((g) => profile.gear.find((x) => x.id === g.id) ?? g);
+  const kept = live.filter((g) => !sold.includes(g.id));
+  // Sell all leaves locked and worn items alone.
+  const sellable = kept.filter((g) => !g.locked && !g.equippedTo);
   const value = (items: GearItem[]) => ({
     gold: items.reduce((n, g) => n + gearSalvageValue(settings, g), 0),
     stones: items.reduce((n, g) => n + salvageStones(settings, g.rarity), 0),
@@ -96,12 +116,12 @@ export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: bool
     setBusy(false);
   }
 
-  const inspected = drops.find((g) => g.id === open && !sold.includes(g.id));
+  const inspected = kept.find((g) => g.id === open);
   return (
     <div className="drops loot-gear">
       <small className="muted">Loot · tap an item to inspect it</small>
       <div className="drop-row">
-        {drops.map((g, i) => (
+        {live.map((g, i) => (
           <div key={g.id} className={`${animate ? 'drop' : ''} ${sold.includes(g.id) ? 'sold' : ''}`} style={animate ? { animationDelay: `${0.35 + i * 0.15}s` } : undefined}>
             <GearChip
               item={g}
@@ -113,24 +133,59 @@ export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: bool
         ))}
       </div>
       {inspected && <LootInspect item={inspected} busy={busy} price={price(value([inspected]))} onSell={() => void sell([inspected])} onKeep={() => setOpen(null)} />}
-      {kept.length > 1 && !inspected && (
+      {sellable.length > 1 && !inspected && (
         <button
           className="btn small danger loot-sell-all"
           disabled={busy}
+          title={sellable.length < kept.length ? 'Locked and worn items are kept.' : undefined}
           onClick={() => {
-            if (confirm(`Sell all ${kept.length} items for ${price(value(kept))}?`)) void sell(kept);
+            if (confirm(`Sell ${sellable.length} items for ${price(value(sellable))}?`)) void sell(sellable);
           }}
         >
-          Sell all · {price(value(kept))}
+          Sell all · {price(value(sellable))}
         </button>
       )}
     </div>
   );
 }
 
-/** A dropped item's stats, with Keep and Sell. */
+/** A hero's stats and power with a given set of worn gear. */
+function heroWith(content: ReturnType<typeof useContent>, owned: OwnedCharacterDTO, items: GearItem[]) {
+  const c = content.charactersById[owned.id]!;
+  const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(content.settings.progression, owned.ascension));
+  const stats = applyGear(base, items, content.gearSetsById);
+  const combat = applyGearCombat(applyPassiveCombat(roleCombat(c.role), c.passive), items, content.gearSetsById);
+  return { stats, combat, power: statPower(stats, combat) };
+}
+
+/** What wearing `item` would change for a hero: their worn gear with it swapped into its slot. */
+function compareOn(content: ReturnType<typeof useContent>, gear: GearItem[], owned: OwnedCharacterDTO, item: GearItem) {
+  const worn = gear.filter((g) => g.equippedTo === owned.id);
+  const current = worn.find((g) => g.slot === item.slot) ?? null;
+  const before = heroWith(content, owned, worn);
+  const after = heroWith(content, owned, [...worn.filter((g) => g.slot !== item.slot), item]);
+  return { current, before, after, gain: after.power - before.power };
+}
+
+/** A dropped item's stats, compared on a hero, with Equip, Lock, Keep and Sell. */
 function LootInspect({ item, busy, price, onSell, onKeep }: { item: GearItem; busy: boolean; price: string; onSell: () => void; onKeep: () => void }) {
   const { name, emoji, icon } = useGearInfo(item);
+  const content = useContent();
+  const { profile, mutate } = useProfile();
+  // Team first, then everyone else by level; the default is whoever it helps most in the team.
+  const heroes = [...profile.roster]
+    .filter((o) => content.charactersById[o.id])
+    .sort((a, b) => Number(profile.team.includes(b.id)) - Number(profile.team.includes(a.id)) || b.level - a.level);
+  const team = heroes.filter((o) => profile.team.includes(o.id));
+  const best = (team.length ? team : heroes).reduce<OwnedCharacterDTO | null>(
+    (top, o) => (!top || compareOn(content, profile.gear, o, item).gain > compareOn(content, profile.gear, top, item).gain ? o : top),
+    null,
+  );
+  const [heroId, setHeroId] = useState<string | null>(null);
+  const hero = heroes.find((o) => o.id === heroId) ?? best;
+  const wearer = item.equippedTo ? content.charactersById[item.equippedTo] : null;
+  const cmp = hero && item.equippedTo !== hero.id ? compareOn(content, profile.gear, hero, item) : null;
+  const heroDef = hero ? content.charactersById[hero.id] : null;
   return (
     <div className={`gear-detail loot-inspect r${item.rarity}`}>
       <div className="gear-detail-head">
@@ -142,7 +197,10 @@ function LootInspect({ item, busy, price, onSell, onKeep }: { item: GearItem; bu
           <div className={`r${item.rarity}-text small`}>
             {'★'.repeat(item.rarity)} · {GEAR_SLOT_INFO[item.slot].icon} {GEAR_SLOT_INFO[item.slot].label}
           </div>
-          <div className="small muted">score {gearScore(item)}</div>
+          <div className="small muted">
+            score {gearScore(item)}
+            {wearer && ` · worn by ${wearer.emoji} ${wearer.name}`}
+          </div>
         </div>
       </div>
       <ItemSet item={item} />
@@ -154,14 +212,99 @@ function LootInspect({ item, busy, price, onSell, onKeep }: { item: GearItem; bu
           </div>
         ))}
       </div>
+      {hero && heroDef && (
+        <div className="loot-compare">
+          <label className="small">
+            Compare on{' '}
+            <select className="sort-select" value={hero.id} onChange={(e) => setHeroId(e.target.value)}>
+              {heroes.map((o) => {
+                const c = content.charactersById[o.id]!;
+                return (
+                  <option key={o.id} value={o.id}>
+                    {c.emoji} {c.name} · Lv {o.level}
+                    {profile.team.includes(o.id) ? ' · team' : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          {cmp ? (
+            <>
+              <div className="small muted">
+                {cmp.current ? (
+                  <>
+                    Replaces <CompareName item={cmp.current} /> ({formatGearRoll(cmp.current.main)})
+                  </>
+                ) : (
+                  `Fills the empty ${GEAR_SLOT_INFO[item.slot].label.toLowerCase()} slot`
+                )}
+              </div>
+              <div className="compare-rows">
+                {(['hp', 'atk', 'def', 'spd'] as const).map((s) => (
+                  <CompareRow key={s} label={s.toUpperCase()} before={cmp.before.stats[s]} after={cmp.after.stats[s]} />
+                ))}
+                {COMBAT_STATS.map((s) => (
+                  <CompareRow key={s} label={COMBAT_LABEL[s]} before={cmp.before.combat[s]} after={cmp.after.combat[s]} pct />
+                ))}
+              </div>
+              <div className={`compare-power ${cmp.gain > 0 ? 'up' : cmp.gain < 0 ? 'down' : ''}`}>
+                {cmp.gain > 0 ? '▲ +' : cmp.gain < 0 ? '▼ ' : ''}
+                {cmp.gain.toLocaleString()} power
+              </div>
+            </>
+          ) : (
+            <div className="small muted">{heroDef.name} is wearing it.</div>
+          )}
+        </div>
+      )}
       <div className="gear-actions">
-        <button className="btn small primary" disabled={busy} onClick={onKeep}>
+        {cmp && hero && heroDef && (
+          <button
+            className={`btn small ${cmp.gain > 0 ? 'primary' : ''}`}
+            disabled={busy}
+            onClick={() => void mutate(async () => (await api.gear.equip(item.id, hero.id)).profile, `Equipped on ${heroDef.name}`).then((ok) => ok && sfx.click())}
+          >
+            Equip on {heroDef.name}
+          </button>
+        )}
+        <button className="btn small" disabled={busy} onClick={() => void mutate(async () => (await api.gear.lock(item.id, !item.locked)).profile)}>
+          {item.locked ? '🔓 Unlock' : '🔒 Lock'}
+        </button>
+        <button className="btn small" disabled={busy} onClick={onKeep}>
           Keep
         </button>
-        <button className="btn small danger" disabled={busy} onClick={onSell}>
+        <button
+          className="btn small danger"
+          disabled={busy || item.locked || Boolean(item.equippedTo)}
+          title={item.locked ? 'Unlock it first' : item.equippedTo ? 'Unequip it first' : undefined}
+          onClick={onSell}
+        >
           Sell · {price}
         </button>
       </div>
+    </div>
+  );
+}
+
+function CompareName({ item }: { item: GearItem }) {
+  return <b>{useGearInfo(item).name}</b>;
+}
+
+/** "ATK 1,200 → 1,260 (+60)", only for stats that change. */
+function CompareRow({ label, before, after, pct }: { label: string; before: number; after: number; pct?: boolean }) {
+  const delta = after - before;
+  if (Math.abs(delta) < (pct ? 0.0005 : 0.5)) return null;
+  const fmt = (v: number) => (pct ? `${(v * 100).toFixed(1)}%` : Math.round(v).toLocaleString());
+  return (
+    <div className={`compare-row ${delta > 0 ? 'up' : 'down'}`}>
+      <span className="muted">{label}</span>
+      <span>
+        {fmt(before)} → <b>{fmt(after)}</b>
+      </span>
+      <span className="compare-delta">
+        {delta > 0 ? '+' : '−'}
+        {pct ? `${Math.abs(delta * 100).toFixed(1)}%` : Math.abs(Math.round(delta)).toLocaleString()}
+      </span>
     </div>
   );
 }
@@ -250,9 +393,13 @@ export function GearDetail({
         >
           {maxed ? 'Max level' : `Upgrade · 🪙 ${cost}`}
         </button>
+        <button className="btn small" disabled={busy} onClick={() => run(() => api.gear.lock(item.id, !item.locked))} title="Locked gear can't be salvaged or sold">
+          {item.locked ? '🔓 Unlock' : '🔒 Lock'}
+        </button>
         <button
           className="btn small danger"
-          disabled={busy}
+          disabled={busy || item.locked}
+          title={item.locked ? 'Unlock it first' : undefined}
           onClick={() => {
             if (confirm(`Salvage ${name} for ${salvage} gold?`)) void run(() => api.gear.salvage(item.id), sfx.coins);
           }}

@@ -30,10 +30,10 @@ async function guest() {
 describe('stamina', () => {
   it('starts full, is spent on battles, refunded on defeat and regenerates', async () => {
     const { call, profile, ctx } = await guest();
-    expect(profile.stamina).toEqual({ current: 120, max: 120, nextAt: null });
+    expect(profile.stamina).toEqual({ current: 200, max: 200, nextAt: null });
 
     const start = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
-    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(110);
+    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(190);
 
     // Lose on purpose: level-1 heroes against the 1-4 boss.
     ctx.db.run("UPDATE characters SET level = 1 WHERE user_id = ?", profile.user.id);
@@ -42,12 +42,12 @@ describe('stamina', () => {
     const played = autoBattle(hard.body.setup);
     expect(played.state.outcome).toBe('defeat');
     const lost = await call<CompleteBattleResponse>('POST', `/battles/${hard.body.battleId}/complete`, { actions: played.actions });
-    expect(lost.body.profile.stamina.current).toBe(110); // refunded
+    expect(lost.body.profile.stamina.current).toBe(190); // refunded
     expect(lost.body.profile.stamina.nextAt).toBe(clock + 5 * 60_000);
     expect(start.status).toBe(200);
 
     clock += 12 * 60_000; // two points
-    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(112);
+    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(192);
   });
 
   it('blocks battles without stamina and refills for gems', async () => {
@@ -78,7 +78,7 @@ describe('sweep', () => {
     expect(res.body.rewards.gold).toBe(5 * app.services.content.current.stagesById['1-1']!.gold);
     expect(res.body.profile.wallet.gold).toBe(gold + res.body.rewards.gold);
     // Sweeping earns XP; any level ups refund some stamina.
-    expect(res.body.profile.stamina.current).toBe(120 - 50 + (res.body.xp?.reward.stamina ?? 0));
+    expect(res.body.profile.stamina.current).toBe(200 - 50 + (res.body.xp?.reward.stamina ?? 0));
     expect(res.body.xp?.gained).toBe(5 * 10 * 6);
     expect(res.body.profile.stageStars['1-1']).toBe(3);
 

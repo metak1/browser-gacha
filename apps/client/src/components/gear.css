@@ -144,3 +144,14 @@
 .loot-gear .sold { opacity: 0.4; }
 .loot-inspect { margin: 10px auto 0; max-width: 360px; text-align: left; }
 .loot-sell-all { margin-top: 8px; }
+
+/* Locked gear, and comparing a dropped item on a hero. */
+.gear-lock { position: absolute; top: 18px; right: 4px; font-size: 0.7rem; line-height: 1; }
+.loot-compare { display: grid; gap: 6px; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
+.compare-rows { display: grid; gap: 2px; font-size: 0.85rem; }
+.compare-row { display: grid; grid-template-columns: 84px 1fr auto; gap: 8px; align-items: baseline; }
+.compare-row.up .compare-delta { color: var(--good); }
+.compare-row.down .compare-delta { color: var(--bad); }
+.compare-power { font-weight: 800; }
+.compare-power.up { color: var(--good); }
+.compare-power.down { color: var(--bad); }

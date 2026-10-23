@@ -66,6 +66,7 @@ export const api = {
   renameTeam: (slot: number, name: string) => request<ProfileDTO>('PUT', `/teams/${slot}`, { name }),
   levelUp: (charId: string, count = 1) => request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/level-up`, { count }),
   autoEquip: (charId: string) => request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/auto-equip`),
+  setGearSet: (charId: string, set: string | null) => request<ProfileDTO>('PUT', `/roster/${encodeURIComponent(charId)}/gear-set`, { set }),
   tower: () => request<TowerDTO>('GET', '/tower'),
   startTower: (floor: number) => request<StartBattleResponse>('POST', '/tower/battles', { floor }),
   ascend: (charId: string) => request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/ascend`),
@@ -109,6 +110,7 @@ export const api = {
     equip: (id: string, charId: string | null) => request<GearActionResponse>('POST', `/gear/${enc(id)}/equip`, { charId }),
     upgrade: (id: string) => request<GearActionResponse>('POST', `/gear/${enc(id)}/upgrade`),
     salvage: (id: string) => request<GearActionResponse>('POST', `/gear/${enc(id)}/salvage`),
+    lock: (id: string, locked: boolean) => request<GearActionResponse>('POST', `/gear/${enc(id)}/lock`, { locked }),
     reforge: (id: string, sub: number) => request<GearActionResponse>('POST', `/gear/${enc(id)}/reforge`, { sub }),
   },
 

@@ -1,7 +1,7 @@
 import type { OwnedCharacterDTO } from '@gacha/shared';
 import type { Database } from '../db/database';
 
-const COLUMNS = 'char_id AS id, level, copies, ascension, skill_level AS skillLevel, ult_level AS ultLevel';
+const COLUMNS = 'char_id AS id, level, copies, ascension, skill_level AS skillLevel, ult_level AS ultLevel, gear_set AS gearSet';
 
 export class RosterRepo {
   constructor(private readonly db: Database) {}
@@ -38,6 +38,10 @@ export class RosterRepo {
 
   setCopies(userId: string, charId: string, copies: number) {
     this.db.run('UPDATE characters SET copies = ? WHERE user_id = ? AND char_id = ?', copies, userId, charId);
+  }
+
+  setGearSet(userId: string, charId: string, set: string | null) {
+    this.db.run('UPDATE characters SET gear_set = ? WHERE user_id = ? AND char_id = ?', set, userId, charId);
   }
 
   setLevel(userId: string, charId: string, level: number) {

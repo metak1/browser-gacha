@@ -297,6 +297,11 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE gear ADD COLUMN set_id TEXT;
   `,
+  // v14: locked gear (safe from salvage), and the gear set auto-equip aims for per hero.
+  `
+  ALTER TABLE gear ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE characters ADD COLUMN gear_set TEXT;
+  `,
 ];
 
 export function migrate(db: DatabaseSync) {

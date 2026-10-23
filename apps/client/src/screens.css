@@ -582,3 +582,8 @@ html .btn.danger {
   box-shadow: inset 0 -4px 0 #9a2a3a, inset 0 3px 0 #ff9aa6, 0 3px 0 #05060f;
 }
 html .btn.danger:hover:not(:disabled) { background: #e85a6c; }
+
+/* Gear bag filters, and the hero sheet's target-set picker. */
+.gear-filters { margin-top: 6px; align-items: center; }
+.gear-count { margin: 4px 0 8px; }
+.gear-head-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }

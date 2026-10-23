@@ -21,6 +21,8 @@ export interface OwnedCharacterDTO {
   ascension: number;
   skillLevel: number;
   ultLevel: number;
+  /** The gear set auto-equip aims for on this hero (null = whatever is strongest). */
+  gearSet: string | null;
 }
 
 /** The tower page: your best floor and the leaderboard. */
@@ -57,7 +59,6 @@ export interface ProfileDTO {
   stageStars: Record<string, number>;
   /** Claimed chapter chests, as "chapterId:stars". */
   claimedChests: string[];
-  /** Winning dungeon runs today, by dungeon id. */
   stamina: StaminaState;
   /** One-time markers on the account, e.g. "tutorial-battle" once the battle tutorial is done. */
   flags: string[];

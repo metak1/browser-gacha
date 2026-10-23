@@ -97,7 +97,7 @@ describe('gear', () => {
   it('auto-equip completes a set when the bonus outweighs a stronger single piece', () => {
     const sets = content.gearSetsById;
     const item = (id: string, slot: GearItem['slot'], set: string, atk: number): GearItem => ({
-      id, templateId: 'x', slot, rarity: 4, level: 0, mainBase: 0, main: { stat: 'atk', value: atk }, subs: [], equippedTo: null, set,
+      id, templateId: 'x', slot, rarity: 4, level: 0, mainBase: 0, main: { stat: 'atk', value: atk }, subs: [], equippedTo: null, set, locked: false,
     });
     const bag = [
       item('w', 'weapon', 'fury', 10), item('a', 'armor', 'fury', 10), item('c', 'charm', 'fury', 10),

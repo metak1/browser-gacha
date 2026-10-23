@@ -12,6 +12,7 @@ import {
   type ArenaStatusDTO,
   type CompleteBattleResponse,
   type GearActionResponse,
+  type GearSlot,
   type ProfileDTO,
   type StartBattleResponse,
 } from '@gacha/shared';
@@ -314,7 +315,7 @@ describe('roster tools and the tower', () => {
     const [a, b] = profile.team as [string, string];
     const weapon = (id: string, atk: number) => ({
       id, templateId: 'runed-saber', slot: 'weapon' as const, rarity: 4 as const, level: 0, mainBase: atk,
-      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null, set: null,
+      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null, set: null, locked: false,
     });
     ctx.gear.insert(profile.user.id, weapon('weak', 10), clock);
     ctx.gear.insert(profile.user.id, weapon('strong', 60), clock);
@@ -329,6 +330,59 @@ describe('roster tools and the tower', () => {
     expect(gear.find((g) => g.id === 'weak')!.equippedTo).toBeNull();
   });
 
+  it('auto-equip completes the hero\'s target set before taking stronger pieces of other sets', async () => {
+    const { call, profile } = await guest();
+    const ctx = ctxOf();
+    const hero = profile.team[0]!;
+    const piece = (id: string, slot: GearSlot, set: string, atk: number) => ({
+      id, templateId: 'runed-saber', slot, rarity: 4 as const, level: 0, mainBase: atk,
+      main: { stat: 'atk' as const, value: atk }, subs: [], equippedTo: null, set, locked: false,
+    });
+    for (const slot of ['weapon', 'armor', 'charm', 'boots'] as const) {
+      ctx.gear.insert(profile.user.id, piece(`gale-${slot}`, slot, 'gale', 5), clock);
+      ctx.gear.insert(profile.user.id, piece(`ruin-${slot}`, slot, 'ruin', 80), clock);
+    }
+    // Without a target, raw ATK wins.
+    await call('POST', `/roster/${hero}/auto-equip`);
+    expect(ctx.gear.equippedOn(profile.user.id, hero).every((g) => g.set === 'ruin')).toBe(true);
+
+    expect((await call('PUT', `/roster/${hero}/gear-set`, { set: 'nope' })).status).toBe(400);
+    const set = await call<ProfileDTO>('PUT', `/roster/${hero}/gear-set`, { set: 'gale' });
+    expect(set.body.roster.find((c) => c.id === hero)!.gearSet).toBe('gale');
+    await call('POST', `/roster/${hero}/auto-equip`);
+    const worn = ctx.gear.equippedOn(profile.user.id, hero);
+    expect(worn).toHaveLength(4);
+    expect(worn.every((g) => g.set === 'gale')).toBe(true);
+
+    // Back to "strongest".
+    await call('PUT', `/roster/${hero}/gear-set`, { set: null });
+    await call('POST', `/roster/${hero}/auto-equip`);
+    expect(ctx.gear.equippedOn(profile.user.id, hero).every((g) => g.set === 'ruin')).toBe(true);
+  });
+
+  it('locked gear cannot be salvaged, singly or in bulk', async () => {
+    const { call, profile } = await guest();
+    const ctx = ctxOf();
+    const ids = ['00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2'];
+    for (const id of ids) {
+      ctx.gear.insert(profile.user.id, {
+        id, templateId: 'runed-saber', slot: 'weapon', rarity: 3, level: 0, mainBase: 10,
+        main: { stat: 'atk', value: 10 }, subs: [], equippedTo: null, set: null, locked: false,
+      }, clock);
+    }
+    const lock = await call<GearActionResponse>('POST', `/gear/${ids[0]}/lock`, { locked: true });
+    expect(lock.body.item!.locked).toBe(true);
+    expect(lock.body.profile.gear.find((g) => g.id === ids[0])!.locked).toBe(true);
+    expect((await call('POST', `/gear/${ids[0]}/salvage`)).status).toBe(409);
+
+    const bulk = await call<{ salvaged: { count: number } }>('POST', '/gear/salvage-bulk', { maxRarity: 3 });
+    expect(bulk.body.salvaged.count).toBe(1);
+    expect(ctx.gear.list(profile.user.id).map((g) => g.id)).toEqual([ids[0]]);
+
+    await call('POST', `/gear/${ids[0]}/lock`, { locked: false });
+    expect((await call('POST', `/gear/${ids[0]}/salvage`)).status).toBe(200);
+  });
+
   it('reforges gear randomly for stones and gold, and salvage pays stones', async () => {
     const BLADE = '00000000-0000-4000-8000-000000000001';
     const { call, profile } = await guest();
@@ -336,7 +390,7 @@ describe('roster tools and the tower', () => {
     const r = createDefaultContent().settings.reforge;
     ctx.gear.insert(profile.user.id, {
       id: BLADE, templateId: 'starforged-edge', slot: 'weapon', rarity: 5, level: 0, mainBase: 40,
-      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null, set: null,
+      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null, set: null, locked: false,
     }, clock);
 
     // Gold is checked first, then stones.

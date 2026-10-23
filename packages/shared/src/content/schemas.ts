@@ -326,7 +326,7 @@ export const DEFAULT_GUILD = {
   ],
 };
 
-export const DEFAULT_STAMINA = { max: 120, regenMinutes: 5, campaignCost: 10, hardCost: 10, refillGems: 50, refillAmount: 60 };
+export const DEFAULT_STAMINA = { max: 200, regenMinutes: 5, campaignCost: 10, hardCost: 10, refillGems: 50, refillAmount: 60 };
 export const DEFAULT_UNLOCKS = { arena: '1-4', dungeons: '2-1', tower: '2-4' };
 
 export const DEFAULT_HARD_MODE = { enabled: true, levelBonus: 10, statMult: 1.2, rewardMult: 2, gearChanceMult: 1.5, firstClearGems: 100 };

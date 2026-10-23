@@ -4,7 +4,7 @@ import { DEFAULT_STAMINA } from './schemas';
 import type { ContentBundle, EncounterEnemy } from './types';
 
 /** Bump when a new upgrade step is added below. */
-export const CONTENT_SCHEMA_VERSION = 27;
+export const CONTENT_SCHEMA_VERSION = 28;
 
 /**
  * Brings content saved by an older version of the game up to date by merging
@@ -662,6 +662,15 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
     const p = b.settings.playerLevel;
     if (b.settings.stamina.campaignCost === 10 && p.xpPerStamina === 10) {
       p.xpPerStamina = 6;
+      changed = true;
+    }
+  }
+
+  if (fromVersion < 28) {
+    // v28: max stamina 120 -> 200, so players who check in two or three times a day don't lose
+    // regen to a full bar. Only the old default changes.
+    if (b.settings.stamina.max === 120) {
+      b.settings.stamina.max = DEFAULT_STAMINA.max;
       changed = true;
     }
   }

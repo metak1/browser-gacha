@@ -29,7 +29,7 @@ Other commands:
 | `npm run max-heroes` | Dev cheat: maxes every hero a player owns (level, ascension, skill and ultimate levels, C6). Never lowers anything. With no name it picks whoever played most recently. Add `--no-constellation` to leave constellations alone. Run `grant-all` first to max the whole roster. |
 | `npm run reset-password` | Sets a new password for a linked account: `npm run reset-password -- <username> <new password>` (8+ characters). |
 | `npm run assets`    | Imports art from `asset-packs/` (sprite strips and the icon sheet) into the client and regenerates the sprite manifest. Re-run after adding packs. |
-| `npm run balance`   | Auto-battles every stage of the *default* content at several levels and prints win rates and 3★ rates (`win% / 3★%`). For live content, use the stage simulator in the admin panel. Heroes are ascended as their level needs. Pass a team: `npm run balance -- zephyr,gaia,marina,yuki`, and add `--hard` (hard mode) or `--dungeons` (dungeon tiers) |
+| `npm run balance`   | Auto-battles every stage of the *default* content at several levels and prints win rates and 3★ rates (`win% / 3★%`). For live content, use the stage simulator in the admin panel. Heroes are ascended as their level needs. Pass a team: `npm run balance -- zephyr,gaia,marina,yuki`, and add `--hard` (hard mode) or `--dungeons` (dungeon tiers). `--progression` models a free player day by day and prints how many days each chapter takes under the current stamina rules and a few alternatives |
 
 Server environment variables: `PORT` (3000), `HOST`, `DB_PATH` (`apps/server/data/game.db`), `COOKIE_SECURE=true` (set this behind HTTPS), and `LOG=false`.
 
@@ -107,6 +107,9 @@ A mission can be one-time or daily; daily missions reset at 00:00 UTC.
   - Battles always use the active team. Switching saves the current team into its own slot first, so nothing is lost. (Stored in `team_presets`; the active team stays in `teams`, DB migration v10.)
 - **Level up in bulk:** next to Level up, "+5" and "To Lv N" buttons show the levels and total gold you can afford (up to the cap). The server does them in one go (`POST /roster/:id/level-up { count }`), and each level counts for missions.
 - **Auto-equip:** the hero's Gear header has an "Auto-equip" button that shows the power it would add. It puts the best gear from your bag in each slot, judged by the hero's resulting stats. Gear worn by another hero is never taken. When nothing would improve, it says "already best".
+  - **Aim for a set:** next to it, "Aim for" picks a gear set per hero (saved on the account). Auto-equip then puts a piece of that set in every slot it can, and the strongest gear in the rest, even if that costs some raw power.
+- **Gear lock:** 🔒 Lock on any item (in the bag or on the loot screen) protects it: it can't be salvaged or sold, and bulk salvage and Sell all skip it. Locked items show a 🔒 on their tile.
+- **Gear bag filters:** besides slot and sort, filter by set, main stat, rarity, and worn / free / locked, with a count of matching items and a Clear button.
 - **Roster:** your heroes first, sorted by power (final stats with gear), level, rarity, element or name (the choice is remembered on the device). Filter by rarity and element.
   - Heroes you haven't found yet are in a collapsible **Collection** section underneath.
 - **Ascension:** heroes start with a level cap of 20. Ascending costs gold, essence of the hero's own element, and Star Crystals at higher ranks. Each ascension raises the cap (30 → 40 → 50 → 60) and adds a permanent HP/ATK/DEF bonus.
@@ -247,7 +250,8 @@ The whole game uses a pixel-art look to match the Tiny RPG sprites. Sound and mu
   | 🌪️ Windspire | Fury, Gale | Swift: enemies have +10% SPD and a big head start |
 
   - **Random sets:** there is no set choice. Each drop is one of the dungeon's two sets at random, with a random slot, main stat and bonus stats.
-  - **Loot screen:** after a win or a sweep, tap any item to inspect its set, main stat and bonus stats, then keep or sell it. Selling is salvaging: gold, plus reforge stones for ★4/★5. **Sell all** sells the whole haul.
+  - **Loot screen:** after a win or a sweep, tap any item to inspect its set, main stat and bonus stats, then keep or sell it. Selling is salvaging: gold, plus reforge stones for ★4/★5. **Sell all** sells the whole haul, except locked or equipped items.
+    - **Compare:** the inspect panel compares the item on a hero (by default whoever in your team it helps most; any hero can be picked): what it replaces, each stat that changes, and the power difference. **Equip on …** puts it on right there, and **Lock** keeps it safe.
   - **Tiers:** the same for all three (enemy levels differ per dungeon):
 
     | Tier | Recommended | Gear per win | Rarity odds |
@@ -393,7 +397,7 @@ The builds live in [builds.ts](packages/shared/src/builds.ts).
 
 ## Stamina, sweep and repeat
 
-- **Stamina:** every level costs ⚡10: campaign, hard mode, events and every dungeon tier. Wins give 6 XP per stamina spent (60 XP a run). Stamina regenerates 1 point every 5 minutes up to 120.
+- **Stamina:** every level costs ⚡10: campaign, hard mode, events and every dungeon tier. Wins give 6 XP per stamina spent (60 XP a run). Stamina regenerates 1 point every 5 minutes up to 200 (raised from 120 by content upgrade v28, so checking in two or three times a day loses nothing to a full bar).
   - Losing a battle refunds it.
   - Click the ⚡ counter in the top bar to buy +60 for 50 gems. Refills can go above the max.
   - Dungeons cost stamina too (⚡10 a run), and wins give XP per stamina spent like the campaign. There is no daily run limit.

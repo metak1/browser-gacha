@@ -78,6 +78,22 @@ export class GearService {
   }
 
   /** Puts the best free gear on a hero, slot by slot (see bestLoadout). Returns how many pieces changed. */
+  /** Locks or unlocks an item; locked gear is safe from salvage. */
+  setLocked(userId: string, gearId: string, locked: boolean): GearItem {
+    const { gear } = this.ctx;
+    if (!gear.get(userId, gearId)) throw notFound('Gear not found');
+    gear.setLocked(userId, gearId, locked);
+    return gear.get(userId, gearId)!;
+  }
+
+  /** The gear set auto-equip aims for on a hero (null = whatever is strongest). */
+  setTargetSet(userId: string, charId: string, set: string | null) {
+    const { roster, content } = this.ctx;
+    if (!roster.get(userId, charId)) throw badRequest('invalid_character', `You don't own ${charId}`);
+    if (set && !content.current.gearSetsById[set]) throw badRequest('invalid_set', 'Unknown gear set');
+    roster.setGearSet(userId, charId, set);
+  }
+
   autoEquip(userId: string, charId: string): number {
     const { db, gear, roster, content } = this.ctx;
     const c = content.current.charactersById[charId];
@@ -87,7 +103,9 @@ export class GearService {
       const prog = content.current.settings.progression;
       const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(prog, owned.ascension));
       const combat = applyPassiveCombat(roleCombat(c.role), c.passive);
-      const plan = bestLoadout(base, gear.list(userId), charId, content.current.gearSetsById, combat).filter((s) => s.best && s.best.id !== s.current?.id);
+      const sets = content.current.gearSetsById;
+      const target = owned.gearSet && sets[owned.gearSet] ? owned.gearSet : null;
+      const plan = bestLoadout(base, gear.list(userId), charId, sets, combat, target).filter((s) => s.best && s.best.id !== s.current?.id);
       for (const s of plan) {
         gear.unequipSlot(userId, charId, s.slot);
         gear.setEquipped(userId, s.best!.id, charId);
@@ -118,6 +136,7 @@ export class GearService {
     return db.transaction(() => {
       const item = gear.get(userId, gearId);
       if (!item) throw notFound('Gear not found');
+      if (item.locked) throw conflict('locked', 'Unlock this item before salvaging it');
       const gold = gearSalvageValue(content.current.settings, item);
       gear.delete(userId, gearId);
       users.adjustWallet(userId, { gold });
@@ -226,9 +245,9 @@ export class GearService {
         state.inventoryFull = true;
         return;
       }
-      // A chosen set overrides the template's (or the random) set.
+      // A given set (a gear dungeon's) overrides the template's (or the random) set.
       const source = set ? { ...template, set } : template;
-      const item: GearItem = { id: randomUUID(), ...rollGear(source, random, content.current.bundle.gearSets), equippedTo: null };
+      const item: GearItem = { id: randomUUID(), ...rollGear(source, random, content.current.bundle.gearSets), equippedTo: null, locked: false };
       gear.insert(userId, item, now());
       drops.push(item);
       state.count++;
@@ -239,7 +258,7 @@ export class GearService {
   salvageBulk(userId: string, maxRarity: number): SalvagedDTO {
     const { db, gear, users, content } = this.ctx;
     return db.transaction(() => {
-      const items = gear.list(userId).filter((g) => g.rarity <= maxRarity && g.level === 0 && !g.equippedTo);
+      const items = gear.list(userId).filter((g) => g.rarity <= maxRarity && g.level === 0 && !g.equippedTo && !g.locked);
       let gold = 0;
       let stones = 0;
       for (const item of items) {

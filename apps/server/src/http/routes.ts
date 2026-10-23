@@ -49,6 +49,8 @@ const gearParams = z.object({ gearId: z.string().uuid() });
 const equipBody = z.object({ charId: z.string().max(40).nullable() });
 const arenaStartBody = z.object({ opponentId: z.string().max(80) });
 const charParams = z.object({ charId: z.string().max(40) });
+const gearSetBody = z.object({ set: z.string().max(40).nullable() });
+const lockBody = z.object({ locked: z.boolean() });
 const prefsBody = z.object({ autoSalvage: z.union([z.literal(0), z.literal(3), z.literal(4)]).optional() });
 const bulkSalvageBody = z.object({ maxRarity: z.union([z.literal(3), z.literal(4)]) });
 const flagBody = z.object({ flag: z.string().regex(/^[a-z0-9-]{1,40}$/) });
@@ -187,6 +189,12 @@ export async function apiRoutes(app: FastifyInstance, opts: { config: AppConfig 
   app.post('/roster/:charId/level-up', async (request): Promise<ProfileDTO> => {
     const userId = requireUser(request);
     player.levelUp(userId, charParams.parse(request.params).charId, levelUpBody.parse(request.body ?? {}).count);
+    return player.profile(userId);
+  });
+
+  app.put('/roster/:charId/gear-set', async (request): Promise<ProfileDTO> => {
+    const userId = requireUser(request);
+    gear.setTargetSet(userId, charParams.parse(request.params).charId, gearSetBody.parse(request.body).set);
     return player.profile(userId);
   });
 
@@ -411,6 +419,12 @@ export async function apiRoutes(app: FastifyInstance, opts: { config: AppConfig 
   app.post('/gear/:gearId/upgrade', async (request): Promise<GearActionResponse> => {
     const userId = requireUser(request);
     const item = gear.upgrade(userId, gearParams.parse(request.params).gearId);
+    return { item, profile: player.profile(userId) };
+  });
+
+  app.post('/gear/:gearId/lock', async (request): Promise<GearActionResponse> => {
+    const userId = requireUser(request);
+    const item = gear.setLocked(userId, gearParams.parse(request.params).gearId, lockBody.parse(request.body).locked);
     return { item, profile: player.profile(userId) };
   });
 

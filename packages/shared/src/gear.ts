@@ -73,6 +73,8 @@ export interface GearItem {
   equippedTo: string | null;
   /** The gear set it belongs to (null on gear from before sets existed). */
   set: string | null;
+  /** Locked gear can't be salvaged or sold, singly or in bulk, until it's unlocked. */
+  locked: boolean;
 }
 
 /** Gear sets by id. */
@@ -124,7 +126,7 @@ export function mainStatValue(main: { mainStat: GearStat; mainBase: number }, le
  * Rolls a fresh item from a template: a main stat (the template's, or a random one from
  * the slot's pool when it has none), random bonus stats, and a set (the template's, or a random one).
  */
-export function rollGear(template: GearDef, rng: () => number, sets: GearSetDef[]): Omit<GearItem, 'id' | 'equippedTo'> {
+export function rollGear(template: GearDef, rng: () => number, sets: GearSetDef[]): Omit<GearItem, 'id' | 'equippedTo' | 'locked'> {
   const pool = MAIN_POOLS[template.slot];
   const mainStat = template.mainStat ?? pool[Math.floor(rng() * pool.length)]!;
   const mainBase = template.mainStat ? template.mainBase : mainBaseFor(mainStat, template.rarity);
@@ -167,7 +169,7 @@ export function pickGearTemplate(templates: GearDef[], weights: { r3: number; r4
 }
 
 /** Returns a copy of the item raised one level. */
-export function upgradeGear<T extends Omit<GearItem, 'id' | 'equippedTo'>>(item: T, rng: () => number): T {
+export function upgradeGear<T extends Omit<GearItem, 'id' | 'equippedTo' | 'locked'>>(item: T, rng: () => number): T {
   const next = structuredClone(item);
   next.level = item.level + 1;
   next.main = { stat: item.main.stat, value: mainStatValue({ mainStat: item.main.stat, mainBase: item.mainBase }, next.level) };
@@ -224,6 +226,8 @@ export function applyGearCombat(stats: CombatStats, gear: Worn[], sets: GearSets
  * The best gear a hero can wear from the bag. Slot by slot, it picks the piece that gives the
  * whole loadout the most power, set bonuses included; a second pass lets sets come together.
  * Only free gear (or the hero's own) is used, so auto-equip never takes gear off another hero.
+ * With a `targetSet`, every slot that has a free piece of that set takes the best such piece,
+ * so the set comes together first; the other slots get the best of anything.
  */
 export function bestLoadout(
   base: Stats,
@@ -231,6 +235,7 @@ export function bestLoadout(
   charId: string,
   sets: GearSets,
   combat: CombatStats = BASE_COMBAT,
+  targetSet: string | null = null,
 ): { slot: GearSlot; current: GearItem | null; best: GearItem | null }[] {
   const power = (items: GearItem[]) => statPower(applyGear(base, items, sets), applyGearCombat(combat, items, sets));
   const current = new Map(GEAR_SLOTS.map((slot) => [slot, gear.find((g) => g.slot === slot && g.equippedTo === charId) ?? null]));
@@ -240,11 +245,16 @@ export function bestLoadout(
       const g = s === slot ? item : pick.get(s);
       return g ? [g] : [];
     });
+  const free = (g: GearItem, slot: GearSlot) => g.slot === slot && (g.equippedTo === null || g.equippedTo === charId);
+  const inTarget = (slot: GearSlot) => (targetSet ? gear.filter((g) => free(g, slot) && g.set === targetSet) : []);
   for (let pass = 0; pass < 2; pass++) {
     for (const slot of GEAR_SLOTS) {
+      const target = inTarget(slot);
+      // A slot that can hold a target-set piece only considers those.
+      const candidates = target.length ? target : gear.filter((g) => free(g, slot));
+      if (target.length && !target.includes(pick.get(slot)!)) pick.set(slot, target[0]!);
       let bestPower = power(loadout(slot, pick.get(slot) ?? null));
-      for (const g of gear) {
-        if (g.slot !== slot || (g.equippedTo !== null && g.equippedTo !== charId)) continue;
+      for (const g of candidates) {
         const p = power(loadout(slot, g));
         if (p > bestPower) {
           pick.set(slot, g);

@@ -12,6 +12,7 @@ interface GearRow {
   subs: string;
   equipped_to: string | null;
   set_id: string | null;
+  locked: number;
 }
 
 const toItem = (r: GearRow): GearItem => ({
@@ -25,6 +26,7 @@ const toItem = (r: GearRow): GearItem => ({
   subs: JSON.parse(r.subs) as GearRoll[],
   equippedTo: r.equipped_to,
   set: r.set_id,
+  locked: r.locked === 1,
 });
 
 export class GearRepo {
@@ -69,6 +71,10 @@ export class GearRepo {
 
   unequipSlot(userId: string, charId: string, slot: GearSlot) {
     this.db.run('UPDATE gear SET equipped_to = NULL WHERE user_id = ? AND equipped_to = ? AND slot = ?', userId, charId, slot);
+  }
+
+  setLocked(userId: string, id: string, locked: boolean) {
+    this.db.run('UPDATE gear SET locked = ? WHERE user_id = ? AND id = ?', locked ? 1 : 0, userId, id);
   }
 
   delete(userId: string, id: string) {
