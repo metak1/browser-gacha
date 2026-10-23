@@ -10,6 +10,7 @@ import {
   buildBattleSetup,
   buildEncounterSetup,
   createDefaultContent,
+  dungeonMods,
   evaluateObjectives,
   indexContent,
   minRankForLevel,
@@ -107,7 +108,7 @@ if (args.includes('--calibrate')) {
   header();
   for (const d of content.bundle.dungeons) {
     d.tiers.forEach((tier, i) =>
-      row(`${d.id} ${i + 1}`, tier.recommendedLevel, (seed, level) => buildEncounterSetup(content, seed, members(level), tier), []),
+      row(`${d.id} ${i + 1}`, tier.recommendedLevel, (seed, level) => buildEncounterSetup(content, seed, members(level), tier, dungeonMods(d)), []),
     );
   }
 } else {

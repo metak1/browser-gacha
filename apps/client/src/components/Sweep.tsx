@@ -6,7 +6,7 @@ import { useContent } from '../state/content';
 import { useProfile } from '../state/profile';
 import { useToast } from '../state/toast';
 import { Icon } from './Art';
-import { GearChip } from './Gear';
+import { LootGear } from './Gear';
 import { MaterialChip } from './Materials';
 
 /** What to sweep, without the run count. */
@@ -14,7 +14,7 @@ export type SweepTarget = { kind: 'stage'; stageId: string; hard?: boolean } | {
 
 /**
  * Sweep buttons for one target: ×1 and ×max. `maxRuns` is what the player can
- * afford right now (stamina or runs left); the server caps it again.
+ * afford right now with stamina; the server caps it again.
  */
 export function SweepButtons({ target, maxRuns, costLabel }: { target: SweepTarget; maxRuns: number; costLabel: string }) {
   const { setProfile } = useProfile();
@@ -73,16 +73,7 @@ function SweepResultModal({ result, onClose }: { result: SweepResponse; onClose:
             ))}
           </div>
         )}
-        {result.drops.length > 0 && (
-          <div className="drops">
-            <small className="muted">Loot</small>
-            <div className="drop-row">
-              {result.drops.map((g) => (
-                <GearChip key={g.id} item={g} />
-              ))}
-            </div>
-          </div>
-        )}
+        <LootGear drops={result.drops} />
         {result.salvaged.count > 0 && (
           <p className="small muted">
             ♻️ Auto-salvaged {result.salvaged.count} item{result.salvaged.count === 1 ? '' : 's'} for 🪙 {result.salvaged.gold.toLocaleString()}

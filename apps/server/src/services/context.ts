@@ -2,7 +2,6 @@ import { randomInt } from 'node:crypto';
 import type { Database } from '../db/database';
 import { ArenaRepo } from '../repos/arena';
 import { ContentRepo } from '../repos/content';
-import { DungeonRepo } from '../repos/dungeons';
 import { EventRepo } from '../repos/events';
 import { GuildRepo } from '../repos/guilds';
 import { SocialRepo } from '../repos/social';
@@ -28,7 +27,6 @@ export interface ServiceContext {
   gear: GearRepo;
   arena: ArenaRepo;
   materials: MaterialRepo;
-  dungeons: DungeonRepo;
   social: SocialRepo;
   guilds: GuildRepo;
   events: EventRepo;
@@ -55,7 +53,6 @@ export function createContext(db: Database, overrides: ContextOverrides = {}): S
     gear: new GearRepo(db),
     arena: new ArenaRepo(db),
     materials: new MaterialRepo(db),
-    dungeons: new DungeonRepo(db),
     social: new SocialRepo(db),
     guilds: new GuildRepo(db),
     events: new EventRepo(db),

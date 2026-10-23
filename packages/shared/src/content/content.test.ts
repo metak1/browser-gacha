@@ -118,3 +118,80 @@ describe('boots', () => {
     expect(bundle.stages.find((s) => s.id === '2-1')!.drops.some((d) => d.gear === 'ranger-boots')).toBe(true);
   });
 });
+
+describe('the Armory', () => {
+  it('is added to older content, and a first-draft Armory gets the tuned enemy levels', () => {
+    const fresh = createDefaultContent();
+    const old = { ...fresh, dungeons: fresh.dungeons.filter((d) => d.id !== 'armory') };
+    const added = upgradeContent(old, 19).bundle.dungeons.find((d) => d.id === 'armory')!;
+    expect(added.tiers.every((t) => t.gearRolls && t.materialDrops.length === 0)).toBe(true);
+
+    const draft = createDefaultContent();
+    const a = draft.dungeons.find((d) => d.id === 'armory')!;
+    [12, 27, 42, 52].forEach((lv, i) => {
+      for (const e of [...a.tiers[i]!.enemies, ...a.tiers[i]!.waves.flat()]) e.level = lv;
+    });
+    const fixed = upgradeContent(draft, 20).bundle.dungeons.find((d) => d.id === 'armory')!;
+    expect(fixed.tiers.map((t) => t.enemies[0]!.level)).toEqual(createDefaultContent().dungeons.find((d) => d.id === 'armory')!.tiers.map((t) => t.enemies[0]!.level));
+  });
+});
+
+describe('gear dungeons', () => {
+  it('are three, always open, with two sets and a mechanic each, covering every set once', () => {
+    const gear = createDefaultContent().dungeons.filter((d) => d.tiers.some((t) => t.gearRolls));
+    expect(gear.map((d) => d.id)).toEqual(['armory', 'bastion', 'windspire']);
+    for (const d of gear) {
+      expect(d.days).toHaveLength(7);
+      expect(d.sets).toHaveLength(2);
+      expect(d.mechanic).toBeTruthy();
+    }
+    expect(new Set(gear.map((d) => d.mechanic)).size).toBe(3);
+    expect(gear.flatMap((d) => d.sets).sort()).toEqual(createDefaultContent().gearSets.map((s) => s.id).sort());
+  });
+
+  it('turns a v21 Armory into the crit-set dungeon and adds the other two', () => {
+    const b = createDefaultContent();
+    const v21 = structuredClone(b.dungeons.find((d) => d.id === 'armory')!);
+    Object.assign(v21, { sets: [], mechanic: null, description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.' });
+    v21.tiers = v21.tiers.map((t, i) => ({
+      ...t,
+      enemies: [
+        ['orc', 'black-knight', 'orc'],
+        ['minotaur', 'black-knight', 'orc-rider'],
+        ['storm-knight', 'magma-golem', 'storm-knight'],
+        ['black-knight', 'magma-golem', 'black-knight'],
+      ][i]!.map((id) => ({ id, level: [17, 34, 50, 60][i]! })),
+      waves: [[], [['orc', 'orc', 'orc']], [['minotaur', 'black-knight', 'minotaur']], [['orc', 'warlord', 'orc']]][i]!.map((w) => w.map((id) => ({ id, level: [17, 34, 50, 60][i]! }))),
+    }));
+    b.dungeons = [...b.dungeons.filter((d) => !['armory', 'bastion', 'windspire'].includes(d.id)), v21];
+    const { bundle } = upgradeContent(b, 21);
+    const def = createDefaultContent();
+    for (const id of ['armory', 'bastion', 'windspire']) {
+      expect(bundle.dungeons.find((d) => d.id === id)).toEqual(def.dungeons.find((d) => d.id === id));
+    }
+  });
+
+  it('moves every level to 10 stamina, keeping XP per campaign win and edited costs', () => {
+    const b = createDefaultContent();
+    // As v25 left it: dungeon tiers 8/12/16/20, campaign 6, hard 12, 10 XP per stamina.
+    for (const d of b.dungeons) d.tiers.forEach((t, i) => (t.stamina = [8, 12, 16, 20][i]!));
+    b.dungeons.find((d) => d.id === 'armory')!.tiers[3]!.stamina = 25; // edited by an admin
+    Object.assign(b.settings.stamina, { campaignCost: 6, hardCost: 12 });
+    b.settings.playerLevel.xpPerStamina = 10;
+    const { bundle } = upgradeContent(b, 25);
+    expect(bundle.dungeons.find((d) => d.id === 'armory')!.tiers.map((t) => t.stamina)).toEqual([10, 10, 10, 25]);
+    expect(bundle.dungeons.find((d) => d.id === 'ember-forge')!.tiers.map((t) => t.stamina)).toEqual([10, 10, 10]);
+    expect(bundle.settings.stamina).toMatchObject({ campaignCost: 10, hardCost: 10 });
+    expect(bundle.settings.stamina.campaignCost * bundle.settings.playerLevel.xpPerStamina).toBe(60);
+  });
+
+  it('drops the "bring …" advice from v23 descriptions but keeps edited ones', () => {
+    const b = createDefaultContent();
+    b.dungeons.find((d) => d.id === 'armory')!.description =
+      'Crit gear (Precision, Ruin). Its armoured guards shrug off weak hits: bring piercing, DEF Down, or damage that scales with HP or DEF.';
+    b.dungeons.find((d) => d.id === 'bastion')!.description = 'My own text.';
+    const { bundle } = upgradeContent(b, 23);
+    expect(bundle.dungeons.find((d) => d.id === 'armory')!.description).toBe('Crit gear: Precision and Ruin. Its armoured guards shrug off weak hits.');
+    expect(bundle.dungeons.find((d) => d.id === 'bastion')!.description).toBe('My own text.');
+  });
+});

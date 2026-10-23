@@ -201,7 +201,8 @@ describe('progression upgrade', () => {
     expect(c.chapters.map((x) => x.id)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(c.stagesById['6-4']!.waves).toHaveLength(1);
     expect(c.enemiesById['thunderbird']).toBeDefined();
-    expect(c.bundle.dungeons).toHaveLength(6);
+    // Six elemental dungeons (v6) and three gear dungeons (v20, v22).
+    expect(c.bundle.dungeons).toHaveLength(9);
     expect(c.missionsById['daily-dungeon']).toBeDefined();
     expect(c.missionsById['storm-breaker']).toBeDefined();
     // v7: sprite heroes, their banner, and sprites for enemies.

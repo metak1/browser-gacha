@@ -386,7 +386,8 @@ export async function apiRoutes(app: FastifyInstance, opts: { config: AppConfig 
   app.post('/dungeons/:dungeonId/battles', async (request): Promise<StartBattleResponse> => {
     const userId = requireUser(request);
     const { dungeonId } = dungeonParams.parse(request.params);
-    const { battleId, setup } = battle.startDungeon(userId, dungeonId, dungeonBody.parse(request.body).tier);
+    const body = dungeonBody.parse(request.body);
+    const { battleId, setup } = battle.startDungeon(userId, dungeonId, body.tier);
     return { battleId, mode: 'dungeon', stageId: null, setup };
   });
 

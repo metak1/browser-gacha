@@ -165,7 +165,7 @@ The whole game uses a pixel-art look to match the Tiny RPG sprites. Sound and mu
 - **Music:** [music.ts](apps/client/src/audio/music.ts) generates looping chiptune tracks: a calm lobby loop, a battle beat, and a tense boss track for any fight with a boss. Tracks cross-fade. It starts after the first click or keypress, as browsers require. Toggle music and sound from the ⚙ menu.
 - **Navigation** ([Nav.tsx](apps/client/src/components/Nav.tsx)):
   - Desktop: Home · Play ▾ · Summon · Heroes · Missions · Social, then the counters, the ⚙ menu (music, sound, account, admin) and the account chip.
-  - **Play** opens a menu of game modes with a status line each: the next campaign stage, the running event and its currency, dungeons open today with runs left, and lock requirements.
+  - **Play** opens a menu of game modes with a status line each: the next campaign stage, the running event and its currency, dungeons open today, and lock requirements.
   - Phones get a bottom tab bar (Home, Play, Summon, Heroes, More). Play and More open sheets from the bottom.
   - Red badges show what's waiting: the daily reward on Home, missions to claim, and friend requests plus guild attacks left on Social. The server sends the social counts as `profile.notices`.
 - **Phones:** the top bar is a single row of counters, the lobby is taller so the buttons don't cover the team, and the battle HUD uses compact portraits with the skill text above the action buttons.
@@ -233,10 +233,34 @@ The whole game uses a pixel-art look to match the Tiny RPG sprites. Sound and mu
   - Rewards: ×2 gold and materials, ×1.5 gear drop chance, and 100 gems on each first hard clear.
   - Hard mode has no stars; clears are tracked separately (as `hard:1-1`).
   - Every number is under **Admin → Settings → Hard mode & dungeons**.
+- **Two tabs:** the Dungeons page has a header panel with two tabs, **⚔️ Gear** (the default) and **✨ Essence** (`/dungeons?tab=essence`). Leaving a fight goes back to the tab that dungeon is on.
 - **Daily dungeons:** six elemental dungeons, one per weekday from Monday to Saturday, and all of them open on Sunday (UTC). Each is the place to farm that element's essence.
   - Three tiers (recommended Lv 10/25/45). Each tier unlocks after the one before it is cleared, and the top tiers add Skill Tomes and Star Crystals.
-  - 3 winning runs per dungeon per day; losses are free.
+  - No daily limit: each run costs ⚡10 like every other level, paid at the start and refunded on a loss. Set it per tier in **Admin → Dungeons → Stamina per run**.
   - Edit them in **Admin → Dungeons**: days, tiers, enemies, waves and drops.
+- **Gear dungeons:** three dungeons that are open every day and drop **only gear** (no essence, a little gold). Each drops two gear sets and has its own hidden enemy mechanic (the same challenges as the tower; it isn't shown on the page, so players find out in the fight):
+
+  | Dungeon | Sets | Mechanic |
+  |---|---|---|
+  | 🪓 The Armory | Precision, Ruin | Ironhide: enemies have 2.5× DEF and +10% HP |
+  | 🏰 The Bastion | Vitality, Bulwark | Empowered: enemies start with ATK Up and DEF Up, and may buff again each turn |
+  | 🌪️ Windspire | Fury, Gale | Swift: enemies have +10% SPD and a big head start |
+
+  - **Random sets:** there is no set choice. Each drop is one of the dungeon's two sets at random, with a random slot, main stat and bonus stats.
+  - **Loot screen:** after a win or a sweep, tap any item to inspect its set, main stat and bonus stats, then keep or sell it. Selling is salvaging: gold, plus reforge stones for ★4/★5. **Sell all** sells the whole haul.
+  - **Tiers:** the same for all three (enemy levels differ per dungeon):
+
+    | Tier | Recommended | Gear per win | Rarity odds |
+    |---|---|---|---|
+    | I | Lv 15 | 2 | ★3 60% · ★4 40% |
+    | II | Lv 30 | 2 | ★3 20% · ★4 65% · ★5 15% |
+    | III | Lv 45 | 3 | ★4 60% · ★5 40% |
+    | IV | Lv 55 | 3 | ★4 30% · ★5 70% |
+
+  - **Rules:** same ⚡10 per run as every other level. Auto-salvage and the gear bag limit apply.
+  - **Tuning:** enemy levels were tuned with `npm run balance -- --dungeons` (mechanic included) so each tier is winnable around its recommended level.
+  - **Editing:** any dungeon tier can become a gear tier. In **Admin → Dungeons**, **Gear drops** sets gear per win and rarity weights, **Gear sets dropped** sets which sets drop, and **Mechanic** sets the enemy challenge.
+  - **Upgrades:** content upgrade v20 adds the Armory, and v21 fixes its first-draft levels. v22 narrows the Armory to Precision/Ruin with Ironhide and adds the Bastion and Windspire. v23 finishes v22 for content left in an in-between state. v24 removes the "bring …" advice from their descriptions. v25 replaces the daily run limit with a stamina cost per tier. v26 sets every level to ⚡10 (costs still on their old defaults), and v27 lowers XP per stamina from 10 to 6 so a campaign win still gives 60 XP. Edited dungeons are left alone.
 - **New missions:** boss clears for chapters 4–6, daily and lifetime dungeon runs, and hard-mode clears.
 
 ## Endless tower
@@ -369,11 +393,11 @@ The builds live in [builds.ts](packages/shared/src/builds.ts).
 
 ## Stamina, sweep and repeat
 
-- **Stamina:** each campaign battle costs ⚡6 (⚡12 on hard). Stamina regenerates 1 point every 5 minutes up to 120.
+- **Stamina:** every level costs ⚡10: campaign, hard mode, events and every dungeon tier. Wins give 6 XP per stamina spent (60 XP a run). Stamina regenerates 1 point every 5 minutes up to 120.
   - Losing a battle refunds it.
   - Click the ⚡ counter in the top bar to buy +60 for 50 gems. Refills can go above the max.
-  - Dungeons don't use stamina; they have daily runs instead.
-- **Sweep:** once a stage has every star (or is cleared on hard), **⏩ Sweep** repeats it instantly for the same loot, at the same stamina cost per run. Cleared dungeon tiers can be swept too, using daily runs. One sweep does up to 10 runs.
+  - Dungeons cost stamina too (⚡10 a run), and wins give XP per stamina spent like the campaign. There is no daily run limit.
+- **Sweep:** once a stage has every star (or is cleared on hard), **⏩ Sweep** repeats it instantly for the same loot, at the same stamina cost per run. Cleared dungeon tiers can be swept too, for their stamina cost per run. One sweep does up to 10 runs.
 - **Battle speed** goes up to 3×.
 - **🔁 Repeat:** after an auto victory, the next run starts after a 3-second countdown. It stops on a defeat, when you can't afford another run, or when you press Stop.
 - Tune it all in **Admin → Settings → Stamina**, plus "Most runs per sweep" under Hard mode & dungeons.

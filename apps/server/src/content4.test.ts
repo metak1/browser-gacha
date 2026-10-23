@@ -64,7 +64,7 @@ describe('hard mode', () => {
 });
 
 describe('dungeons', () => {
-  it('respects open days, tier order and the daily run limit', async () => {
+  it('respects open days and tier order, and costs stamina per run with no daily limit', async () => {
     const { call, profile, ctx } = await strongGuest();
     expect((await call('POST', '/dungeons/tidal-grotto/battles', { tier: 0 })).status).toBe(400); // locked until 2-1
     ctx.progress.recordClear(profile.user.id, '2-1', clock);
@@ -72,22 +72,30 @@ describe('dungeons', () => {
     expect((await call('POST', '/dungeons/tidal-grotto/battles', { tier: 1 })).status).toBe(400);
     expect((await call('POST', '/dungeons/nope/battles', { tier: 0 })).status).toBe(404);
 
-    let last: CompleteBattleResponse | undefined;
-    for (let i = 0; i < 3; i++) {
+    // At max level, so no level-up refunds stamina mid-test.
+    ctx.users.setXp(profile.user.id, 10_000_000);
+    const cost = app.services.content.current.dungeonsById['tidal-grotto']!.tiers[0]!.stamina;
+    expect(cost).toBe(10);
+    // More wins than the old limit of 3 a day.
+    for (let i = 0; i < 4; i++) {
+      const before = (await call<ProfileDTO>('GET', '/me')).body.stamina.current;
       const { state, result } = await play(call, await call<StartBattleResponse>('POST', '/dungeons/tidal-grotto/battles', { tier: 0 }));
       expect(state.outcome).toBe('victory');
-      expect(result.dungeon).toEqual({ id: 'tidal-grotto', tier: 0, runsLeft: 2 - i });
+      expect(result.dungeon).toEqual({ id: 'tidal-grotto', tier: 0 });
       expect(result.materials.some((m) => m.id === 'tide-essence')).toBe(true);
-      last = result;
+      expect(result.profile.stamina.current).toBe(before - cost);
     }
-    expect(last!.profile.dungeonRuns['tidal-grotto']).toBe(3);
-    expect((await call('POST', '/dungeons/tidal-grotto/battles', { tier: 0 })).status).toBe(400);
+    ctx.users.setStamina(profile.user.id, cost - 1, clock);
+    const broke = await call<{ error: string }>('POST', '/dungeons/tidal-grotto/battles', { tier: 0 });
+    expect(broke.status).toBe(400);
+    expect(broke.body.error).toBe('no_stamina');
+    ctx.users.setStamina(profile.user.id, 120, clock);
 
-    // Tier 2 unlocked by the clear; runs reset the next day.
+    // Tier 2 unlocked by the clear; the next day another dungeon is open.
     clock += 24 * 3600 * 1000; // Wednesday: Sky Nest instead
     expect((await call('POST', '/dungeons/tidal-grotto/battles', { tier: 0 })).status).toBe(400);
     expect((await call('POST', '/dungeons/sky-nest/battles', { tier: 0 })).status).toBe(200);
     const missions = await call<{ id: string; progress: number }[]>('GET', '/missions');
-    expect(missions.body.find((m) => m.id === 'dungeon-regular')?.progress).toBe(3);
+    expect(missions.body.find((m) => m.id === 'dungeon-regular')?.progress).toBe(4);
   });
 });

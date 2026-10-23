@@ -33,7 +33,7 @@ describe('stamina', () => {
     expect(profile.stamina).toEqual({ current: 120, max: 120, nextAt: null });
 
     const start = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
-    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(114);
+    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(110);
 
     // Lose on purpose: level-1 heroes against the 1-4 boss.
     ctx.db.run("UPDATE characters SET level = 1 WHERE user_id = ?", profile.user.id);
@@ -42,12 +42,12 @@ describe('stamina', () => {
     const played = autoBattle(hard.body.setup);
     expect(played.state.outcome).toBe('defeat');
     const lost = await call<CompleteBattleResponse>('POST', `/battles/${hard.body.battleId}/complete`, { actions: played.actions });
-    expect(lost.body.profile.stamina.current).toBe(114); // refunded
+    expect(lost.body.profile.stamina.current).toBe(110); // refunded
     expect(lost.body.profile.stamina.nextAt).toBe(clock + 5 * 60_000);
     expect(start.status).toBe(200);
 
     clock += 12 * 60_000; // two points
-    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(116);
+    expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(112);
   });
 
   it('blocks battles without stamina and refills for gems', async () => {
@@ -78,27 +78,30 @@ describe('sweep', () => {
     expect(res.body.rewards.gold).toBe(5 * app.services.content.current.stagesById['1-1']!.gold);
     expect(res.body.profile.wallet.gold).toBe(gold + res.body.rewards.gold);
     // Sweeping earns XP; any level ups refund some stamina.
-    expect(res.body.profile.stamina.current).toBe(120 - 30 + (res.body.xp?.reward.stamina ?? 0));
-    expect(res.body.xp?.gained).toBe(5 * 6 * 10);
+    expect(res.body.profile.stamina.current).toBe(120 - 50 + (res.body.xp?.reward.stamina ?? 0));
+    expect(res.body.xp?.gained).toBe(5 * 10 * 6);
     expect(res.body.profile.stageStars['1-1']).toBe(3);
 
     // Capped by stamina (at max level, so no level-up refunds stamina mid-test).
     ctx.users.setXp(profile.user.id, 10_000_000);
-    ctx.users.setStamina(profile.user.id, 13, clock);
+    ctx.users.setStamina(profile.user.id, 25, clock);
     expect((await sweep(10)).body.runs).toBe(2);
     expect((await sweep(1)).status).toBe(400);
   });
 
-  it('sweeps cleared dungeon tiers using daily runs', async () => {
+  it('sweeps cleared dungeon tiers for stamina per run', async () => {
     const { call, profile, ctx } = await guest();
     const sweep = (count: number) => call<SweepResponse>('POST', '/sweep', { kind: 'dungeon', dungeonId: 'tidal-grotto', tier: 0, count });
     ctx.progress.recordClear(profile.user.id, 'dungeon:tidal-grotto:0', clock);
     expect((await sweep(1)).status).toBe(400); // dungeons still locked
     ctx.progress.recordClear(profile.user.id, '2-1', clock);
+    // At max level, so no level-up refunds stamina mid-test. A run costs 10: 25 stamina pays for 2.
+    ctx.users.setXp(profile.user.id, 10_000_000);
+    ctx.users.setStamina(profile.user.id, 25, clock);
     const res = await sweep(10);
-    expect(res.body.runs).toBe(3);
-    expect(res.body.materials.find((m) => m.id === 'tide-essence')!.count).toBeGreaterThanOrEqual(6);
-    expect(res.body.profile.dungeonRuns['tidal-grotto']).toBe(3);
+    expect(res.body.runs).toBe(2);
+    expect(res.body.profile.stamina.current).toBe(5);
+    expect(res.body.materials.find((m) => m.id === 'tide-essence')!.count).toBeGreaterThanOrEqual(4);
     expect((await sweep(1)).status).toBe(400);
   });
 });

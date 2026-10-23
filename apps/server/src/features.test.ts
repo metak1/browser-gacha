@@ -255,6 +255,40 @@ describe('art upgrade', () => {
   });
 });
 
+describe('gear dungeons', () => {
+  it('drop only gear from the dungeon\'s two sets at random, in fights and sweeps, and the loot can be sold', async () => {
+    const { call, profile } = await guest();
+    const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+    for (const id of profile.team) ctx.roster.setLevel(profile.user.id, id, 40);
+    const tier = createDefaultContent().dungeons.find((d) => d.id === 'armory')!.tiers[0]!;
+
+    const start = await call<StartBattleResponse>('POST', '/dungeons/armory/battles', { tier: 0 });
+    expect(start.status).toBe(200);
+    const { actions, state } = autoBattle(start.body.setup);
+    expect(state.outcome).toBe('victory');
+    const done = await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
+    expect(done.body.materials).toEqual([]);
+    expect(done.body.drops.length + done.body.salvaged.count).toBe(tier.gearRolls!.count);
+    expect(done.body.drops.length).toBeGreaterThan(0);
+    for (const g of done.body.drops) expect(['precision', 'ruin']).toContain(g.set);
+    // Selling a drop from the result screen is a salvage: the item goes and gold comes in.
+    const drop = done.body.drops[0]!;
+    const goldBefore = ctx.users.findById(profile.user.id)!.wallet.gold;
+    const sold = await call<GearActionResponse>('POST', `/gear/${drop.id}/salvage`);
+    expect(sold.body.profile.wallet.gold).toBeGreaterThan(goldBefore);
+    expect(sold.body.profile.gear.some((g) => g.id === drop.id)).toBe(false);
+    // The Armory's mechanic (Ironhide) was in the fight: enemies carry 2.5x DEF.
+    const plain = createDefaultContent().enemies.find((e) => e.id === start.body.setup.enemies[0]!.id)!;
+    expect(start.body.setup.enemies[0]!.stats.def).toBeGreaterThan(plain.base.def * 2);
+
+    // Sweeps roll the same way: each drop is one of the Armory's two sets, never another dungeon's.
+    const sweep = await call<{ runs: number; drops: { set: string | null }[] }>('POST', '/sweep', { kind: 'dungeon', dungeonId: 'armory', tier: 0, count: 2 });
+    expect(sweep.body.runs).toBe(2);
+    expect(sweep.body.drops.length).toBeGreaterThan(0);
+    for (const g of sweep.body.drops) expect(['precision', 'ruin']).toContain(g.set);
+  });
+});
+
 describe('roster tools and the tower', () => {
   const ctxOf = () => (app.services.player as unknown as { ctx: ServiceContext }).ctx;
 

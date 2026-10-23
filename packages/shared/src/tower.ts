@@ -121,6 +121,13 @@ export const TOWER_CHALLENGES: TowerChallenge[] = [
   },
 ];
 
+/** A dungeon's mechanic (a challenge), if it has one. */
+export const dungeonMechanic = (d: { mechanic: string | null }): TowerChallenge | null =>
+  (d.mechanic && TOWER_CHALLENGES.find((c) => c.id === d.mechanic)) || null;
+
+/** Encounter mods for a dungeon: its mechanic's stats and passive. */
+export const dungeonMods = (d: { mechanic: string | null }): EncounterMods => dungeonMechanic(d)?.mods ?? {};
+
 /**
  * The challenge on a floor. Consecutive floors always differ, every challenge comes up once in
  * 7 floors, and floor 1 opens with a gentle one (Ironhide).

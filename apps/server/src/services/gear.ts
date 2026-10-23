@@ -6,6 +6,7 @@ import {
   constellationOf,
   gearSalvageValue,
   gearUpgradeCost,
+  pickGearTemplate,
   reforgeGold,
   reforgeSub,
   roleCombat,
@@ -13,7 +14,9 @@ import {
   salvageStones,
   scaleStats,
   upgradeGear,
+  type GearDef,
   type GearItem,
+  type GearRolls,
   type SalvagedDTO,
   type StageDef,
   type TeamMember,
@@ -164,17 +167,51 @@ export class GearService {
    * Drops at or below the player's auto-salvage rarity become gold instead.
    */
   rollDrops(userId: string, table: StageDef['drops'], chanceMult = 1): { drops: GearItem[]; inventoryFull: boolean; salvaged: SalvagedDTO } {
-    const { gear, content, random, now, users } = this.ctx;
-    const settings = content.current.settings;
-    const cap = settings.gearInventoryCap;
+    const { gear, content, random } = this.ctx;
     const salvageAt = this.autoSalvage(userId);
-    let count = gear.count(userId);
     const drops: GearItem[] = [];
     const salvaged: SalvagedDTO = { count: 0, gold: 0, stones: 0 };
-    let inventoryFull = false;
+    const state = { count: gear.count(userId), inventoryFull: false };
     for (const entry of table) {
       const template = content.current.gearById[entry.gear];
       if (!template || random() >= Math.min(1, entry.chance * chanceMult)) continue;
+      this.grant(userId, template, null, salvageAt, drops, salvaged, state);
+    }
+    return { drops, inventoryFull: state.inventoryFull, salvaged };
+  }
+
+  /**
+   * Gear-dungeon loot: `rolls.count` items, each a random template of a rarity picked by the
+   * tier's weights, and a random set from the dungeon's own (`offered`), or any set when the
+   * dungeon offers none in particular.
+   */
+  rollGearDungeon(userId: string, rolls: GearRolls, offered: string[] = []): { drops: GearItem[]; inventoryFull: boolean; salvaged: SalvagedDTO } {
+    const { gear, content, random } = this.ctx;
+    const salvageAt = this.autoSalvage(userId);
+    const drops: GearItem[] = [];
+    const salvaged: SalvagedDTO = { count: 0, gold: 0, stones: 0 };
+    const state = { count: gear.count(userId), inventoryFull: false };
+    for (let i = 0; i < rolls.count; i++) {
+      const template = pickGearTemplate(content.current.bundle.gear, rolls, random);
+      const itemSet = offered.length ? offered[Math.floor(random() * offered.length)]! : null;
+      if (template) this.grant(userId, template, itemSet, salvageAt, drops, salvaged, state);
+    }
+    return { drops, inventoryFull: state.inventoryFull, salvaged };
+  }
+
+  /** Gives one dropped item, or salvages it (auto-salvage), or loses it when the bag is full. */
+  private grant(
+    userId: string,
+    template: GearDef,
+    set: string | null,
+    salvageAt: number,
+    drops: GearItem[],
+    salvaged: SalvagedDTO,
+    state: { count: number; inventoryFull: boolean },
+  ) {
+    const { gear, content, random, now, users } = this.ctx;
+    const settings = content.current.settings;
+    {
       if (template.rarity <= salvageAt) {
         const gold = gearSalvageValue(settings, { level: 0, rarity: template.rarity });
         const stones = salvageStones(settings, template.rarity);
@@ -183,18 +220,19 @@ export class GearService {
         salvaged.count++;
         salvaged.gold += gold;
         salvaged.stones += stones;
-        continue;
+        return;
       }
-      if (count >= cap) {
-        inventoryFull = true;
-        continue;
+      if (state.count >= settings.gearInventoryCap) {
+        state.inventoryFull = true;
+        return;
       }
-      const item: GearItem = { id: randomUUID(), ...rollGear(template, random, content.current.bundle.gearSets), equippedTo: null };
+      // A chosen set overrides the template's (or the random) set.
+      const source = set ? { ...template, set } : template;
+      const item: GearItem = { id: randomUUID(), ...rollGear(source, random, content.current.bundle.gearSets), equippedTo: null };
       gear.insert(userId, item, now());
       drops.push(item);
-      count++;
+      state.count++;
     }
-    return { drops, inventoryFull, salvaged };
   }
 
   /** Salvages every unequipped, unupgraded item of this rarity or lower. */

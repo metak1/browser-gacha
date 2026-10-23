@@ -3,6 +3,7 @@ import {
   buildBattleSetup,
   buildEncounterSetup,
   dungeonKey,
+  dungeonMods,
   eventKey,
   evaluateObjectives,
   hardKey,
@@ -23,6 +24,7 @@ import {
   type ArenaResultDTO,
   type BattleAction,
   type BattleSetup,
+  type DungeonDef,
   type GearItem,
   type TeamMember,
   type XpGainDTO,
@@ -35,7 +37,7 @@ import { badRequest, conflict, notFound } from '../errors';
 import type { ArenaBattleMeta, ArenaService } from './arena';
 import type { ServiceContext } from './context';
 import type { GearService } from './gear';
-import { utcDay, type MissionService } from './missions';
+import type { MissionService } from './missions';
 import type { ProgressionService } from './progression';
 import { addStamina, readStamina, spendStamina } from './stamina';
 import { displayName, grantXp } from './account';
@@ -56,7 +58,7 @@ export interface BattleResult {
   stars: number;
   newBest: boolean;
   hard: boolean;
-  dungeon: { id: string; tier: number; runsLeft: number } | null;
+  dungeon: { id: string; tier: number } | null;
   tower: { floor: number; best: number } | null;
   event: { id: string; stage: number; currency: number } | null;
   guild: { damage: number; total: number; pool: number; attemptsLeft: number } | null;
@@ -76,6 +78,8 @@ interface TowerMeta {
 interface DungeonMeta {
   dungeonId: string;
   tier: number;
+  /** Stamina paid at the start, refunded on defeat. */
+  stamina?: number;
 }
 
 interface CampaignMeta {
@@ -208,21 +212,19 @@ export class BattleService {
     this.requireFeature(userId, 'dungeons', 'Dungeons');
     if (!isDungeonOpen(dungeon, now())) throw badRequest('dungeon_closed', `${dungeon.name} is closed today`);
     if (!isDungeonTierUnlocked(dungeonId, tier, progress.clearedStages(userId))) throw badRequest('stage_locked', 'Clear the previous tier first');
-    if (this.runsLeft(userId, dungeonId) <= 0) throw badRequest('no_runs', 'No runs left today. Come back tomorrow!');
-    const setup = buildEncounterSetup(content, Math.floor(random() * 2 ** 31), this.team(userId), def);
-    const meta: DungeonMeta = { dungeonId, tier };
-    return { battleId: this.record(userId, 'dungeon', '', setup, meta), setup };
+    const meta: DungeonMeta = { dungeonId, tier, stamina: def.stamina };
+    return this.ctx.db.transaction(() => {
+      spendStamina(this.ctx, userId, def.stamina);
+      // Gear dungeons give every enemy their mechanic (see tower challenges).
+      const setup = buildEncounterSetup(content, Math.floor(random() * 2 ** 31), this.team(userId), def, dungeonMods(dungeon));
+      return { battleId: this.record(userId, 'dungeon', '', setup, meta), setup };
+    });
   }
 
   private team(userId: string) {
     const team = this.gear.teamMembers(userId, this.ctx.roster.getTeam(userId));
     if (!team.length) throw badRequest('empty_team', 'Pick a team first');
     return team;
-  }
-
-  private runsLeft(userId: string, dungeonId: string): number {
-    const used = this.ctx.dungeons.runsOn(userId, utcDay(this.ctx.now()))[dungeonId] ?? 0;
-    return Math.max(0, this.ctx.content.current.settings.dungeonRunsPerDay - used);
   }
 
   startArena(userId: string, opponentId: string): { battleId: string; setup: BattleSetup } {
@@ -299,11 +301,11 @@ export class BattleService {
       const xp =
         battle.mode === 'guild'
           ? p.xpGuild
-          : !won || (battle.mode === 'dungeon' && result.rewards.gold === 0)
+          : !won
             ? 0
             : battle.mode === 'arena'
               ? p.xpArena
-              : battle.mode === 'dungeon' || battle.mode === 'tower'
+              : battle.mode === 'tower'
                 ? p.xpDungeon
                 : staminaSpent * p.xpPerStamina;
       return { ...result, xp: grantXp(this.ctx, userId, xp) };
@@ -395,23 +397,32 @@ export class BattleService {
     return { ...noRewards(outcome), firstClear, rewards, event: { id: ev.id, stage: meta.stage, currency } };
   }
 
-  /** Pays a dungeon win and uses up one of today's runs. Call inside the completion transaction. */
+  /** Pays a dungeon win, or refunds the stamina of a loss. Call inside the completion transaction. */
   private completeDungeon(userId: string, meta: DungeonMeta, won: boolean): BattleResult {
     const { progress, users, now } = this.ctx;
     const outcome = won ? 'victory' : 'defeat';
-    const left = this.runsLeft(userId, meta.dungeonId);
-    const info = (runsLeft: number) => ({ id: meta.dungeonId, tier: meta.tier, runsLeft });
-    // Losses are free; a win past today's limit (from battles started earlier) pays nothing.
-    if (!won || left <= 0) return { ...noRewards(outcome), dungeon: info(left) };
+    const info = { id: meta.dungeonId, tier: meta.tier };
+    if (!won) {
+      addStamina(this.ctx, userId, meta.stamina ?? 0);
+      return { ...noRewards(outcome), dungeon: info };
+    }
     this.missions.record(userId, 'winBattles');
     this.missions.record(userId, 'dungeonRuns');
-    this.ctx.dungeons.addRun(userId, meta.dungeonId, utcDay(now()));
     const { firstClear } = progress.recordClear(userId, dungeonKey(meta.dungeonId, meta.tier), now());
     const tier = this.ctx.content.current.dungeonsById[meta.dungeonId]?.tiers[meta.tier];
-    if (!tier) return { ...noRewards(outcome), firstClear, dungeon: info(left - 1) };
+    if (!tier) return { ...noRewards(outcome), firstClear, dungeon: info };
     users.adjustWallet(userId, { gold: tier.gold });
     const materials = this.progression.rollMaterialDrops(userId, tier.materialDrops);
-    return { ...noRewards(outcome), firstClear, rewards: { gems: 0, gold: tier.gold }, materials, dungeon: info(left - 1) };
+    const offered = this.ctx.content.current.dungeonsById[meta.dungeonId]?.sets ?? [];
+    const loot = tier.gearRolls ? this.gear.rollGearDungeon(userId, tier.gearRolls, offered) : null;
+    return {
+      ...noRewards(outcome),
+      firstClear,
+      rewards: { gems: 0, gold: tier.gold },
+      materials,
+      ...(loot ? { drops: loot.drops, inventoryFull: loot.inventoryFull, salvaged: loot.salvaged } : {}),
+      dungeon: info,
+    };
   }
 
   /** Gold, gear and materials for one campaign win (not first-clear gems). Inside a transaction. */
@@ -426,8 +437,7 @@ export class BattleService {
 
   /**
    * Repeats a mastered stage or cleared dungeon tier instantly: same loot as a
-   * win, paid for with stamina (campaign) or daily runs (dungeons). Runs stop
-   * early when stamina or runs run out.
+   * win, paid for with stamina per run. Runs stop early when stamina runs out.
    */
   sweep(userId: string, req: SweepRequest): SweepResult {
     const { progress, now } = this.ctx;
@@ -460,16 +470,24 @@ export class BattleService {
       if (!isDungeonOpen(dungeon, now())) throw badRequest('dungeon_closed', `${dungeon.name} is closed today`);
       if (!cleared.has(dungeonKey(dungeon.id, req.tier))) throw badRequest('not_mastered', 'Clear this tier once before sweeping it');
       return this.ctx.db.transaction(() => {
-        const runs = Math.min(wanted, this.runsLeft(userId, dungeon.id));
-        if (runs <= 0) throw badRequest('no_runs', 'No runs left today. Come back tomorrow!');
+        const cost = tier.stamina;
+        const runs = cost > 0 ? Math.min(wanted, Math.floor(readStaminaNow(this.ctx, userId) / cost)) : wanted;
+        if (runs <= 0) throw badRequest('no_stamina', `Not enough stamina: a run costs ${cost}`);
+        spendStamina(this.ctx, userId, runs * cost);
         for (let i = 0; i < runs; i++) {
           this.missions.record(userId, 'winBattles');
           this.missions.record(userId, 'dungeonRuns');
-          this.ctx.dungeons.addRun(userId, dungeon.id, utcDay(now()));
           this.ctx.users.adjustWallet(userId, { gold: tier.gold });
-          add({ gold: tier.gold, drops: [], inventoryFull: false, salvaged: { count: 0, gold: 0, stones: 0 }, materials: this.progression.rollMaterialDrops(userId, tier.materialDrops) });
+          const loot = tier.gearRolls ? this.gear.rollGearDungeon(userId, tier.gearRolls, dungeon.sets) : null;
+          add({
+            gold: tier.gold,
+            drops: loot?.drops ?? [],
+            inventoryFull: loot?.inventoryFull ?? false,
+            salvaged: loot?.salvaged ?? { count: 0, gold: 0, stones: 0 },
+            materials: this.progression.rollMaterialDrops(userId, tier.materialDrops),
+          });
         }
-        total.xp = grantXp(this.ctx, userId, runs * p.xpDungeon);
+        total.xp = grantXp(this.ctx, userId, runs * cost * p.xpPerStamina);
         return total;
       });
     }

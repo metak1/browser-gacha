@@ -58,7 +58,6 @@ export interface ProfileDTO {
   /** Claimed chapter chests, as "chapterId:stars". */
   claimedChests: string[];
   /** Winning dungeon runs today, by dungeon id. */
-  dungeonRuns: Record<string, number>;
   stamina: StaminaState;
   /** One-time markers on the account, e.g. "tutorial-battle" once the battle tutorial is done. */
   flags: string[];
@@ -275,7 +274,7 @@ export interface CompleteBattleResponse {
   /** Campaign battles on hard mode. */
   hard: boolean;
   /** Dungeon battles: which run, and how many winning runs are left today. */
-  dungeon: { id: string; tier: number; runsLeft: number } | null;
+  dungeon: { id: string; tier: number } | null;
   /** Tower battles: the floor fought and the best floor after it. */
   tower: { floor: number; best: number } | null;
   /** Event battles: the currency won. */

@@ -30,3 +30,22 @@
   .tier { grid-template-columns: 1fr; }
   .tier-rewards { justify-content: flex-start; max-width: none; }
 }
+
+/* Gear dungeons: set picker and gear odds. */
+.set-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 14px 10px; }
+.set-picker .chip { padding-inline: 8px; }
+.gear-odds small { margin-left: 2px; }
+
+
+/* The gear / essence tabs. */
+.dungeons .filters .chip { white-space: nowrap; }
+.dungeons .filters .chip small { color: inherit; opacity: 0.75; margin-left: 4px; }
+
+/* Page header: title, tabs and the tab's intro on a solid panel so they read over the backdrop. */
+.dungeons-head { margin-top: 0; }
+.dungeons-head .page-head { margin-bottom: 8px; align-items: center; }
+.dungeons-head h1 { margin: 0; }
+.dungeons-intro { margin: 0; color: var(--text); opacity: 0.85; }
+
+/* Not enough stamina for a tier: the refill offer gets its own row. */
+.tier-short { grid-column: 1 / -1; text-align: right; }

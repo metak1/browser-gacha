@@ -1,3 +1,4 @@
+import { TOWER_CHALLENGES } from '../tower';
 import { BOOTS_ONLY_MAIN, isPercentStat, MAIN_POOLS } from '../gear';
 import { z } from 'zod';
 import { bundleSchema } from './schemas';
@@ -87,6 +88,11 @@ export function validateBundle(bundle: ContentBundle): string[] {
         err(`${kind}/${unit.id}`, `passive "${rule.on}" trigger aims at "the target", which only exists for "when hit" (the attacker)`);
       }
     }
+  }
+
+  for (const dg of b.dungeons) for (const s of dg.sets) if (!setIds.has(s)) err(`dungeons/${dg.id}`, `offers unknown gear set "${s}"`);
+  for (const dg of b.dungeons) {
+    if (dg.mechanic && !TOWER_CHALLENGES.some((c) => c.id === dg.mechanic)) err(`dungeons/${dg.id}`, `unknown mechanic "${dg.mechanic}"`);
   }
 
   for (const g of b.gear) {

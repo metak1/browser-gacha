@@ -33,7 +33,6 @@ export class PlayerService {
       clearedStages: progress.clearedStages(userId),
       stageStars: progress.stageStars(userId),
       claimedChests: progress.claimedChests(userId),
-      dungeonRuns: this.ctx.dungeons.runsOn(userId, utcDay(now())),
       stamina: readStamina(this.ctx, userId),
       flags: users.flags(userId),
       prefs: this.prefs(userId),

@@ -199,10 +199,18 @@ export const dungeonSchema: z.ZodType<DungeonDef> = z.object({
         waves,
         gold: int(0, 1_000_000),
         materialDrops,
+        gearRolls: z
+          .object({ count: int(1, 10), r3: z.number().min(0).max(100), r4: z.number().min(0).max(100), r5: z.number().min(0).max(100) })
+          .refine((g) => g.r3 + g.r4 + g.r5 > 0, 'give at least one rarity a weight')
+          .nullable()
+          .default(null),
+        stamina: int(0, 1000).default(10),
       }),
     )
     .min(1, 'a dungeon needs at least one tier')
     .max(6),
+  sets: z.array(id).max(20).default([]),
+  mechanic: id.nullable().default(null),
 });
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'use YYYY-MM-DD');
@@ -249,7 +257,7 @@ export const DEFAULT_PLAYER_LEVEL = {
   xpPerLevel: 30,
   rewardGems: 50,
   rewardStamina: 30,
-  xpPerStamina: 10,
+  xpPerStamina: 6,
   xpDungeon: 50,
   xpArena: 40,
   xpGuild: 40,
@@ -318,7 +326,7 @@ export const DEFAULT_GUILD = {
   ],
 };
 
-export const DEFAULT_STAMINA = { max: 120, regenMinutes: 5, campaignCost: 6, hardCost: 12, refillGems: 50, refillAmount: 60 };
+export const DEFAULT_STAMINA = { max: 120, regenMinutes: 5, campaignCost: 10, hardCost: 10, refillGems: 50, refillAmount: 60 };
 export const DEFAULT_UNLOCKS = { arena: '1-4', dungeons: '2-1', tower: '2-4' };
 
 export const DEFAULT_HARD_MODE = { enabled: true, levelBonus: 10, statMult: 1.2, rewardMult: 2, gearChanceMult: 1.5, firstClearGems: 100 };
@@ -482,7 +490,6 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
       firstClearGems: int(0, 1_000_000),
     })
     .default(DEFAULT_HARD_MODE),
-  dungeonRunsPerDay: int(0, 100).default(3),
   stamina: z
     .object({
       max: int(1, 10_000),

@@ -36,13 +36,11 @@ function usePlayModes(): ModeItem[] {
   }
   const dl = lock('dungeons');
   const open = content.bundle.dungeons.filter((d) => isDungeonOpen(d, now));
-  const runs = open.reduce((n, d) => n + Math.max(0, settings.dungeonRunsPerDay - (profile.dungeonRuns[d.id] ?? 0)), 0);
   items.push({
     to: '/dungeons',
     icon: '🗝️',
     label: 'Dungeons',
-    status: dl ? `Unlocks after ${dl}` : open.length ? `${open.map((d) => d.name).join(', ')} · ${runs} runs left` : 'Closed today',
-    badge: !dl && runs > 0 ? String(runs) : undefined,
+    status: dl ? `Unlocks after ${dl}` : open.length ? open.map((d) => d.name).join(', ') : 'Closed today',
     locked: Boolean(dl),
   });
   const tl = lock('tower');

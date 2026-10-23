@@ -1,9 +1,10 @@
-import { createDefaultContent, ENEMY_SPRITES, REFERENCE_TEAM } from './defaults';
+import { createDefaultContent, DUNGEON_STAMINA, ENEMY_SPRITES, REFERENCE_TEAM } from './defaults';
 import { defaultObjectives, defaultPassive, defaultStarRewards } from './passives';
+import { DEFAULT_STAMINA } from './schemas';
 import type { ContentBundle, EncounterEnemy } from './types';
 
 /** Bump when a new upgrade step is added below. */
-export const CONTENT_SCHEMA_VERSION = 19;
+export const CONTENT_SCHEMA_VERSION = 27;
 
 /**
  * Brings content saved by an older version of the game up to date by merging
@@ -551,8 +552,168 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
     }
   }
 
+  if (fromVersion < 20) {
+    // v20: the Armory, a gear-only dungeon.
+    const armory = createDefaultContent().dungeons.find((dg) => dg.id === 'armory');
+    const enemyIds = new Set(b.enemies.map((e) => e.id));
+    const usable = armory && armory.tiers.every((t) => [...t.enemies, ...t.waves.flat()].every((e) => enemyIds.has(e.id)));
+    if (armory && usable && !b.dungeons.some((dg) => dg.id === armory.id)) {
+      b.dungeons.push(structuredClone(armory));
+      changed = true;
+    }
+  }
+
+  if (fromVersion < 21) {
+    // v21: the Armory's enemy levels were raised to match its recommended levels. Only an
+    // Armory still on the first levels (12/27/42/52) changes.
+    const def = createDefaultContent().dungeons.find((dg) => dg.id === 'armory');
+    const a = b.dungeons.find((dg) => dg.id === 'armory');
+    const levels = (dg: typeof a) => dg!.tiers.map((t) => [...t.enemies, ...t.waves.flat()].map((e) => e.level));
+    const firstDraft = [12, 27, 42, 52];
+    if (def && a && a.tiers.length === def.tiers.length && levels(a).every((ls, i) => ls.every((l) => l === firstDraft[i]))) {
+      a.tiers = a.tiers.map((t, i) => ({ ...t, enemies: structuredClone(def.tiers[i]!.enemies), waves: structuredClone(def.tiers[i]!.waves) }));
+      changed = true;
+    }
+  }
+
+  if (fromVersion < 22) {
+    // v22: three gear dungeons with two sets and a mechanic each. The Armory becomes the crit-set
+    // dungeon if it's still the default one; the Bastion and Windspire are added.
+    const d = createDefaultContent();
+    const i = b.dungeons.findIndex((dg) => dg.id === 'armory');
+    const armory = d.dungeons.find((dg) => dg.id === 'armory')!;
+    if (i >= 0 && armoryShape(b.dungeons[i]!) === armoryShape(V21_ARMORY)) {
+      b.dungeons[i] = structuredClone(armory);
+      changed = true;
+    }
+    const enemyIds = new Set(b.enemies.map((e) => e.id));
+    const setIds = new Set(b.gearSets.map((s) => s.id));
+    for (const id of ['bastion', 'windspire']) {
+      const def = d.dungeons.find((dg) => dg.id === id)!;
+      const usable = def.tiers.every((t) => [...t.enemies, ...t.waves.flat()].every((e) => enemyIds.has(e.id))) && def.sets.every((s) => setIds.has(s));
+      if (usable && !b.dungeons.some((dg) => dg.id === id)) {
+        b.dungeons.push(structuredClone(def));
+        changed = true;
+      }
+    }
+  }
+
+  if (fromVersion < 23) {
+    // v23: finish v22 for content an early build of it left behind: an Armory still on the v21
+    // shape becomes the crit-set dungeon, and gear dungeons still on their draft line-ups get the
+    // tuned ones.
+    const d = createDefaultContent();
+    for (const id of ['armory', 'bastion', 'windspire']) {
+      const i = b.dungeons.findIndex((dg) => dg.id === id);
+      const def = d.dungeons.find((dg) => dg.id === id);
+      if (i < 0 || !def) continue;
+      const cur = b.dungeons[i]!;
+      if (id === 'armory' && armoryShape(cur) === armoryShape(V21_ARMORY)) {
+        b.dungeons[i] = structuredClone(def);
+        changed = true;
+      } else if (lineupSignature(cur) === V22_DRAFT_LINEUPS[id] && cur.tiers.length === def.tiers.length) {
+        cur.tiers = cur.tiers.map((t, j) => ({ ...t, enemies: structuredClone(def.tiers[j]!.enemies), waves: structuredClone(def.tiers[j]!.waves) }));
+        changed = true;
+      }
+    }
+  }
+
+  if (fromVersion < 24) {
+    // v24: gear dungeon descriptions no longer tell players what to bring.
+    const d = createDefaultContent();
+    for (const [id, old] of Object.entries(V23_GEAR_DESCRIPTIONS)) {
+      const cur = b.dungeons.find((dg) => dg.id === id);
+      const def = d.dungeons.find((dg) => dg.id === id);
+      if (cur && def && cur.description === old) {
+        cur.description = def.description;
+        changed = true;
+      }
+    }
+  }
+
+  if (fromVersion < 25) {
+    // v25: dungeons cost stamina instead of having a daily run limit. The field is new, so every
+    // tier got the schema's flat default; give tiers their cost by tier (8/12/16/20).
+    for (const dg of b.dungeons) {
+      dg.tiers.forEach((t, i) => {
+        t.stamina = V25_DUNGEON_STAMINA[Math.min(i, V25_DUNGEON_STAMINA.length - 1)]!;
+      });
+    }
+    changed = true;
+  }
+
+  if (fromVersion < 26) {
+    // v26: every level costs the same stamina: campaign, hard and dungeon tiers alike. Only costs
+    // still on their old defaults change.
+    const s = b.settings.stamina;
+    if (s.campaignCost === 6) s.campaignCost = DEFAULT_STAMINA.campaignCost;
+    if (s.hardCost === 12) s.hardCost = DEFAULT_STAMINA.hardCost;
+    for (const dg of b.dungeons) {
+      dg.tiers.forEach((t, i) => {
+        if (t.stamina === V25_DUNGEON_STAMINA[Math.min(i, V25_DUNGEON_STAMINA.length - 1)]) t.stamina = DUNGEON_STAMINA;
+      });
+    }
+    changed = true;
+  }
+
+  if (fromVersion < 27) {
+    // v27: XP per stamina drops so a campaign win (10 stamina since v26, was 6) still gives the
+    // same 60 XP. Only the old default pairing changes.
+    const p = b.settings.playerLevel;
+    if (b.settings.stamina.campaignCost === 10 && p.xpPerStamina === 10) {
+      p.xpPerStamina = 6;
+      changed = true;
+    }
+  }
+
   return { bundle: b, changed };
 }
+
+/** Dungeon stamina per run by tier, as v25 set it. */
+const V25_DUNGEON_STAMINA = [8, 12, 16, 20];
+
+/** Gear dungeon descriptions as v22 shipped them. */
+const V23_GEAR_DESCRIPTIONS: Record<string, string> = {
+  armory: 'Crit gear (Precision, Ruin). Its armoured guards shrug off weak hits: bring piercing, DEF Down, or damage that scales with HP or DEF.',
+  bastion: 'Survival gear (Vitality, Bulwark). Its undead garrison fights buffed and keeps buffing: bring tanks, healers and Dispel.',
+  windspire: 'Tempo gear (Fury, Gale). Its storm-born flyers are fast and strike first: bring speed, taunting tanks and delay.',
+};
+
+/** "level:enemy/enemy|wave/wave;..." for a dungeon's tiers, to recognise known line-ups. */
+function lineupSignature(dg: { tiers: { enemies: { id: string; level: number }[]; waves: { id: string; level: number }[][] }[] }): string {
+  return dg.tiers
+    .map((t) => `${t.enemies[0]?.level ?? 0}:${t.enemies.map((e) => e.id).join('/')}|${t.waves.map((w) => w.map((e) => e.id).join('/')).join('+')}`)
+    .join(';');
+}
+
+/** The line-ups the first build of v22 shipped (before tuning). */
+const V22_DRAFT_LINEUPS: Record<string, string> = {
+  bastion:
+    '17:skeleton/wolf/skeleton|;34:skeleton-archer/wraith/wolf|wolf/wolf;50:wraith/black-knight/wraith|skeleton/wraith/skeleton-archer;60:wraith/magma-golem/wraith|wolf/lich/wolf',
+  windspire: '17:bat/harpy/bat|;34:harpy/spark/harpy|bat/bat;50:harpy/seraph/harpy|spark/storm-knight/spark;60:seraph/harpy/seraph|spark/thunderbird/spark',
+};
+
+/** JSON with object keys sorted and undefined fields dropped, for order-independent comparison. */
+/**
+ * A dungeon compared field by field, without the fields added after v21 (mechanic, tier stamina),
+ * which parsing fills with defaults. Key order differs between stored (schema order) and default
+ * content, so this is canonical.
+ */
+function armoryShape(dg: { mechanic?: unknown; tiers: object[] }): string {
+  return canonical({ ...dg, mechanic: undefined, tiers: dg.tiers.map((t) => ({ ...t, stamina: undefined })) });
+}
+
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const entries = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`).join(',')}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/** The default Armory as of v21 (one dungeon, every set). */
+const V21_ARMORY = {"id":"armory","name":"The Armory","emoji":"⚒️","theme":"ember","days":[0,1,2,3,4,5,6],"description":"Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.","sets":[],"tiers":[{"name":"Tier I","recommendedLevel":15,"enemies":[{"id":"orc","level":17},{"id":"black-knight","level":17},{"id":"orc","level":17}],"waves":[],"gold":150,"materialDrops":[],"gearRolls":{"count":2,"r3":6,"r4":4,"r5":0}},{"name":"Tier II","recommendedLevel":30,"enemies":[{"id":"minotaur","level":34},{"id":"black-knight","level":34},{"id":"orc-rider","level":34}],"waves":[[{"id":"orc","level":34},{"id":"orc","level":34},{"id":"orc","level":34}]],"gold":300,"materialDrops":[],"gearRolls":{"count":2,"r3":2,"r4":6.5,"r5":1.5}},{"name":"Tier III","recommendedLevel":45,"enemies":[{"id":"storm-knight","level":50},{"id":"magma-golem","level":50},{"id":"storm-knight","level":50}],"waves":[[{"id":"minotaur","level":50},{"id":"black-knight","level":50},{"id":"minotaur","level":50}]],"gold":500,"materialDrops":[],"gearRolls":{"count":3,"r3":0,"r4":6,"r5":4}},{"name":"Tier IV","recommendedLevel":55,"enemies":[{"id":"black-knight","level":60},{"id":"magma-golem","level":60},{"id":"black-knight","level":60}],"waves":[[{"id":"orc","level":60},{"id":"warlord","level":60},{"id":"orc","level":60}]],"gold":800,"materialDrops":[],"gearRolls":{"count":3,"r3":0,"r4":3,"r5":7}}]};
 
 /** Fixed main stats of the default gear templates before v16. */
 const OLD_V15_MAINS: Record<string, { mainStat: string; mainBase: number }> = {"bronze-blade":{"mainStat":"atk","mainBase":18},"runed-saber":{"mainStat":"atk","mainBase":28},"starforged-edge":{"mainStat":"atk","mainBase":42},"leather-vest":{"mainStat":"hp","mainBase":120},"knight-mail":{"mainStat":"hp","mainBase":190},"aegis-of-dawn":{"mainStat":"hp","mainBase":280},"lucky-clover":{"mainStat":"spd","mainBase":3},"moon-pendant":{"mainStat":"atkPct","mainBase":0.06},"warding-amulet":{"mainStat":"defPct","mainBase":0.08},"swift-feather":{"mainStat":"spd","mainBase":6},"heart-locket":{"mainStat":"hpPct","mainBase":0.1},"ranger-boots":{"mainStat":"spd","mainBase":4},"iron-greaves":{"mainStat":"defPct","mainBase":0.08},"pilgrim-treads":{"mainStat":"hpPct","mainBase":0.07},"warlord-sabatons":{"mainStat":"atkPct","mainBase":0.09}};

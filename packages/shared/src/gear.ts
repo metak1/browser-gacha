@@ -145,6 +145,27 @@ export function rollGear(template: GearDef, rng: () => number, sets: GearSetDef[
   };
 }
 
+/**
+ * Picks a gear template for a gear-dungeon drop: a rarity by the tier's weights, then any
+ * template of that rarity (any slot). Returns null if there's nothing to pick.
+ */
+export function pickGearTemplate(templates: GearDef[], weights: { r3: number; r4: number; r5: number }, rng: () => number): GearDef | null {
+  const options = ([3, 4, 5] as const).filter((r) => weights[`r${r}`] > 0 && templates.some((t) => t.rarity === r));
+  const total = options.reduce((n, r) => n + weights[`r${r}`], 0);
+  if (!total) return null;
+  let roll = rng() * total;
+  let rarity = options[options.length - 1]!;
+  for (const r of options) {
+    roll -= weights[`r${r}`];
+    if (roll < 0) {
+      rarity = r;
+      break;
+    }
+  }
+  const pool = templates.filter((t) => t.rarity === rarity);
+  return pool[Math.floor(rng() * pool.length)]!;
+}
+
 /** Returns a copy of the item raised one level. */
 export function upgradeGear<T extends Omit<GearItem, 'id' | 'equippedTo'>>(item: T, rng: () => number): T {
   const next = structuredClone(item);

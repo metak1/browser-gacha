@@ -151,7 +151,6 @@ export function SettingsPanel() {
           <Field label="Hard first-clear gems 💎">
             <NumberInput value={draft.hardMode.firstClearGems} onChange={(firstClearGems) => set('hardMode', { ...draft.hardMode, firstClearGems })} min={0} />
           </Field>
-          {num('Dungeon runs per day', 'dungeonRunsPerDay', 'Winning runs per dungeon per UTC day. Losses are free.')}
           {num('Most runs per sweep', 'maxSweep', 'Sweeps instantly repeat 3★ stages, hard clears and cleared dungeon tiers.')}
         </FormGrid>
       </Section>

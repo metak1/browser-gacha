@@ -1,4 +1,4 @@
-import { SCENE_THEMES, type DungeonDef, type DungeonTier } from '@gacha/shared';
+import { SCENE_THEMES, TOWER_CHALLENGES, type DungeonDef, type DungeonTier } from '@gacha/shared';
 import { Scene } from '../../components/Scene';
 import { useContent } from '../../state/content';
 import { EntityEditor, type FormProps } from '../EntityEditor';
@@ -31,7 +31,9 @@ export function DungeonsEditor() {
         description: '',
         theme: 'meadow',
         days: [0],
-        tiers: [{ name: 'Tier I', recommendedLevel: 10, enemies: [{ id: enemy, level: 8 }], waves: [], gold: 400, materialDrops: [] }],
+        tiers: [{ name: 'Tier I', recommendedLevel: 10, enemies: [{ id: enemy, level: 8 }], waves: [], gold: 400, materialDrops: [], gearRolls: null, stamina: 8 }],
+        sets: [],
+        mechanic: null,
       })}
       Form={DungeonForm}
     />
@@ -39,6 +41,7 @@ export function DungeonsEditor() {
 }
 
 function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
+  const content = useContent();
   const set = <K extends keyof DungeonDef>(k: K, v: DungeonDef[K]) => onChange({ ...value, [k]: v });
   const setTier = (i: number, patch: Partial<DungeonTier>) => set('tiers', value.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)));
   const toggleDay = (d: number) => set('days', value.days.includes(d) ? value.days.filter((x) => x !== d) : [...value.days, d].sort());
@@ -62,6 +65,13 @@ function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
           <Field label="Description" wide>
             <TextInput value={value.description} onChange={(v) => set('description', v)} />
           </Field>
+          <Field label="Mechanic" hint="Every enemy in every tier gets it (the same challenges as the tower).">
+            <Select<string>
+              value={value.mechanic ?? ''}
+              onChange={(v) => set('mechanic', v || null)}
+              options={[{ value: '', label: 'None' }, ...TOWER_CHALLENGES.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))]}
+            />
+          </Field>
           <Field label="Open on (UTC)" hint="No days = never open." wide>
             <div className="day-picks">
               {DAYS.map((d, i) => (
@@ -76,6 +86,23 @@ function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
           <Scene theme={value.theme} />
         </div>
       </Section>
+
+      {value.tiers.some((t) => t.gearRolls) && (
+        <Section title="Gear sets dropped">
+          <p className="small muted">Each gear drop belongs to one of these at random. None selected = any set.</p>
+          <div className="day-picks">
+            {content.bundle.gearSets.map((s) => (
+              <button
+                key={s.id}
+                className={`chip ${value.sets.includes(s.id) ? 'active' : ''}`}
+                onClick={() => set('sets', value.sets.includes(s.id) ? value.sets.filter((x) => x !== s.id) : [...value.sets, s.id])}
+              >
+                {s.emoji} {s.name}
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {value.tiers.map((t, i) => (
         <div key={i} className="tier-edit">
@@ -97,11 +124,31 @@ function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
               <Field label="Gold per win 🪙">
                 <NumberInput value={t.gold} onChange={(gold) => setTier(i, { gold })} min={0} />
               </Field>
+              <Field label="Stamina per run ⚡" hint="Paid when the run starts and refunded on a loss; sweeps pay it per run. 0 = free.">
+                <NumberInput value={t.stamina} onChange={(stamina) => setTier(i, { stamina })} min={0} />
+              </Field>
             </FormGrid>
             <h4 className="sub-head">Enemies</h4>
             <EnemyRows value={t.enemies} onChange={(enemies) => setTier(i, { enemies })} />
             <h4 className="sub-head">Material drops</h4>
             <MaterialDropRows value={t.materialDrops} onChange={(materialDrops) => setTier(i, { materialDrops })} />
+            <h4 className="sub-head">Gear drops</h4>
+            <FormGrid>
+              <Field label="Gear per win" hint="Each is a random template of a rarity picked by the weights below (any slot). 0 = no gear.">
+                <NumberInput
+                  value={t.gearRolls?.count ?? 0}
+                  onChange={(count) => setTier(i, { gearRolls: count > 0 ? { ...(t.gearRolls ?? { r3: 0, r4: 1, r5: 0 }), count } : null })}
+                  min={0}
+                  max={10}
+                />
+              </Field>
+              {t.gearRolls &&
+                (['r3', 'r4', 'r5'] as const).map((r) => (
+                  <Field key={r} label={`${'★'.repeat(Number(r[1]))} weight`}>
+                    <NumberInput value={t.gearRolls![r]} onChange={(w) => setTier(i, { gearRolls: { ...t.gearRolls!, [r]: w } })} min={0} step={0.5} />
+                  </Field>
+                ))}
+            </FormGrid>
           </Section>
           <WavesEditor waves={t.waves} onChange={(waves) => setTier(i, { waves })} fallback={t.enemies[0] ?? { id: '', level: 1 }} />
         </div>

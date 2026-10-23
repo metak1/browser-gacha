@@ -35,7 +35,8 @@ import { CombatBars } from '../battle/CombatBars';
 import { useBattle, type LogLine, type UnitTally } from '../battle/useBattle';
 import '../battle/battle.css';
 import { Icon } from '../components/Art';
-import { GearChip } from '../components/Gear';
+import { LootGear } from '../components/Gear';
+import { dungeonsPath } from './Dungeons';
 import { MaterialChip } from '../components/Materials';
 import { ObjectiveList, Stars } from '../components/Stars';
 import { useContent } from '../state/content';
@@ -215,7 +216,7 @@ function BattleRunner({
         : source.kind === 'event'
           ? source.event.theme
           : (chapterOf(content, source.stage.id)?.theme ?? 'meadow');
-  const exitTo = { arena: '/arena', dungeon: '/dungeons', event: '/events', guild: '/social?tab=guild', campaign: '/campaign', tower: '/tower' }[source.kind];
+  const exitTo = { arena: '/arena', dungeon: dungeonsPath(source.kind === 'dungeon' ? source.dungeon : undefined), event: '/events', guild: '/social?tab=guild', campaign: '/campaign', tower: '/tower' }[source.kind];
 
   useEffect(() => {
     if (started.current) return;
@@ -303,7 +304,9 @@ function BattleRunner({
               ? res.profile.stamina.current >= staminaCost(settings.stamina, source.hard)
               : source.kind === 'event'
                 ? res.profile.stamina.current >= staminaCost(settings.stamina, false)
-                : source.kind === 'tower' || (source.kind === 'dungeon' && (res.dungeon?.runsLeft ?? 0) > 0);
+                : source.kind === 'dungeon'
+                  ? res.profile.stamina.current >= (source.dungeon.tiers[source.tier]?.stamina ?? 0)
+                  : source.kind === 'tower';
           // The tower costs nothing, but a cleared floor can't be fought again: it can only go on, not repeat.
           if (res.outcome !== 'victory' || !affordable) return;
           // Continue mode: on to the next stage (or floor) after any win, manual or auto.
@@ -566,7 +569,6 @@ function ResultModal({
   // After the first win, the new-player tutorial carries on in the roster.
   const { profile } = useProfile();
   const tutorial = won && guideStep(content, profile) === 'levelUp';
-  const dungeon = result.dungeon;
   const arena = result.arena;
 
   return (
@@ -634,7 +636,6 @@ function ResultModal({
             +{result.event.currency} {source.event.currency.emoji} {source.event.currency.name}
           </p>
         )}
-        {dungeon && <p className="muted small">{dungeon.runsLeft} winning run{dungeon.runsLeft === 1 ? '' : 's'} left today</p>}
         {source.kind === 'campaign' && !source.hard && won && source.stage.objectives.length > 0 && (
           <div className="result-stars">
             <Stars value={result.stars} max={source.stage.objectives.length} size="lg" animate />
@@ -658,18 +659,7 @@ function ResultModal({
                 </span>
               )}
             </div>
-            {result.drops.length > 0 && (
-              <div className="drops">
-                <small className="muted">Loot</small>
-                <div className="drop-row">
-                  {result.drops.map((g, i) => (
-                    <div key={g.id} className="drop" style={{ animationDelay: `${0.35 + i * 0.15}s` }}>
-                      <GearChip item={g} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <LootGear drops={result.drops} animate />
             {result.materials.length > 0 && (
               <div className="drop-row">
                 {result.materials.map((m, i) => (
@@ -745,10 +735,10 @@ function ResultModal({
             </>
           ) : source.kind === 'dungeon' ? (
             <>
-              <button className="btn" onClick={() => onRetry?.()} disabled={won && (dungeon?.runsLeft ?? 0) <= 0}>
+              <button className="btn" onClick={() => onRetry?.()}>
                 {won ? 'Run again' : 'Retry'}
               </button>
-              <button className="btn primary" onClick={() => navigate('/dungeons')}>
+              <button className="btn primary" onClick={() => navigate(dungeonsPath(source.dungeon))}>
                 Dungeons
               </button>
             </>

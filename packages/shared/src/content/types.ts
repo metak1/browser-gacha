@@ -138,9 +138,22 @@ export interface DungeonTier {
   waves: EncounterEnemy[][];
   gold: number;
   materialDrops: StageDef['materialDrops'];
+  /** Gear dungeons: `count` items per win, each a random gear template of a rarity picked by these weights. */
+  gearRolls: GearRolls | null;
+  /** Stamina per run (refunded on a loss); sweeps pay it per run. */
+  stamina: number;
 }
 
-/** A farmable dungeon, open on certain days with a daily run limit. */
+/** How a gear dungeon tier drops gear. */
+export interface GearRolls {
+  count: number;
+  /** Relative weights for each rarity (e.g. r4: 3, r5: 1 → a quarter of drops are ★5). */
+  r3: number;
+  r4: number;
+  r5: number;
+}
+
+/** A farmable dungeon, open on certain days; each run costs its tier's stamina. */
 export interface DungeonDef {
   id: string;
   name: string;
@@ -150,6 +163,10 @@ export interface DungeonDef {
   /** UTC weekdays it's open (0 = Sunday ... 6 = Saturday). */
   days: number[];
   tiers: DungeonTier[];
+  /** Gear dungeons: the gear sets a player can choose to farm (empty = every set). */
+  sets: string[];
+  /** An enemy mechanic on every tier (a tower challenge id, see tower.ts), or null for none. */
+  mechanic: string | null;
 }
 
 /** A timed event: its own stages, currency and exchange shop. */
@@ -498,8 +515,6 @@ export interface GameSettings {
   arenaTiers: ArenaTier[];
   progression: ProgressionSettings;
   hardMode: HardModeSettings;
-  /** Winning runs allowed per dungeon per UTC day. */
-  dungeonRunsPerDay: number;
   stamina: StaminaSettings;
   /** Stage that must be cleared to open each feature (null = always open). */
   unlocks: { arena: string | null; dungeons: string | null; tower: string | null };

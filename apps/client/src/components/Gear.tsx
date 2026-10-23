@@ -60,6 +60,112 @@ export function GearChip({ item, selected, onClick, note }: { item: GearItem; se
   );
 }
 
+/**
+ * Gear won in a fight or sweep: tap an item to inspect it, then keep or sell it
+ * (selling is salvaging: gold, plus reforge stones for ★4/★5).
+ */
+export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: boolean }) {
+  const settings = useContent().settings;
+  const { mutate } = useProfile();
+  const [open, setOpen] = useState<string | null>(null);
+  const [sold, setSold] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  if (!drops.length) return null;
+  const kept = drops.filter((g) => !sold.includes(g.id));
+  const value = (items: GearItem[]) => ({
+    gold: items.reduce((n, g) => n + gearSalvageValue(settings, g), 0),
+    stones: items.reduce((n, g) => n + salvageStones(settings, g.rarity), 0),
+  });
+  const price = ({ gold, stones }: { gold: number; stones: number }) => `🪙 ${gold.toLocaleString()}${stones ? ` · 🔨 ${stones}` : ''}`;
+
+  async function sell(items: GearItem[]) {
+    setBusy(true);
+    const done: string[] = [];
+    await mutate(async () => {
+      let profile;
+      for (const g of items) {
+        profile = (await api.gear.salvage(g.id)).profile;
+        done.push(g.id);
+      }
+      return profile!;
+    });
+    // Items sold before a failure stay sold.
+    setSold((s) => [...s, ...done]);
+    if (done.length) sfx.coins();
+    setOpen(null);
+    setBusy(false);
+  }
+
+  const inspected = drops.find((g) => g.id === open && !sold.includes(g.id));
+  return (
+    <div className="drops loot-gear">
+      <small className="muted">Loot · tap an item to inspect it</small>
+      <div className="drop-row">
+        {drops.map((g, i) => (
+          <div key={g.id} className={`${animate ? 'drop' : ''} ${sold.includes(g.id) ? 'sold' : ''}`} style={animate ? { animationDelay: `${0.35 + i * 0.15}s` } : undefined}>
+            <GearChip
+              item={g}
+              selected={g.id === open}
+              onClick={sold.includes(g.id) ? undefined : () => setOpen(g.id === open ? null : g.id)}
+              note={sold.includes(g.id) ? 'Sold' : undefined}
+            />
+          </div>
+        ))}
+      </div>
+      {inspected && <LootInspect item={inspected} busy={busy} price={price(value([inspected]))} onSell={() => void sell([inspected])} onKeep={() => setOpen(null)} />}
+      {kept.length > 1 && !inspected && (
+        <button
+          className="btn small danger loot-sell-all"
+          disabled={busy}
+          onClick={() => {
+            if (confirm(`Sell all ${kept.length} items for ${price(value(kept))}?`)) void sell(kept);
+          }}
+        >
+          Sell all · {price(value(kept))}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** A dropped item's stats, with Keep and Sell. */
+function LootInspect({ item, busy, price, onSell, onKeep }: { item: GearItem; busy: boolean; price: string; onSell: () => void; onKeep: () => void }) {
+  const { name, emoji, icon } = useGearInfo(item);
+  return (
+    <div className={`gear-detail loot-inspect r${item.rarity}`}>
+      <div className="gear-detail-head">
+        <span className="gear-detail-emoji">
+          <IconOr icon={icon} emoji={emoji} size={48} />
+        </span>
+        <div>
+          <b>{name}</b>
+          <div className={`r${item.rarity}-text small`}>
+            {'★'.repeat(item.rarity)} · {GEAR_SLOT_INFO[item.slot].icon} {GEAR_SLOT_INFO[item.slot].label}
+          </div>
+          <div className="small muted">score {gearScore(item)}</div>
+        </div>
+      </div>
+      <ItemSet item={item} />
+      <div className="gear-stats">
+        <div className="gear-stat main">{formatGearRoll(item.main)}</div>
+        {item.subs.map((s, i) => (
+          <div key={i} className="gear-stat">
+            {formatGearRoll(s)}
+          </div>
+        ))}
+      </div>
+      <div className="gear-actions">
+        <button className="btn small primary" disabled={busy} onClick={onKeep}>
+          Keep
+        </button>
+        <button className="btn small danger" disabled={busy} onClick={onSell}>
+          Sell · {price}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Full item card with upgrade / salvage / equip actions. */
 export function GearDetail({
   item,

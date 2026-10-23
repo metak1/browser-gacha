@@ -139,3 +139,8 @@
 .set-on { color: var(--good); font-weight: 700; }
 .set-on::before { content: '✓ '; }
 .set-off { color: var(--muted); }
+
+/* Loot in battle and sweep results: inspect, keep or sell. */
+.loot-gear .sold { opacity: 0.4; }
+.loot-inspect { margin: 10px auto 0; max-width: 360px; text-align: left; }
+.loot-sell-all { margin-top: 8px; }
