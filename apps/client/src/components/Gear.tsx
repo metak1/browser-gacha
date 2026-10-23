@@ -10,6 +10,7 @@ import {
   salvageStones,
   subQuality,
   subRolls,
+  wornSets,
   type GearItem,
   type GearSlot,
 } from '@gacha/shared';
@@ -34,8 +35,21 @@ export function useGearInfo(item: Pick<GearItem, 'templateId' | 'slot'>) {
 /** Compact item tile used in lists, slots and loot. */
 export function GearChip({ item, selected, onClick, note }: { item: GearItem; selected?: boolean; onClick?: () => void; note?: string }) {
   const { name, emoji, icon } = useGearInfo(item);
+  const sets = useContent().gearSetsById;
+  const set = item.set ? sets[item.set] : undefined;
   return (
-    <button type="button" className={`gear-chip r${item.rarity} ${selected ? 'selected' : ''}`} onClick={onClick} disabled={!onClick} title={name}>
+    <button
+      type="button"
+      className={`gear-chip r${item.rarity} ${selected ? 'selected' : ''}`}
+      onClick={onClick}
+      disabled={!onClick}
+      title={set ? `${name} · ${set.name} set` : name}
+    >
+      {set && (
+        <span className="gear-set">
+          <IconOr icon={set.icon} emoji={set.emoji} size={14} />
+        </span>
+      )}
       <span className="gear-emoji">
         <IconOr icon={icon} emoji={emoji} size={32} />
       </span>
@@ -99,6 +113,7 @@ export function GearDetail({
           <div className="small muted">{wearer ? `Worn by ${wearer.emoji} ${wearer.name}` : 'Not equipped'} · score {gearScore(item)}</div>
         </div>
       </div>
+      <ItemSet item={item} />
       <div className="gear-stats">
         <div className="gear-stat main">
           {formatGearRoll(item.main)}
@@ -141,6 +156,50 @@ export function GearDetail({
         </button>
       </div>
       {item.subs.length > 0 && <Forge item={item} busy={busy} run={run} />}
+    </div>
+  );
+}
+
+/** The item's set and its bonuses; for worn gear, which bonuses the wearer has earned. */
+function ItemSet({ item }: { item: GearItem }) {
+  const content = useContent();
+  const { profile } = useProfile();
+  const set = item.set ? content.gearSetsById[item.set] : undefined;
+  if (!set) return null;
+  const worn = item.equippedTo ? wornSets(profile.gear.filter((g) => g.equippedTo === item.equippedTo), content.gearSetsById).find((w) => w.set.id === set.id) : undefined;
+  return (
+    <div className="gear-set-info">
+      <b>
+        <IconOr icon={set.icon} emoji={set.emoji} size={16} /> {set.name} set{worn && <span className="muted"> · {worn.pieces} worn</span>}
+      </b>
+      {set.bonuses.map((b, i) => (
+        <span key={i} className={worn ? (worn.pieces >= b.pieces ? 'set-on' : 'set-off') : ''}>
+          {b.pieces} pc: {formatGearRoll(b)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** A hero's set bonuses: each set they wear, its pieces and which bonuses are earned. */
+export function SetBonuses({ worn }: { worn: GearItem[] }) {
+  const content = useContent();
+  const sets = wornSets(worn, content.gearSetsById);
+  if (!sets.length) return null;
+  return (
+    <div className="set-bonuses">
+      {sets.map((w) => (
+        <div key={w.set.id} className={`set-bonus ${w.bonuses.some((b) => b.active) ? 'active' : ''}`}>
+          <b>
+            <IconOr icon={w.set.icon} emoji={w.set.emoji} size={16} /> {w.set.name} <span className="muted">×{w.pieces}</span>
+          </b>
+          {w.bonuses.map((b, i) => (
+            <span key={i} className={b.active ? 'set-on' : 'set-off'}>
+              {b.pieces} pc: {formatGearRoll(b)}
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

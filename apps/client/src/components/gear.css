@@ -27,6 +27,13 @@
   font-weight: 900;
   color: #ffd76a;
 }
+.gear-set {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 0.72rem;
+  line-height: 1;
+}
 .gear-main { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 .gear-note {
   position: absolute;
@@ -121,3 +128,14 @@
 .forge-quality > span.perfect { background: linear-gradient(90deg, #ffcc4d, #fff6c8); }
 .forge-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .forge-stat .fits { color: var(--good); }
+
+/* Gear sets */
+.gear-set-info,
+.set-bonus { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 0.85rem; }
+.gear-set-info { padding: 6px 8px; border-radius: 6px; background: var(--panel); }
+.set-bonuses { display: grid; gap: 6px; margin: 0 0 10px; }
+.set-bonus { padding: 6px 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); }
+.set-bonus.active { border-color: var(--good); }
+.set-on { color: var(--good); font-weight: 700; }
+.set-on::before { content: '✓ '; }
+.set-off { color: var(--muted); }

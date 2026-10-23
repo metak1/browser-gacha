@@ -293,6 +293,10 @@ const MIGRATIONS: string[] = [
   `
   UPDATE gear SET slot = 'boots' WHERE json_extract(main, '$.stat') = 'spd';
   `,
+  // v13: gear sets. Gear from before sets has none.
+  `
+  ALTER TABLE gear ADD COLUMN set_id TEXT;
+  `,
 ];
 
 export function migrate(db: DatabaseSync) {

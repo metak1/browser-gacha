@@ -53,7 +53,7 @@ describe('random main stats', () => {
       expect(t.mainStat).toBeNull();
       const seen = new Set<string>();
       for (let i = 0; i < 60; i++) {
-        const item = rollGear(t, rng);
+        const item = rollGear(t, rng, []);
         expect(MAIN_POOLS[t.slot]).toContain(item.main.stat);
         expect(item.main.value).toBeGreaterThan(0);
         expect(item.subs.map((s) => s.stat)).not.toContain(item.main.stat);
@@ -66,7 +66,7 @@ describe('random main stats', () => {
 
   it('still honours a fixed main stat on a template', async () => {
     const { rollGear } = await import('./gear');
-    const item = rollGear({ id: 'x', name: 'X', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: 'critDmg', mainBase: 0.2, icon: null }, seededRandom(1));
+    const item = rollGear({ id: 'x', name: 'X', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: 'critDmg', mainBase: 0.2, icon: null, set: null }, seededRandom(1), []);
     expect(item.main).toEqual({ stat: 'critDmg', value: 0.2 });
   });
 

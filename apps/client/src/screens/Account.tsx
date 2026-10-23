@@ -34,6 +34,7 @@ export function AccountScreen() {
             Log out
           </button>
         </section>
+        <ResetAccount />
         <Credits />
       </div>
     );
@@ -62,6 +63,7 @@ export function AccountScreen() {
         </p>
         <LoginForm />
       </section>
+      <ResetAccount />
       <Credits />
     </div>
   );
@@ -220,6 +222,64 @@ function Meter({ label, value, max }: { label: string; value: number; max: numbe
       </div>
       <div className="meter-bar">
         <div style={{ width: `${(value / Math.max(1, max)) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/** Starting over, behind a confirmation. */
+function ResetAccount() {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <section className="panel">
+      <h3>Reset account</h3>
+      <p className="muted">Delete all your progress and start over as a new player.</p>
+      <button className="btn danger" onClick={() => setConfirming(true)}>
+        Reset account
+      </button>
+      {confirming && <ResetDialog onCancel={() => setConfirming(false)} />}
+    </section>
+  );
+}
+
+/** Asks before wiping the account. */
+function ResetDialog({ onCancel }: { onCancel: () => void }) {
+  const { profile } = useProfile();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+
+  async function reset() {
+    setBusy(true);
+    try {
+      await api.resetAccount();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+      setBusy(false);
+      return;
+    }
+    // A full reload drops every bit of client state from the old progress.
+    window.location.assign('/');
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={busy ? undefined : onCancel}>
+      <div className="modal reset-dialog" role="alertdialog" aria-labelledby="reset-title" onClick={(e) => e.stopPropagation()}>
+        <h2 id="reset-title">Reset account?</h2>
+        <p>
+          All your heroes, gear, gems, gold and progress will be <b>permanently deleted</b>, and you will start over as a new player.
+        </p>
+        <p className="muted">
+          {profile.user.username ? `You keep your login (${profile.user.username}). ` : ''}
+          You will leave your guild and lose your friends. Other devices will be signed out. This can't be undone.
+        </p>
+        <div className="modal-actions">
+          <button className="btn" onClick={onCancel} disabled={busy} autoFocus>
+            Cancel
+          </button>
+          <button className="btn danger" onClick={reset} disabled={busy}>
+            {busy ? 'Resetting…' : 'Reset everything'}
+          </button>
+        </div>
       </div>
     </div>
   );

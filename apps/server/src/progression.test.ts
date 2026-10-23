@@ -13,14 +13,14 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 
 const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 const prog = createDefaultContent().settings.progression;
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(21) } });
+  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(21) } });
 });
 afterEach(async () => app.close());
 
@@ -130,7 +130,7 @@ describe('progression upgrade', () => {
   it('keeps high-level heroes above the new base cap and adds materials and lore', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-prog-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...baseConfig, dbPath });
     const userId = first.services.auth.createGuest().userId;
     await first.close();
 
@@ -155,7 +155,7 @@ describe('progression upgrade', () => {
       ALTER TABLE users DROP COLUMN login_days;
       DROP TABLE friends; DROP TABLE support_uses; DROP TABLE guild_chests; DROP TABLE guild_attempts; DROP TABLE guild_damage; DROP TABLE guild_members; DROP TABLE guilds; DROP TABLE event_purchases; DROP TABLE event_wallets;
       ALTER TABLE stage_clears DROP COLUMN stars;
-      DROP TABLE team_presets; ALTER TABLE teams DROP COLUMN active_preset; ALTER TABLE gear DROP COLUMN forge;
+      DROP TABLE team_presets; ALTER TABLE teams DROP COLUMN active_preset; ALTER TABLE gear DROP COLUMN forge; ALTER TABLE gear DROP COLUMN set_id;
       DELETE FROM content WHERE kind = 'materials';
       DELETE FROM content WHERE kind = 'dungeons';
       DELETE FROM content WHERE kind = 'characters' AND id = 'elara';
@@ -184,7 +184,7 @@ describe('progression upgrade', () => {
     raw.prepare("UPDATE content SET data = ? WHERE kind = 'settings'").run(JSON.stringify(settings));
     raw.close();
 
-    const second = await buildApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...baseConfig, dbPath });
     const profile = second.services.player.profile(userId);
     expect(profile.roster.every((c) => c.level === 35 && c.ascension === 2)).toBe(true);
     const c = second.services.content.current;

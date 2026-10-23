@@ -101,7 +101,7 @@ export function SettingsPanel() {
           {num('Level-up base cost 🪙', 'levelCostBase')}
           {num('Level-up cost per level 🪙', 'levelCostPerLevel', `Lv1→2 costs ${draft.levelCostBase + draft.levelCostPerLevel}, Lv20→21 costs ${draft.levelCostBase + draft.levelCostPerLevel * 20}.`)}
         </FormGrid>
-        <Field label={`Starter heroes (${draft.starterCharacters.length}) for new players`} wide>
+        <Field label={`Starter heroes (${draft.starterCharacters.length}) for new players`} hint="Leave empty to have new players summon their first team with the free 10× summon." wide>
           <MultiPick
             values={draft.starterCharacters}
             onChange={(v) => set('starterCharacters', v)}
@@ -239,6 +239,9 @@ export function SettingsPanel() {
               ['floorGold', 'Gold per floor 🪙', 10],
               ['floorGoldPerFloor', 'Extra gold per floor number 🪙', 5],
               ['milestoneEvery', 'Milestone every N floors', 1],
+              ['trialEvery', 'Trial every N floors (0 = none)', 1],
+              ['trialOffset', 'Trial floor offset (floor % N)', 1],
+              ['trialMult', 'Trial floor stat ×', 0.05],
             ] as const
           ).map(([k, label, step]) => (
             <Field key={k} label={label}>

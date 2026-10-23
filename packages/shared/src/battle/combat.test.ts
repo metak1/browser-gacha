@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildBattleSetup, indexContent } from '../content';
-import { createDefaultContent } from '../content/defaults';
+import { createDefaultContent, REFERENCE_TEAM } from '../content/defaults';
 import { upgradeContent } from '../content/upgrade';
 import { act, currentActor, startBattle } from './engine';
 import { chooseAction } from './ai';
@@ -10,7 +10,7 @@ import type { Skill } from '../types';
 const content = indexContent(createDefaultContent());
 
 function setup(seed = 1): BattleSetup {
-  const s = buildBattleSetup(content, seed, content.settings.starterCharacters.map((id) => ({ id, level: 10, constellation: 0 })), content.stagesById['1-1']!);
+  const s = buildBattleSetup(content, seed, REFERENCE_TEAM.map((id) => ({ id, level: 10, constellation: 0 })), content.stagesById['1-1']!);
   for (const u of [...s.allies, ...s.enemies]) u.passive = null;
   return s;
 }

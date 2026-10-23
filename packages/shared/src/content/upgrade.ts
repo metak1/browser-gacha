@@ -1,9 +1,9 @@
-import { createDefaultContent, ENEMY_SPRITES } from './defaults';
+import { createDefaultContent, ENEMY_SPRITES, REFERENCE_TEAM } from './defaults';
 import { defaultObjectives, defaultPassive, defaultStarRewards } from './passives';
 import type { ContentBundle, EncounterEnemy } from './types';
 
 /** Bump when a new upgrade step is added below. */
-export const CONTENT_SCHEMA_VERSION = 16;
+export const CONTENT_SCHEMA_VERSION = 19;
 
 /**
  * Brings content saved by an older version of the game up to date by merging
@@ -516,6 +516,36 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
       if (old && g.mainStat === old.mainStat && g.mainBase === old.mainBase) {
         g.mainStat = null;
         g.mainBase = 0;
+        changed = true;
+      }
+    }
+  }
+
+  if (fromVersion < 17) {
+    // v17: new players start with no heroes and summon their first team, unless the starters were customised.
+    if (b.settings.starterCharacters.join() === REFERENCE_TEAM.join()) {
+      b.settings.starterCharacters = [];
+      changed = true;
+    }
+  }
+
+  if (fromVersion < 18) {
+    // v18: gear sets.
+    const have = new Set(b.gearSets.map((s) => s.id));
+    for (const s of createDefaultContent().gearSets) {
+      if (!have.has(s.id)) {
+        b.gearSets.push(s);
+        changed = true;
+      }
+    }
+  }
+
+  if (fromVersion < 19) {
+    // v19: icons for the default gear sets, unless an admin already picked one.
+    for (const def of createDefaultContent().gearSets) {
+      const s = b.gearSets.find((x) => x.id === def.id);
+      if (s && s.icon === null) {
+        s.icon = def.icon;
         changed = true;
       }
     }

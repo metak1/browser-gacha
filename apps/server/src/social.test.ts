@@ -1,7 +1,7 @@
 import { autoBattle, seededRandom, type CompleteBattleResponse, type GuildDTO, type ProfileDTO, type SocialDTO, type StartBattleResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 import type { ServiceContext } from './services/context';
 
 const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
@@ -11,7 +11,7 @@ let clock = Date.UTC(2026, 9, 20, 12);
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(4), now: () => clock } });
+  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(4), now: () => clock } });
 });
 afterEach(async () => app.close());
 
@@ -140,5 +140,33 @@ describe('events', () => {
 
     clock = Date.UTC(2026, 11, 1);
     expect((await call('POST', '/events/harvest-moon/stages/0/battles')).status).toBe(400);
+  });
+});
+
+describe('account reset', () => {
+  it('wipes progress, keeps the login, hands over the guild and signs out other devices', async () => {
+    const a = await player();
+    const b = await player();
+    ctx().users.adjustWallet(a.id, { gold: 10_000 });
+    const guild = (await a.call<GuildDTO>('POST', '/guilds', { name: 'Starlit Order', description: 'Hi!' })).body;
+    await b.call('POST', `/guilds/${guild.id}/join`);
+    expect((await a.call('POST', '/auth/link', { username: 'resetter', password: 'correct horse' })).status).toBe(200);
+    expect((await play(a.call, await a.call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' }))).outcome).toBe('victory');
+
+    // A second device on the same account.
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'resetter', password: 'correct horse' } });
+    const other = login.cookies.find((c) => c.name === 'sid')!.value;
+
+    const { status, body } = await a.call<ProfileDTO>('POST', '/auth/reset');
+    expect(status).toBe(200);
+    expect(body.user).toMatchObject({ id: a.id, username: 'resetter' });
+    expect(body.clearedStages).toEqual([]);
+    expect(body.flags).toEqual([]);
+    expect(body.wallet.gold).toBe(app.services.content.current.settings.startingGold);
+    expect((await a.call<ProfileDTO>('GET', '/me')).status).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/api/me', cookies: { sid: other } })).statusCode).toBe(401);
+
+    expect((await a.call('GET', '/guild')).body).toBeNull();
+    expect((await b.call<GuildDTO>('GET', '/guild')).body).toMatchObject({ role: 'leader', memberCount: 1 });
   });
 });

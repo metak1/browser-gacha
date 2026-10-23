@@ -1,4 +1,4 @@
-import { GUIDE_FLAGS, guideStep, type GuideStep } from '@gacha/shared';
+import { firstSummonFree, GUIDE_FLAGS, guideStep, type GuideStep } from '@gacha/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -34,8 +34,8 @@ function visible(selectors: string[] | undefined): Element | null {
 }
 
 /**
- * The new-player tutorial: welcome → first battle → level up a hero → the
- * free first 10× summon. It follows the player around: each step points at
+ * The new-player tutorial: welcome → the free first 10× summon → first
+ * battle → level up a hero. It follows the player around: each step points at
  * the next thing to tap on whatever screen they are on. Progress is kept in
  * account flags, so it resumes on any device.
  */
@@ -70,7 +70,12 @@ export function Guide() {
   useEffect(() => setSub(0), [step, path]);
 
   const card = step ? cardFor(step, path, sub, { flag, navigate, next: () => setSub((s) => s + 1), firstStage: content.stages[0]?.id ?? '1-1' }) : null;
-  return card ? <GuideCard card={card} onSkip={() => flag(GUIDE_FLAGS.done)} /> : null;
+  // Skipping still leads new players to their free summon: it is where their first heroes come from.
+  const skip = () => {
+    void flag(GUIDE_FLAGS.done);
+    if (firstSummonFree(content, profile.flags)) navigate('/summon');
+  };
+  return card ? <GuideCard card={card} onSkip={skip} /> : null;
 }
 
 interface Ctx {
@@ -88,7 +93,7 @@ function cardFor(step: GuideStep, path: string, sub: number, ctx: Ctx): Card | n
       return {
         modal: true,
         title: 'Welcome to Starlit Summons!',
-        text: "Gather heroes, train them, and lead a team of four through the campaign. Let's play your first battle, power up a hero, and then summon new heroes. Your first 10× summon is free!",
+        text: "Gather heroes, train them, and lead a team of four through the campaign. Let's summon your first heroes (your first 10× summon is free!), play your first battle, and power up a hero.",
         actions: [{ label: "Let's go", primary: true, run: () => ctx.flag(GUIDE_FLAGS.welcome) }],
       };
     case 'battle':
@@ -109,7 +114,7 @@ function cardFor(step: GuideStep, path: string, sub: number, ctx: Ctx): Card | n
         : { title: 'Power up your heroes', text: 'Open Heroes to see your team and make them stronger.', target: navLink('/roster') };
     case 'summon':
       if (path !== '/summon') {
-        return { title: 'Summon new heroes', text: 'Time to grow your team. Open Summon: your first 10× summon is free!', target: navLink('/summon') };
+        return { title: 'Summon your first heroes', text: 'Every adventure needs heroes. Open Summon: your first 10× summon is free!', target: navLink('/summon') };
       }
       if (sub === 0) {
         return {
@@ -129,14 +134,14 @@ function cardFor(step: GuideStep, path: string, sub: number, ctx: Ctx): Card | n
       }
       return {
         title: 'Your free 10× summon',
-        text: 'Tap Summon ×10. This one is on us, and it is guaranteed to include a ★5 hero!',
+        text: 'Tap Summon ×10. This one is on us, and it is guaranteed to include a ★5 hero! Your rarest new heroes form your first team.',
         target: ['.summon-buttons .btn:last-child'],
       };
     case 'finish':
       return {
         modal: true,
-        title: 'Your team grows!',
-        text: 'New heroes wait in Heroes: add your favourites to the team of four. Keep clearing the campaign, claim missions and the daily supplies for more gems, and unlock the Arena and Dungeons along the way. Good luck!',
+        title: 'Your adventure begins!',
+        text: 'Swap heroes in and out of your team of four in Heroes. Keep clearing the campaign, claim missions and the daily supplies for more gems, and unlock the Arena and Dungeons along the way. Good luck!',
         actions: [
           { label: 'Done', run: () => ctx.flag(GUIDE_FLAGS.done) },
           {

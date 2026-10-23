@@ -11,6 +11,7 @@ interface GearRow {
   main: string;
   subs: string;
   equipped_to: string | null;
+  set_id: string | null;
 }
 
 const toItem = (r: GearRow): GearItem => ({
@@ -23,6 +24,7 @@ const toItem = (r: GearRow): GearItem => ({
   main: JSON.parse(r.main) as GearRoll,
   subs: JSON.parse(r.subs) as GearRoll[],
   equippedTo: r.equipped_to,
+  set: r.set_id,
 });
 
 export class GearRepo {
@@ -47,10 +49,10 @@ export class GearRepo {
 
   insert(userId: string, item: GearItem, now: number) {
     this.db.run(
-      `INSERT INTO gear (id, user_id, template_id, slot, rarity, level, main_base, main, subs, equipped_to, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO gear (id, user_id, template_id, slot, rarity, level, main_base, main, subs, equipped_to, set_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       item.id, userId, item.templateId, item.slot, item.rarity, item.level, item.mainBase,
-      JSON.stringify(item.main), JSON.stringify(item.subs), item.equippedTo, now,
+      JSON.stringify(item.main), JSON.stringify(item.subs), item.equippedTo, item.set, now,
     );
   }
 

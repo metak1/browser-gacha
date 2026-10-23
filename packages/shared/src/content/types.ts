@@ -258,6 +258,12 @@ export interface TowerSettings {
   floorGoldPerFloor: number;
   milestoneEvery: number;
   milestoneReward: Reward;
+  /** Every N floors (0 = never) a trial floor only lets some heroes in. Never on a boss floor. */
+  trialEvery: number;
+  /** Which floor of each N is the trial: floor % trialEvery === trialOffset. */
+  trialOffset: number;
+  /** Stat multiplier on trial floors, to make up for the restricted team. */
+  trialMult: number;
 }
 
 /** The new-player tutorial's first 10× summon. */
@@ -301,6 +307,26 @@ export interface GearDef {
   mainBase: number;
   /** Icon number in the icon sheet; falls back to the emoji. */
   icon: number | null;
+  /** The set every drop belongs to, or null to roll a random set (from all gear sets) on every drop. */
+  set: string | null;
+}
+
+/** One bonus of a gear set, earned by wearing at least `pieces` items of the set. */
+export interface GearSetBonus {
+  pieces: number;
+  stat: GearStat;
+  /** Fractions for % stats (0.1 = 10%). */
+  value: number;
+}
+
+/** A gear set: wearing several items of it on one hero adds its bonuses. Bonuses stack (4 pieces also earn the 2-piece bonus). */
+export interface GearSetDef {
+  id: string;
+  name: string;
+  emoji: string;
+  /** Icon number in the icon sheet; falls back to the emoji. */
+  icon: number | null;
+  bonuses: GearSetBonus[];
 }
 
 export interface ArenaTier {
@@ -457,6 +483,7 @@ export interface GameSettings {
   /** Gold to go from level L to L+1 = levelCostBase + levelCostPerLevel * L. */
   levelCostBase: number;
   levelCostPerLevel: number;
+  /** Heroes a new player owns from the start. Empty: their first heroes come from the free 10× summon. */
   starterCharacters: string[];
   /** Stardust per duplicate by rarity; doubled once the constellation is maxed. */
   stardustPerDupe: { r3: number; r4: number; r5: number };
@@ -507,12 +534,13 @@ export interface ContentBundle {
   banners: BannerDef[];
   missions: MissionDef[];
   gear: GearDef[];
+  gearSets: GearSetDef[];
   materials: MaterialDef[];
   dungeons: DungeonDef[];
   events: EventDef[];
 }
 
-export const CONTENT_KINDS = ['skills', 'characters', 'enemies', 'chapters', 'stages', 'banners', 'missions', 'gear', 'materials', 'dungeons', 'events'] as const;
+export const CONTENT_KINDS = ['skills', 'characters', 'enemies', 'chapters', 'stages', 'banners', 'missions', 'gear', 'gearSets', 'materials', 'dungeons', 'events'] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
 export interface ContentDocs {
@@ -524,6 +552,7 @@ export interface ContentDocs {
   banners: BannerDef;
   missions: MissionDef;
   gear: GearDef;
+  gearSets: GearSetDef;
   materials: MaterialDef;
   dungeons: DungeonDef;
   events: EventDef;

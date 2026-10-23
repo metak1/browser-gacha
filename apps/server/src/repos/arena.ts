@@ -113,6 +113,12 @@ export class ArenaRepo {
     );
   }
 
+  /** Drops a player's own fights; in their opponents' history they become a nameless past opponent. */
+  forgetPlayer(userId: string) {
+    this.db.run('DELETE FROM arena_history WHERE attacker_id = ?', userId);
+    this.db.run('UPDATE arena_history SET defender_id = NULL WHERE defender_id = ?', userId);
+  }
+
   history(userId: string, limit: number): ArenaHistoryRow[] {
     return this.db
       .all<{

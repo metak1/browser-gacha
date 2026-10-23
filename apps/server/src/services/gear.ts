@@ -84,7 +84,7 @@ export class GearService {
       const prog = content.current.settings.progression;
       const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(prog, owned.ascension));
       const combat = applyPassiveCombat(roleCombat(c.role), c.passive);
-      const plan = bestLoadout(base, gear.list(userId), charId, combat).filter((s) => s.best && s.best.id !== s.current?.id);
+      const plan = bestLoadout(base, gear.list(userId), charId, content.current.gearSetsById, combat).filter((s) => s.best && s.best.id !== s.current?.id);
       for (const s of plan) {
         gear.unequipSlot(userId, charId, s.slot);
         gear.setEquipped(userId, s.best!.id, charId);
@@ -189,7 +189,7 @@ export class GearService {
         inventoryFull = true;
         continue;
       }
-      const item: GearItem = { id: randomUUID(), ...rollGear(template, random), equippedTo: null };
+      const item: GearItem = { id: randomUUID(), ...rollGear(template, random, content.current.bundle.gearSets), equippedTo: null };
       gear.insert(userId, item, now());
       drops.push(item);
       count++;

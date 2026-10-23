@@ -1,7 +1,7 @@
 import { autoBattle, seededRandom, type CompleteBattleResponse, type ProfileDTO, type StartBattleResponse, type SweepResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 import type { ServiceContext } from './services/context';
 
 const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
@@ -10,7 +10,7 @@ let clock = Date.UTC(2026, 9, 20, 12); // a Tuesday
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(9), now: () => clock } });
+  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(9), now: () => clock } });
 });
 afterEach(async () => app.close());
 

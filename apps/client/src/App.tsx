@@ -4,6 +4,7 @@ import { music as musicPlayer } from './audio/music';
 import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Icon } from './components/Art';
 import { Guide } from './components/Guide';
+import { BattleHost, isBattlePath } from './battle/sessions';
 import { DesktopNav, MobileTabs, SettingsMenu } from './components/Nav';
 import { StaminaPill } from './components/Stamina';
 import { Scene } from './components/Scene';
@@ -40,6 +41,17 @@ export function App() {
   );
 }
 
+const BATTLE_ROUTES = (
+  <>
+    <Route path="/battle/:stageId" element={<BattleScreen />} />
+    <Route path="/tower/:floor" element={<TowerBattleScreen />} />
+    <Route path="/event/:eventId/:stage" element={<EventBattleScreen />} />
+    <Route path="/guild-battle/:boss" element={<GuildBattleScreen />} />
+    <Route path="/dungeon/:dungeonId/:tier" element={<DungeonBattleScreen />} />
+    <Route path="/arena/fight/:opponentId" element={<ArenaBattleScreen />} />
+  </>
+);
+
 // The admin panel is only downloaded by admins who open it.
 const AdminScreen = lazy(() => import('./admin/AdminScreen'));
 
@@ -47,7 +59,7 @@ function Layout() {
   const { profile } = useProfile();
   const location = useLocation();
   // Battles pick their own track; everywhere else plays the calm lobby loop.
-  const inBattle = /^\/(battle|dungeon|event|guild-battle|tower|arena\/fight)\//.test(location.pathname);
+  const inBattle = isBattlePath(location.pathname);
   useEffect(() => {
     if (!inBattle) musicPlayer.play('menu');
   }, [inBattle]);
@@ -92,17 +104,17 @@ function Layout() {
           <Routes location={location}>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/campaign" element={<CampaignScreen />} />
-            <Route path="/battle/:stageId" element={<BattleScreen />} />
+            <Route path="/battle/:stageId" element={null} />
             <Route path="/dungeons" element={<DungeonsScreen />} />
             <Route path="/tower" element={<TowerScreen />} />
-            <Route path="/tower/:floor" element={<TowerBattleScreen />} />
+            <Route path="/tower/:floor" element={null} />
             <Route path="/events" element={<EventsScreen />} />
-            <Route path="/event/:eventId/:stage" element={<EventBattleScreen />} />
+            <Route path="/event/:eventId/:stage" element={null} />
             <Route path="/social" element={<SocialScreen />} />
-            <Route path="/guild-battle/:boss" element={<GuildBattleScreen />} />
-            <Route path="/dungeon/:dungeonId/:tier" element={<DungeonBattleScreen />} />
+            <Route path="/guild-battle/:boss" element={null} />
+            <Route path="/dungeon/:dungeonId/:tier" element={null} />
             <Route path="/arena" element={<ArenaScreen />} />
-            <Route path="/arena/fight/:opponentId" element={<ArenaBattleScreen />} />
+            <Route path="/arena/fight/:opponentId" element={null} />
             <Route path="/summon" element={<SummonScreen />} />
             <Route path="/roster" element={<RosterScreen />} />
             <Route path="/account" element={<AccountScreen />} />
@@ -118,6 +130,8 @@ function Layout() {
             <Route path="*" element={<p className="muted center">Page not found.</p>} />
           </Routes>
         </div>
+        {/* Battles live outside the page so they keep playing (minimized) when the player looks elsewhere. */}
+        <BattleHost routes={BATTLE_ROUTES} />
       </main>
     </>
   );

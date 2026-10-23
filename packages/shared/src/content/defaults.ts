@@ -31,6 +31,7 @@ import type {
   EnemyDef,
   GameSettings,
   GearDef,
+  GearSetDef,
   MaterialDef,
   MissionDef,
   SkillDef,
@@ -471,22 +472,32 @@ const materials: MaterialDef[] = [
 
 // Templates set the slot, rarity and look; every drop rolls its main stat from the slot's pool.
 const gear: GearDef[] = [
-  { id: 'bronze-blade', name: 'Bronze Blade', emoji: '🗡️', slot: 'weapon', rarity: 3, mainStat: null, mainBase: 0, icon: 1441 },
-  { id: 'runed-saber', name: 'Runed Saber', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: null, mainBase: 0, icon: 1508 },
-  { id: 'starforged-edge', name: 'Starforged Edge', emoji: '🔱', slot: 'weapon', rarity: 5, mainStat: null, mainBase: 0, icon: 1590 },
-  { id: 'leather-vest', name: 'Leather Vest', emoji: '🦺', slot: 'armor', rarity: 3, mainStat: null, mainBase: 0, icon: 1969 },
-  { id: 'knight-mail', name: 'Knight Mail', emoji: '🛡️', slot: 'armor', rarity: 4, mainStat: null, mainBase: 0, icon: 1921 },
-  { id: 'aegis-of-dawn', name: 'Aegis of Dawn', emoji: '💠', slot: 'armor', rarity: 5, mainStat: null, mainBase: 0, icon: 1927 },
-  { id: 'lucky-clover', name: 'Clover Sandals', emoji: '🩴', slot: 'boots', rarity: 3, mainStat: null, mainBase: 0, icon: null },
-  { id: 'moon-pendant', name: 'Moon Pendant', emoji: '🌙', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: 2065 },
-  { id: 'warding-amulet', name: 'Warding Amulet', emoji: '🧿', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: 2066 },
-  { id: 'swift-feather', name: 'Featherstep Boots', emoji: '👢', slot: 'boots', rarity: 5, mainStat: null, mainBase: 0, icon: null },
-  { id: 'heart-locket', name: 'Heart Locket', emoji: '💖', slot: 'charm', rarity: 5, mainStat: null, mainBase: 0, icon: 2181 },
+  { id: 'bronze-blade', name: 'Bronze Blade', emoji: '🗡️', slot: 'weapon', rarity: 3, mainStat: null, mainBase: 0, icon: 1441, set: null },
+  { id: 'runed-saber', name: 'Runed Saber', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: null, mainBase: 0, icon: 1508, set: null },
+  { id: 'starforged-edge', name: 'Starforged Edge', emoji: '🔱', slot: 'weapon', rarity: 5, mainStat: null, mainBase: 0, icon: 1590, set: null },
+  { id: 'leather-vest', name: 'Leather Vest', emoji: '🦺', slot: 'armor', rarity: 3, mainStat: null, mainBase: 0, icon: 1969, set: null },
+  { id: 'knight-mail', name: 'Knight Mail', emoji: '🛡️', slot: 'armor', rarity: 4, mainStat: null, mainBase: 0, icon: 1921, set: null },
+  { id: 'aegis-of-dawn', name: 'Aegis of Dawn', emoji: '💠', slot: 'armor', rarity: 5, mainStat: null, mainBase: 0, icon: 1927, set: null },
+  { id: 'lucky-clover', name: 'Clover Sandals', emoji: '🩴', slot: 'boots', rarity: 3, mainStat: null, mainBase: 0, icon: null, set: null },
+  { id: 'moon-pendant', name: 'Moon Pendant', emoji: '🌙', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: 2065, set: null },
+  { id: 'warding-amulet', name: 'Warding Amulet', emoji: '🧿', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: 2066, set: null },
+  { id: 'swift-feather', name: 'Featherstep Boots', emoji: '👢', slot: 'boots', rarity: 5, mainStat: null, mainBase: 0, icon: null, set: null },
+  { id: 'heart-locket', name: 'Heart Locket', emoji: '💖', slot: 'charm', rarity: 5, mainStat: null, mainBase: 0, icon: 2181, set: null },
   // Boots: the only slot with SPD as a main stat, but other boots exist too.
-  { id: 'ranger-boots', name: 'Ranger Boots', emoji: '🥾', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null },
-  { id: 'iron-greaves', name: 'Iron Greaves', emoji: '🦿', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null },
-  { id: 'pilgrim-treads', name: 'Pilgrim Treads', emoji: '👞', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null },
-  { id: 'warlord-sabatons', name: 'Warlord Sabatons', emoji: '🥿', slot: 'boots', rarity: 5, mainStat: null, mainBase: 0, icon: null },
+  { id: 'ranger-boots', name: 'Ranger Boots', emoji: '🥾', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null, set: null },
+  { id: 'iron-greaves', name: 'Iron Greaves', emoji: '🦿', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null, set: null },
+  { id: 'pilgrim-treads', name: 'Pilgrim Treads', emoji: '👞', slot: 'boots', rarity: 4, mainStat: null, mainBase: 0, icon: null, set: null },
+  { id: 'warlord-sabatons', name: 'Warlord Sabatons', emoji: '🥿', slot: 'boots', rarity: 5, mainStat: null, mainBase: 0, icon: null, set: null },
+];
+
+/** Gear sets: every drop rolls one at random (unless its template fixes a set). */
+const gearSets: GearSetDef[] = [
+  { id: 'precision', name: 'Precision', emoji: '🎯', icon: 731, bonuses: [{ pieces: 2, stat: 'critRate', value: 0.06 }, { pieces: 4, stat: 'critRate', value: 0.12 }] },
+  { id: 'ruin', name: 'Ruin', emoji: '💥', icon: 767, bonuses: [{ pieces: 2, stat: 'critDmg', value: 0.12 }, { pieces: 4, stat: 'critDmg', value: 0.25 }] },
+  { id: 'fury', name: 'Fury', emoji: '🔥', icon: 657, bonuses: [{ pieces: 2, stat: 'atkPct', value: 0.08 }, { pieces: 4, stat: 'atkPct', value: 0.15 }] },
+  { id: 'vitality', name: 'Vitality', emoji: '💚', icon: 661, bonuses: [{ pieces: 2, stat: 'hpPct', value: 0.1 }, { pieces: 4, stat: 'hpPct', value: 0.2 }] },
+  { id: 'bulwark', name: 'Bulwark', emoji: '🛡️', icon: 665, bonuses: [{ pieces: 2, stat: 'defPct', value: 0.1 }, { pieces: 4, stat: 'defPct', value: 0.2 }] },
+  { id: 'gale', name: 'Gale', emoji: '🌪️', icon: 891, bonuses: [{ pieces: 2, stat: 'spd', value: 5 }, { pieces: 4, stat: 'spd', value: 10 }] },
 ];
 
 const banners: BannerDef[] = [
@@ -611,6 +622,9 @@ const dungeons: DungeonDef[] = [
   ]),
 ];
 
+/** The four heroes new players used to start with: a balanced reference team for tests and balancing. */
+export const REFERENCE_TEAM = ['pebble', 'torch', 'aldric', 'puddle'];
+
 const settings: GameSettings = {
   pullCost: 160,
   startingGems: 1600,
@@ -621,7 +635,7 @@ const settings: GameSettings = {
   maxLevel: 60,
   levelCostBase: 20,
   levelCostPerLevel: 15,
-  starterCharacters: ['pebble', 'torch', 'aldric', 'puddle'],
+  starterCharacters: [],
   stardustPerDupe: { r3: 1, r4: 5, r5: 25 },
   stardustExchangeCost: 25,
   gacha: {
@@ -687,7 +701,7 @@ export const HARVEST_EVENT: EventDef = {
 };
 const events: EventDef[] = [HARVEST_EVENT];
 
-const DEFAULT_CONTENT: ContentBundle = { version: 1, settings, skills, characters, enemies, chapters, stages, banners, missions, gear, materials, dungeons, events };
+const DEFAULT_CONTENT: ContentBundle = { version: 1, settings, skills, characters, enemies, chapters, stages, banners, missions, gear, gearSets, materials, dungeons, events };
 
 /** A fresh, deep copy of the default content. */
 export function createDefaultContent(): ContentBundle {

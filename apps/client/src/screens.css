@@ -319,7 +319,7 @@
 .mission-group h2 small { font-size: 0.75rem; font-weight: 500; }
 .mission {
   display: grid;
-  grid-template-columns: 1fr 170px 120px;
+  grid-template-columns: 1fr auto 120px;
   gap: 16px;
   align-items: center;
   padding: 12px 16px;
@@ -336,12 +336,13 @@
 .mission-bar div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--r4)); transition: width 0.5s; }
 .mission.ready .mission-bar div { background: linear-gradient(90deg, #ffcc4d, #ffe9a8); }
 .mission-bar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.72rem; font-weight: 800; text-shadow: 0 1px 2px #000; }
-.mission-reward { font-weight: 700; white-space: nowrap; font-size: 0.9rem; text-align: right; }
+.mission-reward { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 150px; font-weight: 700; font-size: 0.9rem; }
+.mission-reward .reward-list { justify-content: flex-end; }
 .mission .btn { width: 100%; }
 @media (max-width: 600px) {
   .mission { grid-template-columns: 1fr 110px; }
-  .mission-reward { text-align: left; }
-  .mission-reward { grid-row: 2; }
+  .mission-reward { grid-row: 2; flex-direction: row; flex-wrap: wrap; align-items: center; min-width: 0; }
+  .mission-reward .reward-list { justify-content: flex-start; }
 }
 
 /* ---------- roster extras ---------- */
@@ -570,3 +571,14 @@
 /* Hero stats: the crit and effect rows sit under HP/ATK/DEF/SPD, a little quieter. */
 .stats .combat-row td { font-size: 0.85em; }
 .stats .combat-row:first-of-type td { border-top: 1px dashed #ffffff1a; }
+
+/* Reset account confirmation */
+.reset-dialog h2 { font-size: 1.5rem; color: var(--bad); }
+.reset-dialog p { margin: 10px 0; }
+html .btn.danger {
+  background: #d9475a;
+  border-color: #05060f;
+  color: #fff;
+  box-shadow: inset 0 -4px 0 #9a2a3a, inset 0 3px 0 #ff9aa6, 0 3px 0 #05060f;
+}
+html .btn.danger:hover:not(:disabled) { background: #e85a6c; }

@@ -7,7 +7,7 @@ describe('migrations', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db);
     // Back to v11, with an old SPD charm (equipped) and a normal charm.
-    db.exec('PRAGMA user_version = 11');
+    db.exec('ALTER TABLE gear DROP COLUMN set_id; PRAGMA user_version = 11');
     db.prepare("INSERT INTO users (id, gems, gold, created_at) VALUES ('u', 0, 0, 0)").run();
     const insert = db.prepare(
       "INSERT INTO gear (id, user_id, template_id, slot, rarity, level, main_base, main, subs, equipped_to, created_at) VALUES (?, 'u', ?, 'charm', 5, 0, 6, ?, '[]', 'aldric', 0)",

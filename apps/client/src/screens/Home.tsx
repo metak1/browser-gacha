@@ -135,6 +135,10 @@ interface Step {
 /** The single most useful thing to do next, for players finding their feet. */
 function nextStep(content: ContentIndex, profile: ProfileDTO): Step | null {
   const cleared = new Set(profile.clearedStages);
+  // New players start without heroes: the free summon comes before anything else.
+  if (firstSummonFree(content, profile.flags)) {
+    return { icon: '✦', title: 'Your first 10× summon is free', text: 'Recruit ten new heroes on any banner, on the house.', to: '/summon', cta: 'Summon' };
+  }
   const first = content.stages[0];
   if (first && !cleared.has(first.id)) {
     return { icon: '⚔️', title: 'Start your adventure', text: 'Your first battle comes with a quick tour of how combat works.', to: `/battle/${first.id}`, cta: `Battle ${first.id}` };
@@ -143,9 +147,6 @@ function nextStep(content: ContentIndex, profile: ProfileDTO): Step | null {
     const n = profile.missionsReady;
     // missionsReady counts finished missions and ready daily chests.
     return { icon: '📜', title: 'Rewards are waiting', text: `${n} reward${n === 1 ? ' is' : 's are'} ready to claim.`, to: '/missions', cta: 'Open missions' };
-  }
-  if (firstSummonFree(content, profile.flags)) {
-    return { icon: '✦', title: 'Your first 10× summon is free', text: 'Recruit ten new heroes on any banner, on the house.', to: '/summon', cta: 'Summon' };
   }
   if (profile.roster.length <= content.settings.starterCharacters.length && profile.wallet.gems >= content.settings.pullCost) {
     return { icon: '✦', title: 'Recruit new heroes', text: 'Spend your gems on the summon banners to grow your team.', to: '/summon', cta: 'Summon' };

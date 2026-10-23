@@ -69,6 +69,11 @@ export class UserRepo {
     this.db.run('UPDATE users SET role = ? WHERE id = ?', role, id);
   }
 
+  /** Deletes a player and, by cascade, everything they own (sessions included). */
+  delete(id: string) {
+    this.db.run('DELETE FROM users WHERE id = ?', id);
+  }
+
   /** Most recently created players, optionally filtered by username or id prefix. */
   search(query: string, limit: number): User[] {
     const q = query.trim();

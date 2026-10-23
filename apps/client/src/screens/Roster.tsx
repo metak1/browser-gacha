@@ -48,7 +48,7 @@ import { AscensionPips, CostList } from '../components/Materials';
 import { CharacterCard, ROLE_INFO } from '../components/CharacterCard';
 import { heroPower } from '../components/upgrades';
 import { TeamTabs } from '../components/TeamSwitcher';
-import { GearChip, GearDetail, GearPicker } from '../components/Gear';
+import { GearChip, GearDetail, GearPicker, SetBonuses } from '../components/Gear';
 import { useContent } from '../state/content';
 import { useProfile } from '../state/profile';
 import { useToast } from '../state/toast';
@@ -321,18 +321,19 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
   const bonus = ascensionBonus(prog, rank);
   const worn = profile.gear.filter((g) => g.equippedTo === charId);
   const base = scaleStats(c.base, level, con, bonus);
-  const stats = applyGear(base, worn);
-  const next = level < cap ? applyGear(scaleStats(c.base, level + 1, con, bonus), worn) : null;
+  const sets = content.gearSetsById;
+  const stats = applyGear(base, worn, sets);
+  const next = level < cap ? applyGear(scaleStats(c.base, level + 1, con, bonus), worn, sets) : null;
   const cost = levelUpCost(settings, level);
   const bulk5 = bulkLevelUp(settings, level, cap, profile.wallet.gold, 5);
   const bulkMax = bulkLevelUp(settings, level, cap, profile.wallet.gold, cap - level);
   // What auto-equip would add: the best free gear per slot, compared with what's worn.
   const combatBase = applyPassiveCombat(roleCombat(c.role), c.passive);
-  const combat = applyGearCombat(combatBase, worn);
-  const best = bestLoadout(base, profile.gear, charId, combatBase);
+  const combat = applyGearCombat(combatBase, worn, sets);
+  const best = bestLoadout(base, profile.gear, charId, sets, combatBase);
   const bestGear = best.flatMap((s) => (s.best ? [s.best] : []));
   const loadoutGain = owned
-    ? statPower(applyGear(base, bestGear), applyGearCombat(combatBase, bestGear)) - statPower(applyGear(base, worn), combat)
+    ? statPower(applyGear(base, bestGear, sets), applyGearCombat(combatBase, bestGear, sets)) - statPower(applyGear(base, worn, sets), combat)
     : 0;
   const inTeam = profile.team.includes(charId);
   const atCap = level >= cap;
@@ -508,6 +509,7 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
                 );
               })}
             </div>
+            <SetBonuses worn={worn} />
             <BuildPanel hero={c} worn={worn} />
           </>
         ) : (

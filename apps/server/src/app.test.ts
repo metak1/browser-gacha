@@ -1,6 +1,7 @@
 import {
   autoBattle,
   createDefaultContent,
+  REFERENCE_TEAM,
   type CompleteBattleResponse,
   type ProfileDTO,
   type StartBattleResponse,
@@ -8,17 +9,18 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 import { DEFAULT_ACTIVITY_CHESTS, DEFAULT_LOGIN_CALENDAR, seededRandom, type ClaimMissionResponse } from '@gacha/shared';
 
 let app: FastifyInstance;
 
 // Default content values (the test DB is seeded with defaults).
-const { pullCost: PULL_COST, startingGems: STARTING_GEMS, dailyGems: DAILY_GEMS, starterCharacters: STARTER_CHARACTERS } =
-  createDefaultContent().settings;
+const { pullCost: PULL_COST, startingGems: STARTING_GEMS, dailyGems: DAILY_GEMS } = createDefaultContent().settings;
+// buildTestApp gives new players the reference team as starters.
+const STARTER_CHARACTERS = REFERENCE_TEAM;
 
 beforeEach(async () => {
-  app = await buildApp(
+  app = await buildTestApp(
     { dbPath: ':memory:', cookieSecure: false, clientDist: null, logger: false, rateLimit: false },
     { overrides: { random: seededRandom(1) } },
   );
@@ -58,6 +60,24 @@ describe('auth', () => {
     expect(profile.wallet.gems).toBe(STARTING_GEMS);
     expect(profile.team).toEqual(STARTER_CHARACTERS);
     expect((await call<ProfileDTO>('GET', '/me')).body.user.id).toBe(profile.user.id);
+  });
+
+  it('by default starts players without heroes and builds their team from the first summon', async () => {
+    app.services.content.saveSettings(createDefaultContent().settings);
+    const { call, profile } = await newGuest();
+    expect(profile.roster).toEqual([]);
+    expect(profile.team).toEqual([]);
+
+    const { body } = await call<SummonResponse>('POST', '/gacha/summon', { bannerId: 'standard', count: 10 });
+    expect(body.profile.wallet.gems).toBe(STARTING_GEMS);
+    expect(body.profile.team).toHaveLength(4);
+    const rarity = (id: string) => body.results.find((r) => r.id === id)!.rarity;
+    expect(rarity(body.profile.team[0]!)).toBe(5);
+    expect(body.profile.team.map(rarity)).toEqual(body.profile.team.map(rarity).sort((a, b) => b - a));
+
+    // Later summons leave the team alone.
+    const again = await call<SummonResponse>('POST', '/gacha/summon', { bannerId: 'standard', count: 1 });
+    expect(again.body.profile.team).toEqual(body.profile.team);
   });
 
   it('links a guest so another device can log in to the same progress', async () => {

@@ -6,6 +6,9 @@ import {
   autoBattle,
   createDefaultContent,
   seededRandom,
+  towerFloor,
+  towerKey,
+  trialAllows,
   type ArenaLeaderboardEntryDTO,
   type ArenaStatusDTO,
   type CompleteBattleResponse,
@@ -15,7 +18,7 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 import type { ServiceContext } from './services/context';
 
 const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
@@ -24,7 +27,7 @@ let clock = Date.UTC(2026, 9, 20, 12);
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(11), now: () => clock } });
+  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(11), now: () => clock } });
 });
 afterEach(async () => app.close());
 
@@ -72,6 +75,7 @@ describe('gear', () => {
     expect(drops).toBeGreaterThan(0);
     const item = result!.profile.gear[0]!;
     expect(item.equippedTo).toBeNull();
+    expect(createDefaultContent().gearSets.map((x) => x.id)).toContain(item.set); // every drop belongs to a set
 
     const before = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
     const equip = await call<GearActionResponse>('POST', `/gear/${item.id}/equip`, { charId: 'torch' });
@@ -180,7 +184,7 @@ describe('content upgrade', () => {
   it('adds ultimates, gear and drops to content saved by the previous version', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-upgrade-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...baseConfig, dbPath });
     await first.close();
 
     // Make the stored content look like it came from before ultimates/gear existed.
@@ -198,7 +202,7 @@ describe('content upgrade', () => {
     raw.exec("DELETE FROM content WHERE kind = 'gear' OR id LIKE '%-ult'; UPDATE meta SET value = '1' WHERE key = 'content_schema';");
     raw.close();
 
-    const second = await buildApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...baseConfig, dbPath });
     const c = second.services.content.current;
     expect(c.charactersById.ignis!.ultimate).toBe('ignis-ult');
     expect(c.bundle.gear.length).toBeGreaterThan(0);
@@ -212,7 +216,7 @@ describe('art upgrade', () => {
   it('adds icons, sprite units and their stages to content from before art existed', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-art-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...baseConfig, dbPath });
     await first.close();
 
     // Roll the stored content back to how v2 saved it.
@@ -233,7 +237,7 @@ describe('art upgrade', () => {
               UPDATE meta SET value = '2' WHERE key = 'content_schema';`);
     raw.close();
 
-    const second = await buildApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...baseConfig, dbPath });
     const c = second.services.content.current;
     expect(c.skillsById['ignis-basic']!.icon).toBeGreaterThan(0);
     expect(c.gearById['runed-saber']!.icon).toBeGreaterThan(0);
@@ -277,7 +281,7 @@ describe('roster tools and the tower', () => {
     const [a, b] = profile.team as [string, string];
     const weapon = (id: string, atk: number) => ({
       id, templateId: 'runed-saber', slot: 'weapon' as const, rarity: 4 as const, level: 0, mainBase: atk,
-      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null,
+      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null, set: null,
     });
     ctx.gear.insert(profile.user.id, weapon('weak', 10), clock);
     ctx.gear.insert(profile.user.id, weapon('strong', 60), clock);
@@ -299,7 +303,7 @@ describe('roster tools and the tower', () => {
     const r = createDefaultContent().settings.reforge;
     ctx.gear.insert(profile.user.id, {
       id: BLADE, templateId: 'starforged-edge', slot: 'weapon', rarity: 5, level: 0, mainBase: 40,
-      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null,
+      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null, set: null,
     }, clock);
 
     // Gold is checked first, then stones.
@@ -353,5 +357,26 @@ describe('roster tools and the tower', () => {
     expect(board.body.best).toBe(1);
     expect(board.body.myRank).toBe(1);
     expect(board.body.leaders[0]).toMatchObject({ floor: 1, me: true });
+  });
+
+  it('lets only the heroes a trial allows into a trial floor', async () => {
+    const { call, profile } = await guest();
+    const ctx = ctxOf();
+    const content = ctx.content.current;
+    ctx.progress.recordClear(profile.user.id, '2-4', clock);
+    for (const f of [1, 2]) ctx.progress.recordClear(profile.user.id, towerKey(f), clock);
+    const trial = towerFloor(content, 3).trial!;
+    expect(trial.kind).toBe('element');
+    const fits = content.bundle.characters.find((c) => trialAllows(trial, c))!;
+    const misfits = content.bundle.characters.filter((c) => !trialAllows(trial, c)).slice(0, 2);
+    for (const c of [fits, ...misfits]) ctx.roster.addCopy(profile.user.id, c.id, clock);
+
+    ctx.roster.setTeam(profile.user.id, misfits.map((c) => c.id));
+    expect((await call<{ error: string }>('POST', '/tower/battles', { floor: 3 })).body).toMatchObject({ error: 'trial_no_heroes' });
+
+    ctx.roster.setTeam(profile.user.id, [misfits[0]!.id, fits.id, misfits[1]!.id]);
+    const start = await call<StartBattleResponse>('POST', '/tower/battles', { floor: 3 });
+    expect(start.status).toBe(200);
+    expect(start.body.setup.allies.map((u) => u.id)).toEqual([fits.id]);
   });
 });

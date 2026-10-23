@@ -1,6 +1,7 @@
 import {
   defaultStarRewards,
   describeObjective,
+  REFERENCE_TEAM,
   SCENE_THEMES,
   STAGE_OBJECTIVE_KINDS,
   type ChapterDef,
@@ -368,7 +369,7 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
 /** Runs many auto-battles on the server against the saved stage to check difficulty. */
 function Simulator({ value }: { value: StageDef }) {
   const content = useContent();
-  const [team, setTeam] = useState<string[]>(content.settings.starterCharacters);
+  const [team, setTeam] = useState<string[]>(content.settings.starterCharacters.length ? content.settings.starterCharacters : REFERENCE_TEAM);
   const [level, setLevel] = useState(value.recommendedLevel);
   const [runs, setRuns] = useState(100);
   const [result, setResult] = useState<SimulateResponse | null>(null);

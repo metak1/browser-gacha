@@ -40,7 +40,7 @@ export function createServices(db: Database, overrides?: ContextOverrides): Serv
   const guild = new GuildService(ctx, gear, missions);
   const events = new EventService(ctx);
   return {
-    auth: new AuthService(ctx),
+    auth: new AuthService(ctx, guild),
     player: new PlayerService(ctx, missions, social),
     gacha: new GachaService(ctx, missions),
     battle: new BattleService(ctx, missions, gear, arena, progression, social, guild, events),

@@ -12,6 +12,9 @@ interface Settings {
   /** Replay won auto battles back to back. */
   repeat: boolean;
   setRepeat: (v: boolean) => void;
+  /** After a campaign victory, go on to the next stage. Can't be on together with `repeat`. */
+  advance: boolean;
+  setAdvance: (v: boolean) => void;
   /** Background music (sound effects are controlled by `muted`, which silences both). */
   music: boolean;
   setMusic: (v: boolean) => void;
@@ -23,18 +26,19 @@ interface Settings {
 const STORAGE_KEY = 'starlit-settings';
 
 // Settings are a per-device convenience; storage may be unavailable (private mode).
-function read(): { muted: boolean; speed: BattleSpeed; repeat: boolean; music: boolean; largeText: boolean } {
+function read(): { muted: boolean; speed: BattleSpeed; repeat: boolean; advance: boolean; music: boolean; largeText: boolean } {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as { muted?: unknown; speed?: unknown; repeat?: unknown; music?: unknown; largeText?: unknown };
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as { muted?: unknown; speed?: unknown; repeat?: unknown; advance?: unknown; music?: unknown; largeText?: unknown };
     return {
       muted: raw.muted === true,
       speed: raw.speed === 3 ? 3 : raw.speed === 2 ? 2 : 1,
       repeat: raw.repeat === true,
+      advance: raw.advance === true && raw.repeat !== true,
       music: raw.music !== false,
       largeText: raw.largeText === true,
     };
   } catch {
-    return { muted: false, speed: 1, repeat: false, music: true, largeText: false };
+    return { muted: false, speed: 1, repeat: false, advance: false, music: true, largeText: false };
   }
 }
 
@@ -44,7 +48,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [initial] = useState(read);
   const [muted, setMuted] = useState(initial.muted);
   const [speed, setSpeed] = useState<BattleSpeed>(initial.speed);
-  const [repeat, setRepeat] = useState(initial.repeat);
+  const [repeat, setRepeatState] = useState(initial.repeat);
+  const [advance, setAdvanceState] = useState(initial.advance);
+  const setRepeat = (v: boolean) => {
+    setRepeatState(v);
+    if (v) setAdvanceState(false);
+  };
+  const setAdvance = (v: boolean) => {
+    setAdvanceState(v);
+    if (v) setRepeatState(false);
+  };
   const [music, setMusic] = useState(initial.music);
   const [largeText, setLargeText] = useState(initial.largeText);
 
@@ -53,14 +66,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     musicPlayer.setEnabled(music && !muted);
     document.documentElement.classList.toggle('large-text', largeText);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ muted, speed, repeat, music, largeText }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ muted, speed, repeat, advance, music, largeText }));
     } catch {
       // ignore
     }
-  }, [muted, speed, repeat, music, largeText]);
+  }, [muted, speed, repeat, advance, music, largeText]);
 
   return (
-    <SettingsContext.Provider value={{ muted, setMuted, speed, setSpeed, repeat, setRepeat, music, setMusic, largeText, setLargeText }}>{children}</SettingsContext.Provider>
+    <SettingsContext.Provider value={{ muted, setMuted, speed, setSpeed, repeat, setRepeat, advance, setAdvance, music, setMusic, largeText, setLargeText }}>{children}</SettingsContext.Provider>
   );
 }
 

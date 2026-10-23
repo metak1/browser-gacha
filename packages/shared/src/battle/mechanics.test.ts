@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildBattleSetup, indexContent } from '../content';
-import { createDefaultContent } from '../content/defaults';
+import { createDefaultContent, REFERENCE_TEAM } from '../content/defaults';
 import { chooseAction } from './ai';
 import { act, currentActor, getUnit, livingUnits, startBattle } from './engine';
 import { autoBattle, replayBattle } from './replay';
@@ -14,7 +14,7 @@ function setupFor(stageId: string, level: number, allyAtk: number): BattleSetup 
   const setup = buildBattleSetup(
     content,
     7,
-    content.settings.starterCharacters.map((id) => ({ id, level, constellation: 0 })),
+    REFERENCE_TEAM.map((id) => ({ id, level, constellation: 0 })),
     stage,
   );
   for (const a of setup.allies) a.stats = { ...a.stats, hp: 1_000_000, atk: allyAtk };
@@ -105,7 +105,7 @@ describe('boss mechanics', () => {
     for (const stageId of ['1-4', '2-4', '3-4', '4-4', '5-4', '6-4']) {
       const stage = content.stagesById[stageId]!;
       for (let seed = 1; seed <= 5; seed++) {
-        const setup = buildBattleSetup(content, seed, content.settings.starterCharacters.map((id) => ({ id, level: stage.recommendedLevel + 5, constellation: 0 })), stage);
+        const setup = buildBattleSetup(content, seed, REFERENCE_TEAM.map((id) => ({ id, level: stage.recommendedLevel + 5, constellation: 0 })), stage);
         const played = autoBattle(setup);
         const replay = replayBattle(setup, played.actions);
         expect(replay.error).toBeUndefined();

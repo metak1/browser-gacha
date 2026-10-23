@@ -4,6 +4,8 @@ import {
   newlyUnlocked,
   staminaCost,
   currentActor,
+  isHardUnlocked,
+  isStageUnlocked,
   nextStage,
   skillFor,
   validTargets,
@@ -18,6 +20,7 @@ import {
   UI_ICONS,
   guideStep,
   towerFloor,
+  describeTrial,
 } from '@gacha/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -27,6 +30,7 @@ import { sfx } from '../audio/sfx';
 import { BattleStage } from '../battle/BattleStage';
 import { Hud } from '../battle/Hud';
 import { BattleTutorial } from '../battle/Tutorial';
+import { useBattleSession } from '../battle/sessions';
 import { useBattle, type LogLine } from '../battle/useBattle';
 import '../battle/battle.css';
 import { Icon } from '../components/Art';
@@ -53,6 +57,7 @@ export function BattleScreen() {
   const friend = params.get('friend') ?? undefined;
   const [attempt, setAttempt] = useState(0);
   const [autoNext, setAutoNext] = useState(false);
+  const session = useBattleSession();
   const stage = useContent().stagesById[stageId];
   if (!stage) {
     return (
@@ -71,6 +76,11 @@ export function BattleScreen() {
       onRetry={(auto = false) => {
         setAutoNext(auto);
         setAttempt((a) => a + 1);
+      }}
+      onAdvance={(to, auto) => {
+        setAutoNext(auto);
+        setAttempt(0);
+        session.moveTo(to);
       }}
     />
   );
@@ -112,7 +122,21 @@ export function GuildBattleScreen() {
 export function TowerBattleScreen() {
   const floor = Number(useParams().floor ?? '1');
   const [attempt, setAttempt] = useState(0);
-  return <BattleRunner key={`${floor}#${attempt}`} source={{ kind: 'tower', floor }} onRetry={() => setAttempt((a) => a + 1)} />;
+  const [autoNext, setAutoNext] = useState(false);
+  const session = useBattleSession();
+  return (
+    <BattleRunner
+      key={`${floor}#${attempt}`}
+      source={{ kind: 'tower', floor }}
+      autoStart={autoNext}
+      onRetry={() => setAttempt((a) => a + 1)}
+      onAdvance={(to, auto) => {
+        setAutoNext(auto);
+        setAttempt(0);
+        session.moveTo(to);
+      }}
+    />
+  );
 }
 
 export function DungeonBattleScreen() {
@@ -148,14 +172,28 @@ export function ArenaBattleScreen() {
   return <BattleRunner key={opponentId} source={{ kind: 'arena', opponentId, opponentName }} />;
 }
 
-function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSource; onRetry?: (auto?: boolean) => void; autoStart?: boolean }) {
+/** A follow-up run queued after a victory: the same battle again (repeat) or the next stage or floor (continue). */
+type Queued = { kind: 'repeat'; in: number } | { kind: 'advance'; in: number; label: string; to: string };
+
+function BattleRunner({
+  source,
+  onRetry,
+  onAdvance,
+  autoStart = false,
+}: {
+  source: BattleSource;
+  onRetry?: (auto?: boolean) => void;
+  /** Moves on to the next battle at this route (with auto battle on or off). */
+  onAdvance?: (to: string, auto: boolean) => void;
+  autoStart?: boolean;
+}) {
   const navigate = useNavigate();
   const { profile, setProfile } = useProfile();
-  const { speed, setSpeed, muted, setMuted, repeat, setRepeat } = useSettings();
+  const { speed, setSpeed, muted, setMuted, repeat, setRepeat, advance, setAdvance } = useSettings();
   // Progress before this battle, to celebrate features it unlocks.
   const clearedBefore = useRef(profile.clearedStages);
   const [tutorialDone, setTutorialDone] = useState(false);
-  const [repeatIn, setRepeatIn] = useState<number | null>(null);
+  const [queued, setQueued] = useState<Queued | null>(null);
   const content = useContent();
   const [battle, setBattle] = useState<StartBattleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +202,7 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
   const started = useRef(false);
   const submitted = useRef(false);
   const b = useBattle(battle?.setup ?? null, speed, autoStart);
+  const session = useBattleSession();
 
   const theme: SceneTheme =
     source.kind === 'tower'
@@ -207,25 +246,38 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
             : source.kind === 'tower'
               ? towerFloor(content, source.floor).encounter.enemies
               : [];
-    music.play(source.kind === 'guild' || lineup.some((e) => content.enemiesById[e.id]?.boss) ? 'boss' : 'battle');
-  }, [source, content]);
+    // A minimized battle leaves the music to whatever is on screen.
+    if (session.main) music.play(source.kind === 'guild' || lineup.some((e) => content.enemiesById[e.id]?.boss) ? 'boss' : 'battle');
+  }, [source, content, session.main]);
+
+  // Tell the corner window how this battle is doing.
+  const waitingForPlayer = (() => {
+    const v = b.view;
+    const a = v && currentActor(v);
+    return Boolean(a && a.side === 'ally' && !b.auto && !b.busy && v.outcome === 'ongoing');
+  })();
+  const { report } = session;
+  useEffect(() => report({ finished: Boolean(result || error), waiting: waitingForPlayer }), [report, result, error, waitingForPlayer]);
 
   // Read inside the async result handler, where state would be stale.
   const repeatRef = useRef(repeat);
   repeatRef.current = repeat;
+  const advanceRef = useRef(advance);
+  advanceRef.current = advance;
   const autoRef = useRef(b.auto);
   autoRef.current = b.auto;
 
-  // Repeat countdown.
+  // Countdown to the queued run.
   useEffect(() => {
-    if (repeatIn === null) return;
-    if (repeatIn <= 0) {
-      onRetry?.(true);
+    if (!queued) return;
+    if (queued.in <= 0) {
+      if (queued.kind === 'repeat') onRetry?.(true);
+      else onAdvance?.(queued.to, autoRef.current);
       return;
     }
-    const t = setTimeout(() => setRepeatIn((n) => (n === null ? null : n - 1)), 1000);
+    const t = setTimeout(() => setQueued((q) => (q ? { ...q, in: q.in - 1 } : null)), 1000);
     return () => clearTimeout(t);
-  }, [repeatIn, onRetry]);
+  }, [queued, onRetry, onAdvance]);
 
   // Default to the basic attack at the start of each turn.
   useEffect(() => setMode('basic'), [b.view?.actorUid]);
@@ -250,13 +302,21 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
               ? res.profile.stamina.current >= staminaCost(settings.stamina, source.hard)
               : source.kind === 'event'
                 ? res.profile.stamina.current >= staminaCost(settings.stamina, false)
-                : source.kind === 'dungeon' && (res.dungeon?.runsLeft ?? 0) > 0;
-          if (repeatRef.current && autoRef.current && res.outcome === 'victory' && affordable && onRetry) setRepeatIn(3);
+                : source.kind === 'tower' || (source.kind === 'dungeon' && (res.dungeon?.runsLeft ?? 0) > 0);
+          // The tower costs nothing, but a cleared floor can't be fought again: it can only go on, not repeat.
+          if (res.outcome !== 'victory' || !affordable) return;
+          // Continue mode: on to the next stage (or floor) after any win, manual or auto.
+          if (advanceRef.current && onAdvance && (source.kind === 'campaign' || source.kind === 'tower')) {
+            const step = nextBattle(content, source, res.profile.clearedStages);
+            if (step) setQueued({ kind: 'advance', in: 3, ...step });
+          } else if (repeatRef.current && autoRef.current && onRetry && source.kind !== 'tower') {
+            setQueued({ kind: 'repeat', in: 3 });
+          }
         }, Math.max(0, 1500 - (Date.now() - shownAt)));
       },
       (err) => setError(errorMessage(err)),
     );
-  }, [battle, outcome, b.director, setProfile, content, source, onRetry]);
+  }, [battle, outcome, b.director, setProfile, content, source, onRetry, onAdvance]);
 
   if (error) {
     return (
@@ -314,8 +374,18 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
         registerShake={b.director.setShake}
         title={
           <>
-            <button className="icon-btn" onClick={() => navigate(exitTo)} title="Retreat">
+            <button
+              className="icon-btn"
+              onClick={() => {
+                session.close();
+                navigate(exitTo);
+              }}
+              title="Retreat"
+            >
               ←
+            </button>
+            <button className="icon-btn" onClick={() => navigate(exitTo)} title="Minimize: keep this battle going in the corner">
+              ▾
             </button>
             <span>
               {source.kind === 'arena' ? (
@@ -339,6 +409,7 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
               ) : source.kind === 'tower' ? (
                 <>
                   <b>🗼 Tower</b> Floor {source.floor}
+                  {towerFloor(content, source.floor).trial && <span className="wave-chip">{describeTrial(towerFloor(content, source.floor).trial!).name}</span>}
                 </>
               ) : source.kind === 'guild' ? (
                 <>
@@ -369,7 +440,16 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
             <button className={`icon-btn ${speed > 1 ? 'on' : ''}`} onClick={() => setSpeed(speed === 3 ? 1 : speed === 2 ? 3 : 2)} title="Battle speed">
               {speed}×
             </button>
-            {source.kind !== 'arena' && source.kind !== 'guild' && (
+            {(source.kind === 'campaign' || source.kind === 'tower') && (
+              <button
+                className={`icon-btn ${advance ? 'on' : ''}`}
+                onClick={() => setAdvance(!advance)}
+                title={`Continue: after each victory, go on to the next ${source.kind === 'tower' ? 'floor' : 'stage'} automatically${source.kind === 'campaign' ? ' (while you have stamina)' : ''}`}
+              >
+                ⏭
+              </button>
+            )}
+            {source.kind !== 'arena' && source.kind !== 'guild' && source.kind !== 'tower' && (
               <button
                 className={`icon-btn ${repeat ? 'on' : ''}`}
                 onClick={() => setRepeat(!repeat)}
@@ -420,12 +500,22 @@ function BattleRunner({ source, onRetry, autoStart = false }: { source: BattleSo
           source={source}
           onRetry={onRetry}
           unlocked={newlyUnlocked(content.settings, clearedBefore.current, result.profile.clearedStages)}
-          repeatIn={repeatIn}
-          onStopRepeat={() => setRepeatIn(null)}
+          queued={queued}
+          onStopQueued={() => setQueued(null)}
         />
       )}
     </div>
   );
+}
+
+/** Where Continue goes after a win: the next stage in the same mode once it's unlocked, or the next tower floor. */
+function nextBattle(content: ReturnType<typeof useContent>, source: BattleSource, cleared: string[]): { label: string; to: string } | null {
+  if (source.kind === 'tower') return { label: `Floor ${source.floor + 1}`, to: `/tower/${source.floor + 1}` };
+  if (source.kind !== 'campaign') return null;
+  const next = nextStage(content, source.stage.id);
+  if (!next) return null;
+  if (source.hard) return isHardUnlocked(content, next.id, cleared) ? { label: `${next.id} ${next.name} (Hard)`, to: `/battle/${next.id}?hard=1` } : null;
+  return isStageUnlocked(content, next.id, cleared) ? { label: `${next.id} ${next.name}`, to: `/battle/${next.id}` } : null;
 }
 
 function BattleLog({ lines }: { lines: LogLine[] }) {
@@ -450,15 +540,15 @@ function ResultModal({
   source,
   onRetry,
   unlocked,
-  repeatIn,
-  onStopRepeat,
+  queued,
+  onStopQueued,
 }: {
   result: CompleteBattleResponse;
   source: BattleSource;
   onRetry?: (auto?: boolean) => void;
   unlocked: Feature[];
-  repeatIn: number | null;
-  onStopRepeat: () => void;
+  queued: Queued | null;
+  onStopQueued: () => void;
 }) {
   const navigate = useNavigate();
   const content = useContent();
@@ -511,10 +601,10 @@ function ResultModal({
             </span>
           </Link>
         ))}
-        {repeatIn !== null && (
+        {queued && (
           <p className="repeat-note">
-            🔁 Next run in {repeatIn}…{' '}
-            <button className="btn small" onClick={onStopRepeat}>
+            {queued.kind === 'repeat' ? `🔁 Next run in ${queued.in}…` : `⏭ ${queued.label} in ${queued.in}…`}{' '}
+            <button className="btn small" onClick={onStopQueued}>
               Stop
             </button>
           </p>

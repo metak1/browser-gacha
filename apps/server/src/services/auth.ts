@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { conflict, HttpError, unauthorized } from '../errors';
 import type { ServiceContext } from './context';
+import type { GuildService } from './guild';
 import { DUMMY_HASH, hashPassword, verifyPassword } from './password';
 
 export const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
@@ -8,21 +9,45 @@ export const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
 export class AuthService {
-  constructor(private readonly ctx: ServiceContext) {}
+  constructor(
+    private readonly ctx: ServiceContext,
+    private readonly guild: GuildService,
+  ) {}
 
   /** Creates a new guest player with starter characters and returns a session token. */
   createGuest(): { userId: string; token: string } {
-    const { db, users, roster, now, content } = this.ctx;
+    const userId = randomUUID();
+    this.ctx.db.transaction(() => this.createPlayer(userId));
+    return { userId, token: this.createSession(userId) };
+  }
+
+  /**
+   * Wipes all of a player's progress and starts them over as a new player,
+   * keeping their id, login and role. Signs out every device; returns a new session token.
+   */
+  resetAccount(userId: string): string {
+    const { db, users, guilds, arena } = this.ctx;
+    const user = users.findById(userId);
+    if (!user) throw unauthorized();
+    db.transaction(() => {
+      if (guilds.membership(userId)) this.guild.leave(userId); // hands over or disbands their guild
+      arena.forgetPlayer(userId);
+      users.delete(userId);
+      this.createPlayer(userId);
+      if (user.username && user.passwordHash) users.setCredentials(userId, user.username, user.passwordHash);
+      if (user.role !== 'player') users.setRole(userId, user.role);
+    });
+    return this.createSession(userId);
+  }
+
+  private createPlayer(userId: string) {
+    const { users, roster, now, content } = this.ctx;
     const { settings, charactersById } = content.current;
     const starters = settings.starterCharacters.filter((id) => charactersById[id]);
-    const userId = randomUUID();
     const t = now();
-    db.transaction(() => {
-      users.create(userId, { gems: settings.startingGems, gold: settings.startingGold, stardust: 0 }, t);
-      for (const id of starters) roster.addCopy(userId, id, t);
-      roster.setTeam(userId, starters);
-    });
-    return { userId, token: this.createSession(userId) };
+    users.create(userId, { gems: settings.startingGems, gold: settings.startingGold, stardust: 0 }, t);
+    for (const id of starters) roster.addCopy(userId, id, t);
+    roster.setTeam(userId, starters);
   }
 
   /** Returns the user id for a session token, or null if it's unknown or expired. */

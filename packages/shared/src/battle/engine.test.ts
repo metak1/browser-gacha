@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildBattleSetup, indexContent } from '../content';
-import { createDefaultContent } from '../content/defaults';
+import { createDefaultContent, REFERENCE_TEAM } from '../content/defaults';
 import { applyPassiveCombat } from '../skills';
 import { chooseAction } from './ai';
 import { act, currentActor, predictTurnOrder, startBattle, validateAction } from './engine';
@@ -9,7 +9,7 @@ import type { BattleEvent, BattleSetup } from './types';
 
 const content = indexContent(createDefaultContent());
 
-function setupFor(stageId: string, level: number, seed: number, team = content.settings.starterCharacters): BattleSetup {
+function setupFor(stageId: string, level: number, seed: number, team = REFERENCE_TEAM): BattleSetup {
   return buildBattleSetup(
     content,
     seed,

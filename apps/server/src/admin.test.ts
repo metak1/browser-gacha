@@ -11,12 +11,12 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { seededRandom } from '@gacha/shared';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildApp(
+  app = await buildTestApp(
     { dbPath: ':memory:', cookieSecure: false, clientDist: null, logger: false, rateLimit: false },
     { overrides: { random: seededRandom(3) } },
   );
@@ -147,10 +147,10 @@ describe('content API', () => {
     // A file DB so a second app instance sees the same data.
     const dir = await import('node:fs/promises').then((fs) => fs.mkdtemp(`${process.env.TEMP ?? '/tmp'}/gacha-`));
     const config = { dbPath: `${dir}/game.db`, cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
-    const first = await buildApp(config);
+    const first = await buildTestApp(config);
     first.services.content.save('chapters', { id: 9, name: 'Persisted', theme: 'cosmos' });
     await first.close();
-    const second = await buildApp(config);
+    const second = await buildTestApp(config);
     expect(second.services.content.current.chaptersById[9]?.name).toBe('Persisted');
     await second.close();
     await import('node:fs/promises').then((fs) => fs.rm(dir, { recursive: true, force: true }));

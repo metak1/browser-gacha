@@ -1,6 +1,7 @@
 import { describeSkill, ENERGY, type ActionKind, type BattleState, type BattleUnit, type Skill } from '@gacha/shared';
 import { useEffect, type CSSProperties } from 'react';
 import { sfx } from '../audio/sfx';
+import { useBattleSession } from './sessions';
 import { Icon, UnitArt, PixelEmoji } from '../components/Art';
 
 interface Props {
@@ -32,9 +33,10 @@ export function Hud({ state, actor, playerTurn, mode, activeSkill, targetIds, wa
     else onMode(kind);
   };
 
-  // Keyboard: Q = basic, E = skill, R = ultimate.
+  // Keyboard: Q = basic, E = skill, R = ultimate. Only for the battle on screen, not a minimized one.
+  const { main } = useBattleSession();
   useEffect(() => {
-    if (!playerTurn) return;
+    if (!playerTurn || !main) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       const key = e.key.toLowerCase();

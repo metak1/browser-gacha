@@ -115,6 +115,13 @@ export async function apiRoutes(app: FastifyInstance, opts: { config: AppConfig 
     return player.profile(userId);
   });
 
+  /** Starts the player over from scratch. Other devices are signed out. */
+  app.post('/auth/reset', { config: authRateLimit }, async (request, reply): Promise<ProfileDTO> => {
+    const userId = requireUser(request);
+    setSessionCookie(reply, auth.resetAccount(userId), secure);
+    return player.profile(userId);
+  });
+
   app.post('/auth/logout', async (request, reply) => {
     const token = request.cookies[SESSION_COOKIE];
     if (token) auth.logout(token);

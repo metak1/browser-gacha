@@ -58,6 +58,7 @@ export const api = {
   link: (username: string, password: string) => request<ProfileDTO>('POST', '/auth/link', { username, password }),
   login: (username: string, password: string) => request<ProfileDTO>('POST', '/auth/login', { username, password }),
   logout: () => request<{ ok: true }>('POST', '/auth/logout'),
+  resetAccount: () => request<ProfileDTO>('POST', '/auth/reset'),
 
   claimDaily: () => request<ProfileDTO>('POST', '/daily'),
   setTeam: (team: string[]) => request<ProfileDTO>('PUT', '/team', { team }),

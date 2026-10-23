@@ -1,14 +1,14 @@
 import { autoBattle, seededRandom, type CompleteBattleResponse, type ProfileDTO, type StartBattleResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildApp } from './app';
+import { buildTestApp } from './testing';
 import type { ServiceContext } from './services/context';
 
 const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(5), now: () => Date.UTC(2026, 9, 20, 12) } });
+  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(5), now: () => Date.UTC(2026, 9, 20, 12) } });
 });
 afterEach(async () => app.close());
 

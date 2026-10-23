@@ -11,9 +11,9 @@ export const GUIDE_FLAGS = {
 
 /**
  * Where a player is in the guided tutorial:
- * welcome → first battle → level up a hero → first 10× summon → wrap-up.
+ * welcome → first 10× summon → first battle → level up a hero → wrap-up.
  */
-export type GuideStep = 'welcome' | 'battle' | 'levelUp' | 'summon' | 'finish';
+export type GuideStep = 'welcome' | 'summon' | 'battle' | 'levelUp' | 'finish';
 
 interface GuideState {
   flags: string[];
@@ -37,9 +37,9 @@ export function guideStep(content: ContentIndex, p: GuideState): GuideStep | nul
     if (p.clearedStages.length > 1 || pulled || p.roster.length > content.settings.starterCharacters.length) return null;
     return 'welcome';
   }
+  if (!has(GUIDE_FLAGS.firstSummon)) return 'summon';
   const first = content.stages[0];
   if (first && !p.clearedStages.includes(first.id)) return 'battle';
   if (!has(GUIDE_FLAGS.levelUp)) return 'levelUp';
-  if (!has(GUIDE_FLAGS.firstSummon)) return 'summon';
   return 'finish';
 }

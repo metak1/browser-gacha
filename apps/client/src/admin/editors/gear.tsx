@@ -2,16 +2,18 @@ import {
   formatGearRoll,
   GEAR_SLOT_INFO,
   GEAR_SLOTS,
+  GEAR_STATS,
   gearStatLabel,
   isPercentStat,
   mainStatValue,
   MAIN_POOLS,
   mainBaseFor,
   type GearDef,
+  type GearSetDef,
   type GearStat,
   type Rarity,
 } from '@gacha/shared';
-import { Icon } from '../../components/Art';
+import { Icon, IconOr } from '../../components/Art';
 import { useContent } from '../../state/content';
 import { IconField } from '../artPickers';
 import { EntityEditor, type FormProps } from '../EntityEditor';
@@ -35,7 +37,7 @@ export function GearEditor() {
           <small className={`r${g.rarity}-text`}>{'★'.repeat(g.rarity)}</small>
         </>
       )}
-      blank={() => ({ id: '', name: 'New Gear', emoji: '💍', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: null })}
+      blank={() => ({ id: '', name: 'New Gear', emoji: '💍', slot: 'charm', rarity: 4, mainStat: null, mainBase: 0, icon: null, set: null })}
       Form={GearForm}
     />
   );
@@ -71,6 +73,13 @@ function GearForm({ value, onChange, isNew }: FormProps<GearDef>) {
           </Field>
           <Field label="Rarity" hint="Higher rarity drops with more bonus stats (★3: 1, ★4: 2, ★5: 3).">
             <Select value={value.rarity} onChange={(v) => set('rarity', v)} options={rarityOptions} />
+          </Field>
+          <Field label="Set" hint="Random rolls one of the gear sets on every drop.">
+            <Select<string>
+              value={value.set ?? ''}
+              onChange={(v) => set('set', v || null)}
+              options={[{ value: '', label: '🎲 Random set' }, ...content.bundle.gearSets.map((s) => ({ value: s.id, label: s.name }))]}
+            />
           </Field>
           <Field label="Main stat" hint="Random rolls one of the slot's main stats on every drop. Only boots can have SPD.">
             <Select<string>
@@ -118,6 +127,107 @@ function GearForm({ value, onChange, isNew }: FormProps<GearDef>) {
           </>
         )}
         {!isNew && <p className="small muted">{droppedBy.length ? `Drops from: ${droppedBy.join(', ')}` : 'Not in any stage drop table yet.'}</p>}
+      </Section>
+    </>
+  );
+}
+
+const pieceOptions: Option<number>[] = [1, 2, 3, 4].map((n) => ({ value: n, label: `${n} piece${n === 1 ? '' : 's'}` }));
+
+export function GearSetsEditor() {
+  const content = useContent();
+  return (
+    <EntityEditor<GearSetDef>
+      kind="gearSets"
+      title="Gear sets"
+      singular="gear set"
+      items={content.bundle.gearSets}
+      search={(s) => `${s.id} ${s.name}`}
+      label={(s) => (
+        <>
+          <span className="ed-emoji">
+            <IconOr icon={s.icon} emoji={s.emoji} size={16} />
+          </span>
+          <span>{s.name}</span>
+        </>
+      )}
+      blank={() => ({ id: '', name: 'New Set', emoji: '✨', icon: null, bonuses: [{ pieces: 2, stat: 'atkPct', value: 0.08 }] })}
+      Form={GearSetForm}
+    />
+  );
+}
+
+function GearSetForm({ value, onChange, isNew }: FormProps<GearSetDef>) {
+  const content = useContent();
+  const set = <K extends keyof GearSetDef>(k: K, v: GearSetDef[K]) => onChange({ ...value, [k]: v });
+  const setBonus = (i: number, patch: Partial<GearSetDef['bonuses'][number]>) =>
+    set('bonuses', value.bonuses.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  const fixedOn = content.bundle.gear.filter((g) => g.set === value.id).map((g) => g.name);
+  return (
+    <>
+      <Section title="Gear set">
+        <p className="small muted">
+          Every gear drop belongs to a set: a random one, unless its template fixes one. A hero wearing enough pieces of a set
+          earns its bonuses, and the bonuses stack (4 pieces also earn the 2-piece bonus).
+        </p>
+        <FormGrid>
+          <Field label="ID" hint="Can't be changed after creation.">
+            <TextInput value={value.id} onChange={(v) => set('id', v)} disabled={!isNew} placeholder="e.g. precision" />
+          </Field>
+          <Field label="Name">
+            <TextInput value={value.name} onChange={(v) => set('name', v)} />
+          </Field>
+          <Field label="Emoji (fallback)">
+            <TextInput value={value.emoji} onChange={(v) => set('emoji', v)} />
+          </Field>
+          <IconField label="Icon" value={value.icon} onChange={(v) => set('icon', v)} />
+        </FormGrid>
+      </Section>
+      <Section
+        title="Bonuses"
+        actions={
+          <button
+            className="btn small"
+            disabled={value.bonuses.length >= 6}
+            onClick={() => set('bonuses', [...value.bonuses, { pieces: 4, stat: 'atkPct', value: 0.15 }])}
+          >
+            + Add bonus
+          </button>
+        }
+      >
+        {value.bonuses.map((b, i) => {
+          const pct = isPercentStat(b.stat);
+          return (
+            <div key={i} className="effect-row">
+              <span className="effect-n">{i + 1}</span>
+              <Select value={b.pieces} onChange={(pieces) => setBonus(i, { pieces })} options={pieceOptions} />
+              <Select value={b.stat} onChange={(stat) => setBonus(i, { stat })} options={options(GEAR_STATS, gearStatLabel)} />
+              <label className="inline">
+                {pct ? '%' : 'value'}
+                <NumberInput
+                  value={pct ? +(b.value * 100).toFixed(2) : b.value}
+                  onChange={(v) => setBonus(i, { value: pct ? v / 100 : v })}
+                  step={pct ? 0.5 : 1}
+                  min={0}
+                />
+              </label>
+              <span className="effect-tools">
+                <button className="icon-mini danger" onClick={() => set('bonuses', value.bonuses.filter((_, j) => j !== i))} title="Remove">
+                  ✕
+                </button>
+              </span>
+            </div>
+          );
+        })}
+        <p className="preview-text small">
+          {value.bonuses.length
+            ? [...value.bonuses]
+                .sort((a, b) => a.pieces - b.pieces)
+                .map((b) => `${b.pieces} pc: ${formatGearRoll(b)}`)
+                .join(' · ')
+            : 'No bonuses yet.'}
+        </p>
+        {!isNew && <p className="small muted">{fixedOn.length ? `Always the set of: ${fixedOn.join(', ')}.` : 'Rolled at random on gear drops.'}</p>}
       </Section>
     </>
   );

@@ -1,6 +1,6 @@
 import { summonKey } from '../battle/engine';
 import type { BattleSetup, UnitMechanics, UnitSpec } from '../battle/types';
-import { applyGear, applyGearCombat, type GearItem } from '../gear';
+import { applyGear, applyGearCombat, type GearItem, type GearSets } from '../gear';
 import { ascensionBonus, levelSkill } from '../progression';
 import { applyPassiveCombat, applyPassiveStats } from '../skills';
 import { roleCombat, scaleStats } from '../stats';
@@ -34,6 +34,7 @@ export interface ContentIndex {
   bannersById: Record<string, BannerDef>;
   missionsById: Record<string, MissionDef>;
   gearById: Record<string, GearDef>;
+  gearSetsById: GearSets;
   materialsById: Record<string, MaterialDef>;
   dungeonsById: Record<string, DungeonDef>;
   /** Chapters by id, stages by (chapter, index): the order they unlock in. */
@@ -59,6 +60,7 @@ export function indexContent(bundle: ContentBundle): ContentIndex {
     bannersById: byId(bundle.banners),
     missionsById: byId(bundle.missions),
     gearById: byId(bundle.gear),
+    gearSetsById: byId(bundle.gearSets),
     materialsById: byId(bundle.materials),
     dungeonsById: byId(bundle.dungeons),
     chapters: [...bundle.chapters].sort((a, b) => a.id - b.id),
@@ -146,7 +148,7 @@ export function resolveUnit(
   id: string,
   level: number,
   constellation = 0,
-  gear: Pick<GearItem, 'main' | 'subs'>[] = [],
+  gear: Pick<GearItem, 'main' | 'subs' | 'set'>[] = [],
   progress: { ascension?: number; skillLevel?: number; ultLevel?: number } = {},
 ): UnitSpec {
   const prog = content.settings.progression;
@@ -168,8 +170,8 @@ export function resolveUnit(
     role: def.role,
     boss: 'boss' in def ? def.boss : false,
     level,
-    stats: applyGear(applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, progress.ascension ?? 0)), def.passive), gear),
-    combat: applyGearCombat(applyPassiveCombat(roleCombat(def.role), def.passive), gear),
+    stats: applyGear(applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, progress.ascension ?? 0)), def.passive), gear, content.gearSetsById),
+    combat: applyGearCombat(applyPassiveCombat(roleCombat(def.role), def.passive), gear, content.gearSetsById),
     passive: def.passive ? structuredClone(def.passive) : null,
     // Copies, so editing content later can never reach into a battle in progress.
     basic: structuredClone(basic),
@@ -200,7 +202,7 @@ export interface TeamMember {
   id: string;
   level: number;
   constellation: number;
-  gear?: Pick<GearItem, 'main' | 'subs'>[];
+  gear?: Pick<GearItem, 'main' | 'subs' | 'set'>[];
   ascension?: number;
   skillLevel?: number;
   ultLevel?: number;

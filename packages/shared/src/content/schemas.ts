@@ -15,6 +15,7 @@ import {
   type EnemyDef,
   type GameSettings,
   type GearDef,
+  type GearSetDef,
   type MaterialDef,
   type MissionDef,
   type SkillDef,
@@ -278,6 +279,9 @@ export const DEFAULT_TOWER = {
   floorGoldPerFloor: 40,
   milestoneEvery: 10,
   milestoneReward: reward0(150, 0, 10, { 'star-crystal': 1, 'skill-tome': 1, 'reforge-stone': 3 }),
+  trialEvery: 5,
+  trialOffset: 3,
+  trialMult: 0.9,
 };
 export const DEFAULT_ACTIVITY_CHESTS = [
   { points: 30, reward: reward0(0, 3000, 0, { 'skill-tome': 1 }) },
@@ -329,6 +333,23 @@ export const gearSchema: z.ZodType<GearDef> = z.object({
   mainStat: (z.enum(GEAR_STATS as [string, ...string[]]) as z.ZodType<NonNullable<GearDef['mainStat']>>).nullable(),
   mainBase: z.number().min(0).max(100_000),
   icon,
+  set: id.nullable().default(null),
+});
+
+export const gearSetSchema: z.ZodType<GearSetDef> = z.object({
+  id,
+  name,
+  emoji: z.string().trim().min(1, 'required').max(16),
+  icon,
+  bonuses: z
+    .array(
+      z.object({
+        pieces: z.number().int().min(1).max(4),
+        stat: z.enum(GEAR_STATS as [string, ...string[]]) as z.ZodType<GearSetDef['bonuses'][number]['stat']>,
+        value: z.number().min(0).max(100_000),
+      }),
+    )
+    .max(6),
 });
 
 export const bannerSchema: z.ZodType<BannerDef> = z.object({
@@ -400,7 +421,7 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
   maxLevel: int(1, 999),
   levelCostBase: int(0, 1_000_000),
   levelCostPerLevel: int(0, 1_000_000),
-  starterCharacters: z.array(id).min(1, 'need at least one starter').max(6),
+  starterCharacters: z.array(id).max(6),
   stardustPerDupe: z.object({ r3: int(0, 10_000), r4: int(0, 10_000), r5: int(0, 10_000) }),
   stardustExchangeCost: int(1, 1_000_000),
   gacha: z.object({
@@ -508,6 +529,9 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
       floorGoldPerFloor: int(0, 100_000),
       milestoneEvery: int(1, 1000),
       milestoneReward: reward,
+      trialEvery: int(0, 1000).default(DEFAULT_TOWER.trialEvery),
+      trialOffset: int(0, 1000).default(DEFAULT_TOWER.trialOffset),
+      trialMult: z.number().min(0.1).max(10).default(DEFAULT_TOWER.trialMult),
     })
     .default(DEFAULT_TOWER),
   reforge: z
@@ -529,6 +553,7 @@ export const CONTENT_SCHEMAS: { [K in ContentKind]: z.ZodType<ContentDocs[K]> } 
   banners: bannerSchema,
   missions: missionSchema,
   gear: gearSchema,
+  gearSets: gearSetSchema,
   materials: materialSchema,
   dungeons: dungeonSchema,
   events: eventSchema,
@@ -545,6 +570,7 @@ export const bundleSchema: z.ZodType<ContentBundle> = z.object({
   banners: z.array(bannerSchema),
   missions: z.array(missionSchema),
   gear: z.array(gearSchema).default([]),
+  gearSets: z.array(gearSetSchema).default([]),
   materials: z.array(materialSchema).default([]),
   dungeons: z.array(dungeonSchema).default([]),
   events: z.array(eventSchema).default([]),

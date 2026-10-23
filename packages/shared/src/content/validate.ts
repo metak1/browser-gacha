@@ -32,6 +32,7 @@ export function validateBundle(bundle: ContentBundle): string[] {
     ['banners', b.banners],
     ['missions', b.missions],
     ['gear', b.gear],
+    ['gearSets', b.gearSets],
     ['materials', b.materials],
     ['dungeons', b.dungeons],
     ['events', b.events],
@@ -62,6 +63,14 @@ export function validateBundle(bundle: ContentBundle): string[] {
   const checkReward = (where: string, r: { materials: { id: string }[] }) => {
     for (const m of r.materials) if (!materialIds.has(m.id)) err(where, `rewards unknown material "${m.id}"`);
   };
+
+  const setIds = new Set(b.gearSets.map((s) => s.id));
+  for (const g of b.gear) if (g.set && !setIds.has(g.set)) err(`gear/${g.id}`, `belongs to unknown gear set "${g.set}"`);
+  for (const s of b.gearSets) {
+    for (const bonus of s.bonuses) {
+      if (isPercentStat(bonus.stat) && bonus.value > 1) err(`gearSets/${s.id}`, 'percent bonuses are fractions (0.1 = 10%), so they must be at most 1');
+    }
+  }
 
   for (const g of b.gear) {
     if (!g.mainStat) continue;

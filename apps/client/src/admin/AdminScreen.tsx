@@ -4,7 +4,7 @@ import { useProfile } from '../state/profile';
 import './admin.css';
 import { ChaptersEditor, StagesEditor } from './editors/campaign';
 import { BannersEditor } from './editors/gacha';
-import { GearEditor } from './editors/gear';
+import { GearEditor, GearSetsEditor } from './editors/gear';
 import { MaterialsEditor } from './editors/materials';
 import { DungeonsEditor } from './editors/dungeons';
 import { EventsEditor } from './editors/events';
@@ -22,6 +22,7 @@ const SECTIONS = [
   { path: 'dungeons', label: 'Dungeons', icon: '🗝️', Component: DungeonsEditor },
   { path: 'events', label: 'Events', icon: '🎃', Component: EventsEditor },
   { path: 'gear', label: 'Gear', icon: '🎒', Component: GearEditor },
+  { path: 'gear-sets', label: 'Gear sets', icon: '🧩', Component: GearSetsEditor },
   { path: 'materials', label: 'Materials', icon: '💠', Component: MaterialsEditor },
   { path: 'banners', label: 'Banners', icon: '🎰', Component: BannersEditor },
   { path: 'missions', label: 'Missions', icon: '📜', Component: MissionsEditor },

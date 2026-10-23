@@ -13,6 +13,7 @@ import {
   evaluateObjectives,
   indexContent,
   minRankForLevel,
+  REFERENCE_TEAM,
   starsEarned,
   type BattleSetup,
   type StageObjective,
@@ -23,7 +24,7 @@ const content = indexContent(createDefaultContent());
 const args = process.argv.slice(2);
 const hard = args.includes('--hard');
 const dungeons = args.includes('--dungeons');
-const team = args.find((a) => !a.startsWith('--'))?.split(',') ?? content.settings.starterCharacters;
+const team = args.find((a) => !a.startsWith('--'))?.split(',') ?? REFERENCE_TEAM;
 const levels = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
 const SEEDS = 100;
 const prog = content.settings.progression;

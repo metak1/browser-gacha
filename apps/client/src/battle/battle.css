@@ -988,3 +988,51 @@
 .boss-alert.break b { color: #ffd76a; font-size: max(18px, 2.6cqw); letter-spacing: 2px; }
 .boss-alert.adds { border-color: #ff9d5c; }
 @keyframes alert-in { from { opacity: 0; scale: 0.8; } }
+
+/* ---------- minimized battles (picture-in-picture) ---------- */
+
+.battle-session { --pip-w: clamp(180px, 22vw, 280px); }
+.battle-busy { margin-top: 40px; }
+.battle-session.pip {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  width: var(--pip-w);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px #000c, 0 0 0 2px #ffffff33;
+  animation: pip-in 0.2s ease-out;
+}
+@keyframes pip-in { from { transform: translateY(20px) scale(0.9); opacity: 0; } }
+/* Only the stage shows: no HUD, log, tutorial or results card. */
+.battle-session.pip .battle { display: block; max-width: none; }
+.battle-session.pip .battle > :not(.battle-stage) { display: none; }
+.battle-session.pip .battle-stage { aspect-ratio: 16 / 9; border-radius: 12px; box-shadow: none; }
+.battle-session.pip .stage-top { display: none; }
+.battle-session.pip { background: var(--panel); }
+/* Loading and error states. */
+.battle-session.pip > :not(.battle):not(.pip-open):not(.pip-close) { margin: 0; padding: 20px 10px 28px; font-size: 0.75rem; }
+.battle-session.pip > .center .btn { display: none; }
+.pip-open {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 6px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(transparent 60%, #0009);
+  cursor: pointer;
+  font: inherit;
+}
+.pip-open:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+.pip-status { padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; color: #fff; background: #0b0d1acc; }
+.pip-status.waiting { background: var(--accent); animation: pip-pulse 1s ease-in-out infinite alternate; }
+.pip-status.done { background: #3a7a4a; }
+@keyframes pip-pulse { to { filter: brightness(1.3); } }
+.pip-close { position: absolute; top: 4px; right: 4px; z-index: 1; }
+@media (max-width: 680px) {
+  .battle-session { --pip-w: 44vw; }
+  .battle-session.pip { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+}

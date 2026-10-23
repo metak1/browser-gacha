@@ -18,5 +18,5 @@ export function heroPower(content: ContentIndex, profile: ProfileDTO, owned: Own
   if (!c) return 0;
   const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(content.settings.progression, owned.ascension));
   const worn = profile.gear.filter((g) => g.equippedTo === owned.id);
-  return statPower(applyGear(base, worn), applyGearCombat(applyPassiveCombat(roleCombat(c.role), c.passive), worn));
+  return statPower(applyGear(base, worn, content.gearSetsById), applyGearCombat(applyPassiveCombat(roleCombat(c.role), c.passive), worn, content.gearSetsById));
 }

@@ -14,6 +14,8 @@ import {
   staminaCost,
   towerBest,
   towerFloor,
+  trialEntrants,
+  describeTrial,
   towerKey,
   type Feature,
   type TowerDTO,
@@ -238,7 +240,10 @@ export class BattleService {
     if (!Number.isInteger(floor) || floor !== best + 1) throw badRequest('stage_locked', `Your next floor is ${best + 1}`);
     const content = this.ctx.content.current;
     const f = towerFloor(content, floor);
-    const setup = buildEncounterSetup(content, Math.floor(this.ctx.random() * 2 ** 31), this.team(userId), f.encounter, f.mods);
+    // On a trial floor only the heroes the trial allows go in; the rest of the team waits.
+    const team = f.trial ? this.gear.teamMembers(userId, trialEntrants(content, f.trial, this.ctx.roster.getTeam(userId))) : this.team(userId);
+    if (!team.length) throw badRequest('trial_no_heroes', `${describeTrial(f.trial!).rule} None of your team can, so add some first.`);
+    const setup = buildEncounterSetup(content, Math.floor(this.ctx.random() * 2 ** 31), team, f.encounter, f.mods);
     const meta: TowerMeta = { floor };
     return { battleId: this.record(userId, 'tower', '', setup, meta), setup };
   }

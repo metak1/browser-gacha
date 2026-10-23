@@ -3,7 +3,7 @@
  * (GearItem). An item stores its rolled numbers, so editing a template later
  * only affects new drops.
  */
-import type { GameSettings, GearDef } from './content/types';
+import type { GameSettings, GearDef, GearSetDef } from './content/types';
 import { BASE_COMBAT } from './stats';
 import type { CombatStat, CombatStats, Rarity, Stats } from './types';
 
@@ -71,7 +71,12 @@ export interface GearItem {
   subs: GearRoll[];
   /** Character id wearing it, if any. */
   equippedTo: string | null;
+  /** The gear set it belongs to (null on gear from before sets existed). */
+  set: string | null;
 }
+
+/** Gear sets by id. */
+export type GearSets = Record<string, GearSetDef>;
 
 export const GEAR_RULES = {
   substatsAtDrop: { 3: 1, 4: 2, 5: 3 } as Record<Rarity, number>,
@@ -117,9 +122,9 @@ export function mainStatValue(main: { mainStat: GearStat; mainBase: number }, le
 
 /**
  * Rolls a fresh item from a template: a main stat (the template's, or a random one from
- * the slot's pool when it has none) plus random bonus stats.
+ * the slot's pool when it has none), random bonus stats, and a set (the template's, or a random one).
  */
-export function rollGear(template: GearDef, rng: () => number): Omit<GearItem, 'id' | 'equippedTo'> {
+export function rollGear(template: GearDef, rng: () => number, sets: GearSetDef[]): Omit<GearItem, 'id' | 'equippedTo'> {
   const pool = MAIN_POOLS[template.slot];
   const mainStat = template.mainStat ?? pool[Math.floor(rng() * pool.length)]!;
   const mainBase = template.mainStat ? template.mainBase : mainBaseFor(mainStat, template.rarity);
@@ -127,8 +132,10 @@ export function rollGear(template: GearDef, rng: () => number): Omit<GearItem, '
   for (let i = 0; i < GEAR_RULES.substatsAtDrop[template.rarity]; i++) {
     subs.push(rollSub(template.rarity, [mainStat, ...subs.map((s) => s.stat)], rng));
   }
+  const set = template.set ?? (sets.length ? sets[Math.floor(rng() * sets.length)]!.id : null);
   return {
     templateId: template.id,
+    set,
     slot: template.slot,
     rarity: template.rarity,
     level: 0,
@@ -165,53 +172,79 @@ export function statPower(s: Stats, c: CombatStats = BASE_COMBAT): number {
   return Math.round(s.hp / 4 + s.atk * 2 * crit + s.def * 1.5 + s.spd + (c.effectHit + c.effectRes) * 150);
 }
 
+type Worn = Pick<GearItem, 'main' | 'subs' | 'set'>;
+
+/** How many pieces of each set a loadout wears, with the set's bonuses and whether each is earned. */
+export function wornSets(gear: Pick<GearItem, 'set'>[], sets: GearSets): { set: GearSetDef; pieces: number; bonuses: (GearSetDef['bonuses'][number] & { active: boolean })[] }[] {
+  const counts = new Map<string, number>();
+  for (const item of gear) if (item.set && sets[item.set]) counts.set(item.set, (counts.get(item.set) ?? 0) + 1);
+  return [...counts].map(([id, pieces]) => {
+    const set = sets[id]!;
+    return { set, pieces, bonuses: set.bonuses.map((b) => ({ ...b, active: pieces >= b.pieces })) };
+  });
+}
+
+/** The set bonuses a loadout has earned, as extra stat rolls. */
+export function setBonusRolls(gear: Pick<GearItem, 'set'>[], sets: GearSets): GearRoll[] {
+  return wornSets(gear, sets).flatMap((w) => w.bonuses.filter((b) => b.active).map((b) => ({ stat: b.stat, value: b.value })));
+}
+
+/** Every stat a loadout adds: each item's main and bonus stats, then its set bonuses. */
+const loadoutRolls = (gear: Worn[], sets: GearSets): GearRoll[] => [...gear.flatMap((item) => [item.main, ...item.subs]), ...setBonusRolls(gear, sets)];
+
 /** Combat stats with gear on top (gear crit, crit DMG, effect hit and RES add flat points). */
-export function applyGearCombat(stats: CombatStats, gear: Pick<GearItem, 'main' | 'subs'>[]): CombatStats {
+export function applyGearCombat(stats: CombatStats, gear: Worn[], sets: GearSets): CombatStats {
   const out = { ...stats };
-  for (const item of gear) for (const roll of [item.main, ...item.subs]) if (isCombatStat(roll.stat)) out[roll.stat] += roll.value;
+  for (const roll of loadoutRolls(gear, sets)) if (isCombatStat(roll.stat)) out[roll.stat] += roll.value;
   return out;
 }
 
 /**
- * The best gear a hero can wear from the bag: per slot, the piece that adds the most
- * power on top of the hero's own stats. Only free gear (or the hero's own) is used,
- * so auto-equip never takes gear off another hero.
+ * The best gear a hero can wear from the bag. Slot by slot, it picks the piece that gives the
+ * whole loadout the most power, set bonuses included; a second pass lets sets come together.
+ * Only free gear (or the hero's own) is used, so auto-equip never takes gear off another hero.
  */
 export function bestLoadout(
   base: Stats,
   gear: GearItem[],
   charId: string,
+  sets: GearSets,
   combat: CombatStats = BASE_COMBAT,
 ): { slot: GearSlot; current: GearItem | null; best: GearItem | null }[] {
-  const power = (items: GearItem[]) => statPower(applyGear(base, items), applyGearCombat(combat, items));
-  return GEAR_SLOTS.map((slot) => {
-    const current = gear.find((g) => g.slot === slot && g.equippedTo === charId) ?? null;
-    let best = current;
-    let bestPower = power(current ? [current] : []);
-    for (const g of gear) {
-      if (g.slot !== slot || (g.equippedTo !== null && g.equippedTo !== charId)) continue;
-      const p = power([g]);
-      if (p > bestPower) {
-        best = g;
-        bestPower = p;
+  const power = (items: GearItem[]) => statPower(applyGear(base, items, sets), applyGearCombat(combat, items, sets));
+  const current = new Map(GEAR_SLOTS.map((slot) => [slot, gear.find((g) => g.slot === slot && g.equippedTo === charId) ?? null]));
+  const pick = new Map(current);
+  const loadout = (slot: GearSlot, item: GearItem | null) =>
+    GEAR_SLOTS.flatMap((s) => {
+      const g = s === slot ? item : pick.get(s);
+      return g ? [g] : [];
+    });
+  for (let pass = 0; pass < 2; pass++) {
+    for (const slot of GEAR_SLOTS) {
+      let bestPower = power(loadout(slot, pick.get(slot) ?? null));
+      for (const g of gear) {
+        if (g.slot !== slot || (g.equippedTo !== null && g.equippedTo !== charId)) continue;
+        const p = power(loadout(slot, g));
+        if (p > bestPower) {
+          pick.set(slot, g);
+          bestPower = p;
+        }
       }
     }
-    return { slot, current, best };
-  });
+  }
+  return GEAR_SLOTS.map((slot) => ({ slot, current: current.get(slot) ?? null, best: pick.get(slot) ?? null }));
 }
 
 /** Final stats with gear: percentages scale the unit's own stats, flats are added on top. */
-export function applyGear(stats: Stats, gear: Pick<GearItem, 'main' | 'subs'>[]): Stats {
+export function applyGear(stats: Stats, gear: Worn[], sets: GearSets): Stats {
   const flat: Stats = { hp: 0, atk: 0, def: 0, spd: 0 };
   const pct = { hp: 0, atk: 0, def: 0 };
-  for (const item of gear) {
-    for (const roll of [item.main, ...item.subs]) {
-      if (isCombatStat(roll.stat)) continue;
-      if (roll.stat === 'hpPct') pct.hp += roll.value;
-      else if (roll.stat === 'atkPct') pct.atk += roll.value;
-      else if (roll.stat === 'defPct') pct.def += roll.value;
-      else flat[roll.stat] += roll.value;
-    }
+  for (const roll of loadoutRolls(gear, sets)) {
+    if (isCombatStat(roll.stat)) continue;
+    if (roll.stat === 'hpPct') pct.hp += roll.value;
+    else if (roll.stat === 'atkPct') pct.atk += roll.value;
+    else if (roll.stat === 'defPct') pct.def += roll.value;
+    else flat[roll.stat] += roll.value;
   }
   return {
     hp: Math.round(stats.hp * (1 + pct.hp) + flat.hp),

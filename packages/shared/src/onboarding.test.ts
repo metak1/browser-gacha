@@ -8,17 +8,21 @@ const starters = content.settings.starterCharacters.map((id) => ({ id }));
 const fresh = { flags: [] as string[], clearedStages: [] as string[], roster: starters, banners: {} };
 
 describe('guided tutorial', () => {
-  it('walks welcome → battle → level up → summon → finish', () => {
+  it('walks welcome → summon → battle → level up → finish', () => {
     expect(guideStep(content, fresh)).toBe('welcome');
     const welcomed = { ...fresh, flags: [GUIDE_FLAGS.welcome] };
-    expect(guideStep(content, welcomed)).toBe('battle');
-    const won = { ...welcomed, clearedStages: [content.stages[0]!.id] };
+    expect(guideStep(content, welcomed)).toBe('summon');
+    const pulled = { ...welcomed, flags: [...welcomed.flags, GUIDE_FLAGS.firstSummon], roster: [{ id: 'pebble' }] };
+    expect(guideStep(content, pulled)).toBe('battle');
+    const won = { ...pulled, clearedStages: [content.stages[0]!.id] };
     expect(guideStep(content, won)).toBe('levelUp');
     const leveled = { ...won, flags: [...won.flags, GUIDE_FLAGS.levelUp] };
-    expect(guideStep(content, leveled)).toBe('summon');
-    const pulled = { ...leveled, flags: [...leveled.flags, GUIDE_FLAGS.firstSummon] };
-    expect(guideStep(content, pulled)).toBe('finish');
-    expect(guideStep(content, { ...pulled, flags: [...pulled.flags, GUIDE_FLAGS.done] })).toBeNull();
+    expect(guideStep(content, leveled)).toBe('finish');
+    expect(guideStep(content, { ...leveled, flags: [...leveled.flags, GUIDE_FLAGS.done] })).toBeNull();
+  });
+
+  it('starts new players without heroes', () => {
+    expect(content.settings.starterCharacters).toEqual([]);
   });
 
   it('can be skipped at any point', () => {
