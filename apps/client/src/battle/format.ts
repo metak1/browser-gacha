@@ -16,7 +16,15 @@ export function popupFor(e: BattleEvent): { uid: string; text: string; kind: Pop
       return { uid: e.target, text: `${info.icon} ${info.label}`, kind: info.buff ? 'buff' : 'debuff' };
     }
     case 'statusResisted':
-      return { uid: e.target, text: 'Resisted', kind: 'miss' };
+      return { uid: e.target, text: e.immune ? '✨ Immune' : 'Resisted', kind: 'miss' };
+    case 'statusRemoved': {
+      const buffs = STATUS_INFO[e.statuses[0]!].buff;
+      return { uid: e.target, text: buffs ? 'Dispelled' : '✨ Cleansed', kind: buffs ? 'debuff' : 'buff' };
+    }
+    case 'delay':
+      return { uid: e.target, text: '⏳ Delayed', kind: 'debuff' };
+    case 'revive':
+      return { uid: e.target, text: '✦ Revived!', kind: 'heal' };
     case 'stunned':
       return { uid: e.actor, text: '💫 Stunned', kind: 'debuff' };
     case 'passive':
@@ -66,19 +74,27 @@ export function describeEvent(e: BattleEvent, state: BattleState): string | null
     }
     case 'damage': {
       if (e.status === 'burn') return `${name(e.target)} burns for ${e.amount}.`;
+      if (e.status === 'poison') return `${name(e.target)} takes ${e.amount} poison damage.`;
       const notes = [e.crit && 'critical', e.advantage === 'strong' && 'super effective', e.advantage === 'weak' && 'resisted']
         .filter(Boolean)
         .join(', ');
       return `${name(e.target)} takes ${e.amount} damage${notes ? ` (${notes})` : ''}.`;
     }
     case 'heal':
+      if (e.source === e.target && e.amount === 0) return null;
       return `${name(e.target)} recovers ${e.amount} HP.`;
     case 'shield':
       return `${name(e.target)} gains a ${e.amount} shield.`;
     case 'statusApplied':
       return `${name(e.target)} gains ${STATUS_INFO[e.status].label} (${e.turns}).`;
     case 'statusResisted':
-      return `${name(e.target)} resists ${STATUS_INFO[e.status].label}.`;
+      return e.immune ? `${name(e.target)} is immune to ${STATUS_INFO[e.status].label}.` : `${name(e.target)} resists ${STATUS_INFO[e.status].label}.`;
+    case 'statusRemoved':
+      return `${name(e.target)} loses ${e.statuses.map((s) => STATUS_INFO[s].label).join(', ')}.`;
+    case 'delay':
+      return `${name(e.target)}'s turn is delayed.`;
+    case 'revive':
+      return `${name(e.target)} is revived with ${e.hp} HP!`;
     case 'stunned':
       return `${name(e.actor)} is stunned and can't move!`;
     case 'passive':

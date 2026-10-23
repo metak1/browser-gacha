@@ -21,8 +21,10 @@ interface Props {
 /** Party portraits and action buttons under the battle stage. */
 export function Hud({ state, actor, playerTurn, mode, activeSkill, targetIds, waitingText, onMode, onInstant, onSelect }: Props) {
   const allies = state.units.filter((u) => u.side === 'ally');
-  const skillReady = Boolean(actor?.skill && actor.cooldown === 0);
-  const ultReady = Boolean(actor?.ultimate && actor.energy >= ENERGY.max);
+  // Silence leaves only the basic attack.
+  const silenced = Boolean(actor?.statuses.some((s) => s.id === 'silence'));
+  const skillReady = Boolean(actor?.skill && actor.cooldown === 0 && !silenced);
+  const ultReady = Boolean(actor?.ultimate && actor.energy >= ENERGY.max && !silenced);
 
   const choose = (kind: ActionKind) => {
     if (!actor) return;
@@ -117,7 +119,7 @@ export function Hud({ state, actor, playerTurn, mode, activeSkill, targetIds, wa
               >
                 <span className="act-icon">{actor.skill.icon ? <Icon id={actor.skill.icon} size={32} /> : '✦'}</span>
                 <span className="act-label">{actor.skill.name}</span>
-                {!skillReady && <span className="act-cd">{actor.cooldown}</span>}
+                {!skillReady && <span className="act-cd">{silenced ? '🔇' : actor.cooldown}</span>}
                 <kbd>E</kbd>
               </button>
             )}
@@ -131,7 +133,7 @@ export function Hud({ state, actor, playerTurn, mode, activeSkill, targetIds, wa
               >
                 <span className="act-icon">{actor.ultimate.icon ? <Icon id={actor.ultimate.icon} size={32} /> : '💥'}</span>
                 <span className="act-label">{actor.ultimate.name}</span>
-                {!ultReady && <span className="act-energy">{actor.energy}%</span>}
+                {!ultReady && <span className="act-energy">{silenced ? '🔇' : `${actor.energy}%`}</span>}
                 <kbd>R</kbd>
               </button>
             )}

@@ -258,12 +258,6 @@ export interface TowerSettings {
   floorGoldPerFloor: number;
   milestoneEvery: number;
   milestoneReward: Reward;
-  /** Every N floors (0 = never) a trial floor only lets some heroes in. Never on a boss floor. */
-  trialEvery: number;
-  /** Which floor of each N is the trial: floor % trialEvery === trialOffset. */
-  trialOffset: number;
-  /** Stat multiplier on trial floors, to make up for the restricted team. */
-  trialMult: number;
 }
 
 /** The new-player tutorial's first 10× summon. */

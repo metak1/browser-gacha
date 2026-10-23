@@ -4,7 +4,7 @@ import { applyGear, applyGearCombat, type GearItem, type GearSets } from '../gea
 import { ascensionBonus, levelSkill } from '../progression';
 import { applyPassiveCombat, applyPassiveStats } from '../skills';
 import { roleCombat, scaleStats } from '../stats';
-import type { Rarity } from '../types';
+import type { Passive, Rarity } from '../types';
 import type {
   BannerDef,
   ChapterDef,
@@ -213,10 +213,20 @@ export interface TeamMember {
 export const resolveTeam = (content: ContentIndex, team: TeamMember[]): UnitSpec[] =>
   team.map((t) => ({ ...resolveUnit(content, 'character', t.id, t.level, t.constellation, t.gear, t), ...(t.friend ? { friend: t.friend } : {}) }));
 
-/** Enemy-side tweaks: hard mode adds levels and multiplies stats. */
+/** Enemy-side tweaks: hard mode adds levels and multiplies stats; tower floors add mechanics. */
 export interface EncounterMods {
   levelBonus?: number;
   statMult?: number;
+  /** Per-stat multipliers on top of statMult. */
+  stats?: Partial<Record<'hp' | 'atk' | 'def' | 'spd', number>>;
+  /** Passive rules every enemy gains (added to its own passive). */
+  passive?: Passive;
+  /** Boss mechanics a boss gets when it lacks its own; the charge uses its ultimate (or skill). */
+  boss?: {
+    charge: { every: number; breakPct: number; mult: number };
+    enrage: { below: number; atk: number; spd: number };
+    adds: { at: number[]; unit: string; count: number };
+  };
 }
 
 /** An enemy line-up: the first wave plus any that follow. */
@@ -228,14 +238,41 @@ export interface Encounter {
 function resolveEnemy(content: ContentIndex, id: string, level: number, mods: EncounterMods): UnitSpec {
   const spec = resolveUnit(content, 'enemy', id, level + (mods.levelBonus ?? 0));
   const m = mods.statMult ?? 1;
-  if (m !== 1) {
-    spec.stats = { ...spec.stats, hp: Math.round(spec.stats.hp * m), atk: Math.round(spec.stats.atk * m), def: Math.round(spec.stats.def * m) };
+  const s = mods.stats ?? {};
+  if (m !== 1 || mods.stats) {
+    spec.stats = {
+      hp: Math.round(spec.stats.hp * m * (s.hp ?? 1)),
+      atk: Math.round(spec.stats.atk * m * (s.atk ?? 1)),
+      def: Math.round(spec.stats.def * m * (s.def ?? 1)),
+      spd: Math.round(spec.stats.spd * (s.spd ?? 1)),
+    };
     // The break threshold follows the boss's HP.
     const charge = spec.mechanics?.charge;
     const pct = charge && content.enemiesById[id]?.mechanics?.charge?.breakPct;
     if (charge && pct) charge.breakHp = Math.round(spec.stats.hp * pct);
   }
+  if (mods.passive) {
+    spec.passive = spec.passive
+      ? { name: `${spec.passive.name} · ${mods.passive.name}`, rules: [...spec.passive.rules, ...structuredClone(mods.passive.rules)] }
+      : structuredClone(mods.passive);
+  }
+  if (mods.boss && spec.boss) addBossKit(content, spec, mods.boss);
   return spec;
+}
+
+/** Fills in whatever mechanics a boss is missing: a charged ultimate, an enrage and called adds. */
+function addBossKit(content: ContentIndex, spec: UnitSpec, kit: NonNullable<EncounterMods['boss']>) {
+  const mechanics: UnitMechanics = spec.mechanics ?? {};
+  const charged = spec.ultimate ?? spec.skill;
+  if (!mechanics.charge && charged) {
+    const skill = structuredClone(charged);
+    skill.name = `Charged ${skill.name}`;
+    for (const e of skill.effects) if (e.kind === 'damage') e.mult = Math.round(e.mult * kit.charge.mult * 100) / 100;
+    mechanics.charge = { skill, every: kit.charge.every, breakHp: Math.round(spec.stats.hp * kit.charge.breakPct) };
+  }
+  mechanics.enrage ??= { ...kit.enrage };
+  if (!mechanics.adds && content.enemiesById[kit.adds.unit]) mechanics.adds = { ...kit.adds, at: [...kit.adds.at].sort((a, b) => b - a) };
+  spec.mechanics = mechanics;
 }
 
 /** Summoned units are minions: weaker than the same enemy placed in a stage. */
@@ -256,7 +293,8 @@ function summonPool(content: ContentIndex, units: UnitSpec[], mods: EncounterMod
       const key = summonKey(unit, u.level);
       if (pool[key]) continue;
       // The level already includes any bonus, so don't add it twice.
-      const spec = resolveEnemy(content, unit, u.level, { statMult: (mods.statMult ?? 1) * SUMMON_STAT_MULT });
+      // Summons share the floor's challenge, but never get a boss kit.
+      const spec = resolveEnemy(content, unit, u.level, { statMult: (mods.statMult ?? 1) * SUMMON_STAT_MULT, stats: mods.stats, passive: mods.passive });
       pool[key] = spec;
       queue.push(spec);
     }

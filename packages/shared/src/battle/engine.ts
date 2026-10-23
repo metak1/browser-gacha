@@ -127,6 +127,8 @@ export function effectiveStat(u: BattleUnit, stat: 'atk' | 'def' | 'spd'): numbe
   if (stat === 'def' && hasStatus(u, 'defUp')) mult += STATUS_MODIFIERS.defUp;
   if (stat === 'def' && hasStatus(u, 'defDown')) mult -= STATUS_MODIFIERS.defDown;
   if (stat === 'spd' && hasStatus(u, 'spdUp')) mult += STATUS_MODIFIERS.spdUp;
+  if (stat === 'atk' && hasStatus(u, 'atkDown')) mult -= STATUS_MODIFIERS.atkDown;
+  if (stat === 'spd' && hasStatus(u, 'spdDown')) mult -= STATUS_MODIFIERS.spdDown;
   return u[stat] * mult;
 }
 
@@ -157,6 +159,7 @@ export function validateAction(state: BattleState, action: BattleAction): string
   if (action.kind !== 'basic' && action.kind !== 'skill' && action.kind !== 'ultimate') return 'Unknown action';
   const skill = skillFor(actor, action.kind);
   if (!skill) return `${actor.name} has no ${action.kind}`;
+  if (action.kind !== 'basic' && hasStatus(actor, 'silence')) return `${actor.name} is silenced`;
   if (action.kind === 'skill' && actor.cooldown > 0) return `${skill.name} is on cooldown`;
   if (action.kind === 'ultimate' && actor.energy < ENERGY.max) return `${skill.name} needs full energy`;
   if (skill.targeting === 'none') return null;
@@ -348,20 +351,36 @@ function applyEffect(
     if (isAlive(actor)) summon(state, actor, effect, events);
     return;
   }
+  if (effect.kind === 'revive') {
+    revive(state, actor, effect, events);
+    return;
+  }
   const atk = effectiveStat(actor, 'atk');
   for (const t of resolveTargets(state, actor, target, effect.to)) {
     switch (effect.kind) {
       case 'damage': {
-        const def = effectiveStat(t, 'def');
+        const def = effectiveStat(t, 'def') * (1 - (effect.pierce ?? 0));
         const elem = elementMultiplier(actor.element, t.element);
-        const crit = rand(state) < actor.combat.critRate;
-        const variance = 0.95 + rand(state) * 0.1;
-        const bonus = passiveDamageBonus(actor, t);
-        const raw =
-          scaleBase(actor, effect.scale) * effect.mult * (1 - def / (def + DEF_CONSTANT)) * elem * (crit ? 1 + actor.combat.critDmg : 1) * variance * bonus;
         const advantage = elem > 1 ? 'strong' : elem < 1 ? 'weak' : null;
-        dealDamage(state, actor.uid, t, Math.max(1, Math.round(raw)), crit, advantage, events, undefined, fromPassive);
-        if (state.outcome !== 'ongoing') return;
+        const hits = effect.hits ?? 1;
+        let dealt = 0;
+        // Multi-hit spreads the multiplier over the hits; each one rolls its own crit.
+        for (let h = 0; h < hits && isAlive(t); h++) {
+          const crit = rand(state) < actor.combat.critRate;
+          const variance = 0.95 + rand(state) * 0.1;
+          const bonus = passiveDamageBonus(actor, t);
+          const raw =
+            scaleBase(actor, effect.scale) * (effect.mult / hits) * (1 - def / (def + DEF_CONSTANT)) * elem * (crit ? 1 + actor.combat.critDmg : 1) * variance * bonus;
+          const amount = Math.max(1, Math.round(raw));
+          dealt += amount;
+          dealDamage(state, actor.uid, t, amount, crit, advantage, events, undefined, fromPassive);
+          if (state.outcome !== 'ongoing') return;
+        }
+        if (effect.lifesteal && isAlive(actor)) {
+          const amount = Math.min(actor.maxHp - actor.hp, Math.round(dealt * effect.lifesteal));
+          actor.hp += amount;
+          events.push({ type: 'heal', source: actor.uid, target: actor.uid, amount });
+        }
         break;
       }
       case 'heal': {
@@ -377,12 +396,17 @@ function applyEffect(
         break;
       }
       case 'status': {
+        const debuffing = !STATUS_INFO[effect.status].buff && actor.side !== t.side;
+        if (debuffing && hasStatus(t, 'immunity')) {
+          events.push({ type: 'statusResisted', target: t.uid, status: effect.status, immune: true });
+          break;
+        }
         const chance = statusChance(actor, t, effect);
         if (chance !== undefined && rand(state) >= chance) {
           events.push({ type: 'statusResisted', target: t.uid, status: effect.status });
           break;
         }
-        const value = effect.status === 'burn' ? Math.round(atk * STATUS_MODIFIERS.burn) : 0;
+        const value = statusValue(effect.status, atk, t);
         const fresh = t.uid === state.actorUid;
         const existing = t.statuses.find((s) => s.id === effect.status);
         if (existing) {
@@ -402,13 +426,55 @@ function applyEffect(
         events.push({ type: 'advance', target: t.uid, amount: effect.amount });
         break;
       }
+      case 'delay': {
+        if (t.uid === state.actorUid) break;
+        t.av += effect.amount * (AV_BASE / effectiveStat(t, 'spd'));
+        events.push({ type: 'delay', target: t.uid, amount: effect.amount });
+        break;
+      }
       case 'energy': {
         t.energy = Math.min(ENERGY.max, t.energy + effect.amount);
+        break;
+      }
+      case 'cleanse':
+      case 'dispel': {
+        const buffs = effect.kind === 'dispel';
+        const removed = t.statuses.filter((s) => STATUS_INFO[s.id].buff === buffs).map((s) => s.id);
+        if (!removed.length) break;
+        t.statuses = t.statuses.filter((s) => STATUS_INFO[s.id].buff !== buffs);
+        events.push({ type: 'statusRemoved', target: t.uid, statuses: removed });
         break;
       }
       default:
         break;
     }
+  }
+}
+
+/** What a status stores when applied: burn and poison damage per tick, regen healing per tick. */
+function statusValue(id: StatusId, applierAtk: number, target: BattleUnit): number {
+  switch (id) {
+    case 'burn':
+      return Math.round(applierAtk * STATUS_MODIFIERS.burn);
+    case 'poison': {
+      const tick = target.maxHp * STATUS_MODIFIERS.poison;
+      return Math.max(1, Math.round(target.boss ? Math.min(tick, applierAtk * STATUS_MODIFIERS.poisonBossCap) : tick));
+    }
+    case 'regen':
+      return Math.max(1, Math.round(target.maxHp * STATUS_MODIFIERS.regen));
+    default:
+      return 0;
+  }
+}
+
+/** Brings fallen units of the caster's side back: all of them, or the first to have fallen. */
+function revive(state: BattleState, actor: BattleUnit, effect: Effect & { kind: 'revive' }, events: BattleEvent[]) {
+  const fallen = state.units.filter((u) => u.side === actor.side && !isAlive(u) && !u.summonedBy);
+  for (const u of effect.to === 'allAllies' ? fallen : fallen.slice(0, 1)) {
+    if (livingUnits(state, actor.side).length >= MAX_SIDE) return;
+    u.hp = Math.max(1, Math.round(u.maxHp * effect.amount));
+    u.av = AV_BASE / effectiveStat(u, 'spd');
+    events.push({ type: 'revive', source: actor.uid, target: u.uid, hp: u.hp });
   }
 }
 
@@ -557,10 +623,16 @@ function advanceToNextTurn(state: BattleState, events: BattleEvent[]) {
     if (next.cooldown > 0) next.cooldown--;
 
     for (const s of next.statuses) {
-      if (s.id === 'burn' && isAlive(next)) dealDamage(state, null, next, s.value, false, null, events, 'burn');
+      if ((s.id === 'burn' || s.id === 'poison') && isAlive(next)) dealDamage(state, null, next, s.value, false, null, events, s.id);
     }
     if (state.outcome !== 'ongoing') return;
     if (!isAlive(next)) continue;
+    const regen = next.statuses.find((s) => s.id === 'regen');
+    if (regen) {
+      const amount = Math.min(next.maxHp - next.hp, regen.value);
+      next.hp += amount;
+      events.push({ type: 'heal', source: next.uid, target: next.uid, amount });
+    }
 
     firePassive(state, next, 'turnStart', null, events);
     if (state.outcome !== 'ongoing') return;

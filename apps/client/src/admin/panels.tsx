@@ -239,9 +239,6 @@ export function SettingsPanel() {
               ['floorGold', 'Gold per floor 🪙', 10],
               ['floorGoldPerFloor', 'Extra gold per floor number 🪙', 5],
               ['milestoneEvery', 'Milestone every N floors', 1],
-              ['trialEvery', 'Trial every N floors (0 = none)', 1],
-              ['trialOffset', 'Trial floor offset (floor % N)', 1],
-              ['trialMult', 'Trial floor stat ×', 0.05],
             ] as const
           ).map(([k, label, step]) => (
             <Field key={k} label={label}>

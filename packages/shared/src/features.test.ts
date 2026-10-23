@@ -3,9 +3,9 @@ import { eloDelta, tierFor, weekKey } from './arena';
 import { autoBattle, replayBattle } from './battle/replay';
 import { act, currentActor, ENERGY, startBattle, validateAction } from './battle/engine';
 import { chooseAction } from './battle/ai';
-import { buildArenaSetup, buildBattleSetup, indexContent } from './content';
-import { createDefaultContent } from './content/defaults';
-import { towerFloor, trialEntrants } from './tower';
+import { buildArenaSetup, buildBattleSetup, buildEncounterSetup, indexContent } from './content';
+import { createDefaultContent, REFERENCE_TEAM } from './content/defaults';
+import { TOWER_CHALLENGES, towerChallenge, towerFloor } from './tower';
 import { validateBundle } from './content/validate';
 import { bundleSchema } from './content/schemas';
 import { applyGear, applyGearCombat, bestLoadout, GEAR_RULES, rollGear, upgradeGear, wornSets, type GearItem } from './gear';
@@ -115,30 +115,53 @@ describe('gear', () => {
   });
 });
 
-describe('tower trials', () => {
-  it('puts a trial on one floor in five, never on a boss floor, rotating its rule', () => {
-    const t = content.settings.tower;
-    const kinds: string[] = [];
+describe('tower challenges', () => {
+  const team = REFERENCE_TEAM.map((id) => ({ id, level: 40, constellation: 0 }));
+  const setupFor = (floor: number) => {
+    const f = towerFloor(content, floor);
+    return { f, setup: buildEncounterSetup(content, 5, team, f.encounter, f.mods) };
+  };
+
+  it('gives every floor a challenge, never the same twice in a row', () => {
     for (let floor = 1; floor <= 60; floor++) {
-      const f = towerFloor(content, floor);
-      expect(Boolean(f.trial)).toBe(floor % t.trialEvery === t.trialOffset);
-      if (f.boss) expect(f.trial).toBeNull();
-      if (f.trial) kinds.push(f.trial.kind);
+      expect(towerFloor(content, floor).challenge.id).not.toBe(towerFloor(content, floor + 1).challenge.id);
+      const week = new Set(Array.from({ length: 7 }, (_, i) => towerFloor(content, floor + i).challenge.id));
+      expect(week.size).toBe(TOWER_CHALLENGES.length);
     }
-    expect(kinds.slice(0, 4)).toEqual(['element', 'rarity', 'element', 'duo']);
-    // Trials soften enemy stats to make up for the smaller team.
-    const plain = towerFloor(content, 2).mods.statMult!;
-    expect(towerFloor(content, 3).mods.statMult!).toBeLessThan(plain + t.multPerFloor * 2);
   });
 
-  it('only lets in heroes the trial allows', () => {
-    const flame = content.bundle.characters.filter((c) => c.element === 'flame').map((c) => c.id);
-    const other = content.bundle.characters.filter((c) => c.element !== 'flame').map((c) => c.id);
-    const team = [other[0]!, flame[0]!, other[1]!, flame[1]!];
-    expect(trialEntrants(content, { kind: 'element', element: 'flame' }, team)).toEqual([flame[0], flame[1]]);
-    expect(trialEntrants(content, { kind: 'duo' }, team)).toEqual(team.slice(0, 2));
-    const r3 = trialEntrants(content, { kind: 'rarity', max: 3 }, content.bundle.characters.map((c) => c.id));
-    expect(r3.every((id) => content.charactersById[id]!.rarity === 3)).toBe(true);
+  it('changes the enemies, never who may fight', () => {
+    const floorOf = (id: string) => Array.from({ length: 14 }, (_, i) => i + 1).find((n) => towerChallenge(n).id === id && n % content.settings.tower.bossEvery !== 0)!;
+    const iron = setupFor(floorOf('ironhide'));
+    const plain = buildEncounterSetup(content, 5, team, iron.f.encounter, { statMult: iron.f.mods.statMult });
+    expect(Math.abs(iron.setup.enemies[0]!.stats.def - plain.enemies[0]!.stats.def * iron.f.challenge.mods.stats!.def!)).toBeLessThanOrEqual(1);
+    expect(iron.setup.allies).toHaveLength(team.length);
+
+    const venom = setupFor(floorOf('venom'));
+    for (const e of [...venom.setup.enemies, ...Object.values(venom.setup.summons ?? {})]) {
+      expect(e.passive?.rules.some((r) => r.kind === 'trigger' && r.effects.some((x) => x.kind === 'status' && x.status === 'poison'))).toBe(true);
+    }
+  });
+
+  it('gives tower bosses a charge, an enrage and adds, keeping their own mechanics', () => {
+    const { setup } = setupFor(content.settings.tower.bossEvery * 4);
+    const boss = setup.enemies.find((e) => e.boss)!;
+    expect(boss.mechanics?.charge).toBeDefined();
+    expect(boss.mechanics?.enrage).toBeDefined();
+    expect(boss.mechanics?.adds).toBeDefined();
+    expect(setup.summons?.[`${boss.mechanics!.adds!.unit}@${boss.level}`]).toBeDefined();
+    const own = content.enemiesById[boss.id]!.mechanics;
+    if (own?.enrage) expect(boss.mechanics!.enrage).toEqual(own.enrage);
+  });
+
+  it('plays and replays the same on challenge and boss floors', () => {
+    for (let floor = 1; floor <= 10; floor++) {
+      const { setup } = setupFor(floor);
+      const auto = autoBattle(setup);
+      const replay = replayBattle(setup, auto.actions);
+      expect(replay.error).toBeUndefined();
+      expect(replay.outcome).toBe(auto.state.outcome);
+    }
   });
 });
 

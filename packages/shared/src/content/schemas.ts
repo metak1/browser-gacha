@@ -42,7 +42,15 @@ const stats = z.object({ hp: int(1, 1_000_000), atk: int(0, 100_000), def: int(0
 
 const scaleStat = z.enum(SCALE_STATS as [ScaleStat, ...ScaleStat[]]);
 const effect: z.ZodType<Effect> = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('damage'), to, mult: z.number().min(0).max(20), scale: scaleStat.optional() }),
+  z.object({
+    kind: z.literal('damage'),
+    to,
+    mult: z.number().min(0).max(20),
+    scale: scaleStat.optional(),
+    hits: int(1, 10).optional(),
+    pierce: z.number().min(0).max(1).optional(),
+    lifesteal: z.number().min(0).max(5).optional(),
+  }),
   z.object({ kind: z.literal('heal'), to, mult: z.number().min(0).max(20), scale: scaleStat.optional() }),
   z.object({ kind: z.literal('shield'), to, mult: z.number().min(0).max(20), scale: scaleStat.optional() }),
   z.object({
@@ -55,6 +63,10 @@ const effect: z.ZodType<Effect> = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('advance'), to, amount: z.number().min(0).max(1) }),
   z.object({ kind: z.literal('energy'), to, amount: int(0, 100) }),
   z.object({ kind: z.literal('summon'), to, unit: id, count: int(1, 4) }),
+  z.object({ kind: z.literal('cleanse'), to }),
+  z.object({ kind: z.literal('dispel'), to }),
+  z.object({ kind: z.literal('delay'), to, amount: z.number().min(0).max(1) }),
+  z.object({ kind: z.literal('revive'), to, amount: z.number().min(0.01).max(1) }),
 ]) as z.ZodType<Effect>;
 
 const statusId = z.enum(STATUS_IDS as [string, ...string[]]) as z.ZodType<(typeof STATUS_IDS)[number]>;
@@ -279,9 +291,6 @@ export const DEFAULT_TOWER = {
   floorGoldPerFloor: 40,
   milestoneEvery: 10,
   milestoneReward: reward0(150, 0, 10, { 'star-crystal': 1, 'skill-tome': 1, 'reforge-stone': 3 }),
-  trialEvery: 5,
-  trialOffset: 3,
-  trialMult: 0.9,
 };
 export const DEFAULT_ACTIVITY_CHESTS = [
   { points: 30, reward: reward0(0, 3000, 0, { 'skill-tome': 1 }) },
@@ -529,9 +538,6 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
       floorGoldPerFloor: int(0, 100_000),
       milestoneEvery: int(1, 1000),
       milestoneReward: reward,
-      trialEvery: int(0, 1000).default(DEFAULT_TOWER.trialEvery),
-      trialOffset: int(0, 1000).default(DEFAULT_TOWER.trialOffset),
-      trialMult: z.number().min(0.1).max(10).default(DEFAULT_TOWER.trialMult),
     })
     .default(DEFAULT_TOWER),
   reforge: z

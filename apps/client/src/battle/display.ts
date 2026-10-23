@@ -44,6 +44,16 @@ export function applyEvent(s: BattleState, e: BattleEvent): BattleState {
       t.statuses = [...t.statuses.filter((x) => x.id !== e.status), { id: e.status, turns: e.turns, value: 0, fresh: false }];
       break;
     }
+    case 'statusRemoved': {
+      const t = unit(e.target);
+      t.statuses = t.statuses.filter((x) => !e.statuses.includes(x.id));
+      break;
+    }
+    case 'revive': {
+      const t = unit(e.target);
+      t.hp = e.hp;
+      break;
+    }
     case 'defeated': {
       const t = unit(e.target);
       t.hp = 0;

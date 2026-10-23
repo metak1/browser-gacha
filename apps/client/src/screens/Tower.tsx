@@ -1,4 +1,4 @@
-import { describeTrial, towerBest, towerFloor, trialAllows, trialEntrants, type TowerDTO, type TowerTrial } from '@gacha/shared';
+import { towerBest, towerFloor, type TowerDTO, type TowerFloor } from '@gacha/shared';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -34,16 +34,10 @@ function Tower() {
   // The next few milestone floors, to aim for.
   const firstMilestone = Math.ceil((best + 1) / t.milestoneEvery) * t.milestoneEvery;
   const milestones = [0, 1, 2].map((i) => towerFloor(content, firstMilestone + i * t.milestoneEvery));
-  // The next few trials, so players can raise the right heroes ahead of time.
-  const trials: { floor: number; trial: TowerTrial }[] = [];
-  for (let f = best + 1; f <= best + 200 && trials.length < 3; f++) {
-    const trial = towerFloor(content, f).trial;
-    if (trial) trials.push({ floor: f, trial });
-  }
-  const entrants = next.trial ? trialEntrants(content, next.trial, profile.team) : profile.team;
-  // Only the heroes who go in count (a trial leaves some behind).
-  const teamLevel = entrants.length
-    ? Math.round(entrants.reduce((n, id) => n + (profile.roster.find((c) => c.id === id)?.level ?? 1), 0) / entrants.length)
+  // The floors after this one, so players can line up the right heroes.
+  const upcoming = [1, 2, 3].map((i) => towerFloor(content, next.floor + i));
+  const teamLevel = profile.team.length
+    ? Math.round(profile.team.reduce((n, id) => n + (profile.roster.find((c) => c.id === id)?.level ?? 1), 0) / profile.team.length)
     : 0;
 
   return (
@@ -60,9 +54,10 @@ function Tower() {
             f > 0 ? (
               <span
                 key={f}
-                className={`tower-step ${f === next.floor ? 'current' : f < next.floor ? 'done' : ''} ${f % t.bossEvery === 0 ? 'boss' : ''} ${towerFloor(content, f).trial ? 'trial' : ''}`}
+                className={`tower-step ${f === next.floor ? 'current' : f < next.floor ? 'done' : ''} ${f % t.bossEvery === 0 ? 'boss' : ''}`}
+                title={towerFloor(content, f).challenge.name}
               >
-                {f < next.floor ? '✓' : f % t.bossEvery === 0 ? '☠' : towerFloor(content, f).trial ? '⚖' : ''} {f}
+                {f < next.floor ? '✓' : f % t.bossEvery === 0 ? '☠' : towerFloor(content, f).challenge.icon} {f}
               </span>
             ) : null,
           )}
@@ -72,10 +67,9 @@ function Tower() {
       <div className="tower-body">
         <section className="panel tower-floor">
           <h3>
-            Floor {next.floor} {next.boss && <span className="tag boss-tag">Boss</span>} {next.trial && <span className="tag trial-tag">Trial</span>}{' '}
-            {next.milestone && <span className="tag">Milestone</span>}
+            Floor {next.floor} {next.boss && <span className="tag boss-tag">Boss</span>} {next.milestone && <span className="tag">Milestone</span>}
           </h3>
-          {next.trial && <TrialPanel trial={next.trial} team={profile.team} entrants={entrants} />}
+          <ChallengePanel floor={next} />
           <div className="tower-foes">
             {foes.map((e, i) => {
               const d = content.enemiesById[e.id];
@@ -104,7 +98,6 @@ function Tower() {
           <TeamSwitcher />
           <button
             className="btn primary big glow"
-            disabled={!entrants.length}
             onClick={() => {
               sfx.click();
               navigate(`/tower/${next.floor}`);
@@ -116,23 +109,19 @@ function Tower() {
         </section>
 
         <aside className="tower-side">
-          {trials.length > 0 && (
-            <section className="panel">
-              <h3>Upcoming trials</h3>
-              {trials.map(({ floor, trial }) => {
-                const d = describeTrial(trial);
-                return (
-                  <div key={floor} className="tower-milestone">
-                    <b>Floor {floor}</b>
-                    <span className="small" title={d.rule}>
-                      {d.icon} {d.name}
-                    </span>
-                  </div>
-                );
-              })}
-              <p className="small muted">Trial floors only let some heroes in. Raise heroes of every element and rarity to keep climbing.</p>
-            </section>
-          )}
+          <section className="panel">
+            <h3>Coming up</h3>
+            {upcoming.map((f) => (
+              <div key={f.floor} className="tower-milestone" title={`${f.challenge.text} ${f.challenge.counter}`}>
+                <b>Floor {f.floor}</b>
+                <span className="small">
+                  {f.boss && '☠ Boss · '}
+                  {f.challenge.icon} {f.challenge.name}
+                </span>
+              </div>
+            ))}
+            <p className="small muted">Every floor gives its enemies a mechanic. Different heroes shine on different floors, so keep a varied roster strong.</p>
+          </section>
 
           <section className="panel">
             <h3>Milestones</h3>
@@ -173,43 +162,25 @@ function Tower() {
   );
 }
 
-/** A trial floor's rule, and which heroes of the active team go in. */
-function TrialPanel({ trial, team, entrants }: { trial: TowerTrial; team: string[]; entrants: string[] }) {
-  const content = useContent();
-  const { profile } = useProfile();
-  const d = describeTrial(trial);
-  const eligible = profile.roster.filter((o) => {
-    const hero = content.charactersById[o.id];
-    return hero && trialAllows(trial, hero);
-  }).length;
+/** What the enemies on a floor do, and the heroes that answer it. Boss floors add the boss's kit. */
+function ChallengePanel({ floor }: { floor: TowerFloor }) {
+  const c = floor.challenge;
   return (
-    <div className="tower-trial">
-      <div className="trial-head">
-        <span className="trial-icon">{d.icon}</span>
+    <div className="tower-challenge">
+      <div className="challenge-head">
+        <span className="challenge-icon">{c.icon}</span>
         <span>
-          <b>{d.name}</b>
-          <small>{d.rule}</small>
+          <b>{c.name}</b>
+          <small>{c.text}</small>
         </span>
       </div>
-      <div className="trial-team">
-        {team.map((id) => {
-          const hero = content.charactersById[id];
-          if (!hero) return null;
-          const enters = entrants.includes(id);
-          return (
-            <span key={id} className={`trial-hero ${enters ? 'in' : 'out'}`} title={enters ? `${hero.name} enters` : `${hero.name} stays behind`}>
-              <UnitArt sprite={hero.sprite} emoji={hero.emoji} height="34px" />
-              <small>{hero.name}</small>
-            </span>
-          );
-        })}
-      </div>
-      <p className="small muted">
-        {entrants.length
-          ? `${entrants.length} of your team ${entrants.length === 1 ? 'enters' : 'enter'}; the rest stay behind.`
-          : 'None of your team can enter.'}{' '}
-        {trial.kind !== 'duo' && `You own ${eligible} hero${eligible === 1 ? '' : 'es'} who can. `}
-        Set up a team preset for trials below.
+      {floor.boss && (
+        <p className="small">
+          ☠ <b>Boss:</b> charges a powerful attack you must break with heavy damage, enrages below half HP, and calls in minions.
+        </p>
+      )}
+      <p className="small challenge-counter">
+        <b>Good picks:</b> {c.counter}
       </p>
     </div>
   );

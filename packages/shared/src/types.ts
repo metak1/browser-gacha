@@ -1,11 +1,24 @@
 export type ElementId = 'flame' | 'tide' | 'gale' | 'stone' | 'volt' | 'frost';
 export type Rarity = 3 | 4 | 5;
 export type Role = 'striker' | 'guardian' | 'healer' | 'support';
-export type StatusId = 'burn' | 'stun' | 'atkUp' | 'defUp' | 'defDown' | 'spdUp' | 'taunt';
+export type StatusId =
+  | 'burn'
+  | 'stun'
+  | 'atkUp'
+  | 'defUp'
+  | 'defDown'
+  | 'spdUp'
+  | 'taunt'
+  | 'poison'
+  | 'regen'
+  | 'atkDown'
+  | 'spdDown'
+  | 'silence'
+  | 'immunity';
 
 export const ELEMENT_IDS: ElementId[] = ['flame', 'tide', 'gale', 'stone', 'volt', 'frost'];
 export const ROLE_IDS: Role[] = ['striker', 'guardian', 'healer', 'support'];
-export const STATUS_IDS: StatusId[] = ['burn', 'stun', 'atkUp', 'defUp', 'defDown', 'spdUp', 'taunt'];
+export const STATUS_IDS: StatusId[] = ['burn', 'stun', 'atkUp', 'defUp', 'defDown', 'spdUp', 'taunt', 'poison', 'regen', 'atkDown', 'spdDown', 'silence', 'immunity'];
 
 export interface Stats {
   hp: number;
@@ -44,7 +57,18 @@ export type EffectTarget = 'target' | 'self' | 'allEnemies' | 'allAllies' | 'low
 export const EFFECT_TARGETS: EffectTarget[] = ['target', 'self', 'allEnemies', 'allAllies', 'lowestAlly'];
 
 export type Effect =
-  | { kind: 'damage'; to: EffectTarget; mult: number; scale?: ScaleStat }
+  | {
+      kind: 'damage';
+      to: EffectTarget;
+      mult: number;
+      scale?: ScaleStat;
+      /** Splits the damage into this many hits, each rolling its own crit. */
+      hits?: number;
+      /** Fraction of the target's DEF ignored (0.3 = 30%). */
+      pierce?: number;
+      /** Heals the caster for this fraction of the damage dealt. */
+      lifesteal?: number;
+    }
   | { kind: 'heal'; to: EffectTarget; mult: number; scale?: ScaleStat }
   | { kind: 'shield'; to: EffectTarget; mult: number; scale?: ScaleStat }
   | { kind: 'status'; to: EffectTarget; status: StatusId; turns: number; chance?: number }
@@ -52,9 +76,17 @@ export type Effect =
   /** Grants energy (0–100 scale) toward ultimates. */
   | { kind: 'energy'; to: EffectTarget; amount: number }
   /** Calls enemy units (by enemy id) onto the caster's side, at the caster's level. `to` is ignored. */
-  | { kind: 'summon'; to: EffectTarget; unit: string; count: number };
+  | { kind: 'summon'; to: EffectTarget; unit: string; count: number }
+  /** Removes every debuff. */
+  | { kind: 'cleanse'; to: EffectTarget }
+  /** Removes every buff. */
+  | { kind: 'dispel'; to: EffectTarget }
+  /** Pushes the turn back by a fraction of a full turn (the opposite of advance). */
+  | { kind: 'delay'; to: EffectTarget; amount: number }
+  /** Brings fallen allies back with a fraction of max HP: all of them for `allAllies`, otherwise the first to fall. Summons stay down. */
+  | { kind: 'revive'; to: EffectTarget; amount: number };
 export type EffectKind = Effect['kind'];
-export const EFFECT_KINDS: EffectKind[] = ['damage', 'heal', 'shield', 'status', 'advance', 'energy', 'summon'];
+export const EFFECT_KINDS: EffectKind[] = ['damage', 'heal', 'shield', 'status', 'advance', 'delay', 'energy', 'cleanse', 'dispel', 'revive', 'summon'];
 
 /** What has to be picked when using a skill. */
 export type Targeting = 'enemy' | 'ally' | 'none';

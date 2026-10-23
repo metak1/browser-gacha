@@ -8,7 +8,6 @@ import {
   seededRandom,
   towerFloor,
   towerKey,
-  trialAllows,
   type ArenaLeaderboardEntryDTO,
   type ArenaStatusDTO,
   type CompleteBattleResponse,
@@ -359,24 +358,15 @@ describe('roster tools and the tower', () => {
     expect(board.body.leaders[0]).toMatchObject({ floor: 1, me: true });
   });
 
-  it('lets only the heroes a trial allows into a trial floor', async () => {
+  it('brings the floor challenge into tower battles, with the whole team', async () => {
     const { call, profile } = await guest();
     const ctx = ctxOf();
-    const content = ctx.content.current;
     ctx.progress.recordClear(profile.user.id, '2-4', clock);
     for (const f of [1, 2]) ctx.progress.recordClear(profile.user.id, towerKey(f), clock);
-    const trial = towerFloor(content, 3).trial!;
-    expect(trial.kind).toBe('element');
-    const fits = content.bundle.characters.find((c) => trialAllows(trial, c))!;
-    const misfits = content.bundle.characters.filter((c) => !trialAllows(trial, c)).slice(0, 2);
-    for (const c of [fits, ...misfits]) ctx.roster.addCopy(profile.user.id, c.id, clock);
-
-    ctx.roster.setTeam(profile.user.id, misfits.map((c) => c.id));
-    expect((await call<{ error: string }>('POST', '/tower/battles', { floor: 3 })).body).toMatchObject({ error: 'trial_no_heroes' });
-
-    ctx.roster.setTeam(profile.user.id, [misfits[0]!.id, fits.id, misfits[1]!.id]);
+    const challenge = towerFloor(ctx.content.current, 3).challenge;
     const start = await call<StartBattleResponse>('POST', '/tower/battles', { floor: 3 });
     expect(start.status).toBe(200);
-    expect(start.body.setup.allies.map((u) => u.id)).toEqual([fits.id]);
+    expect(start.body.setup.allies).toHaveLength(profile.team.length);
+    if (challenge.mods.passive) for (const e of start.body.setup.enemies) expect(e.passive?.name).toContain(challenge.name);
   });
 });

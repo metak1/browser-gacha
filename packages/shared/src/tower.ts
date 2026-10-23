@@ -1,8 +1,8 @@
 import type { ContentIndex, Encounter, EncounterMods } from './content';
-import type { CharacterDef, EncounterEnemy, Reward, SceneTheme } from './content/types';
-import { ELEMENTS } from './elements';
+import type { EncounterEnemy, Reward, SceneTheme } from './content/types';
 import { hash32 } from './rng';
-import { ELEMENT_IDS, type ElementId, type Rarity } from './types';
+import { advance, dmg, status } from './skills';
+import type { Effect, PassiveRule, PassiveTrigger } from './types';
 
 /** Progress key for a cleared tower floor (stored with stage clears). */
 export const towerKey = (floor: number) => `tower:${floor}`;
@@ -32,59 +32,100 @@ export interface TowerFloor {
   mods: EncounterMods;
   /** Paid on the first clear only. */
   reward: Reward;
-  /** A trial floor's rule: only some heroes may enter. */
-  trial: TowerTrial | null;
+  /** What the enemies on this floor do, and the heroes that answer it. */
+  challenge: TowerChallenge;
 }
+
+export type TowerChallengeId = 'venom' | 'ironhide' | 'empowered' | 'swift' | 'hex' | 'undying' | 'thorns';
 
 /**
- * Trial floors restrict who may fight, so climbing needs a deep roster rather than one
- * strong team: heroes of one element, low-rarity heroes, or just two heroes.
+ * Every floor gives its enemies one extra mechanic. Nobody is locked out: each challenge just
+ * rewards a different kind of hero, so climbing far takes a varied, upgraded roster.
  */
-export type TowerTrial = { kind: 'element'; element: ElementId } | { kind: 'rarity'; max: Rarity } | { kind: 'duo' };
-
-/** The trial on a floor, if it is one. Trials rotate element → rarity → element → duo. */
-export function towerTrial(content: ContentIndex, floor: number): TowerTrial | null {
-  const t = content.settings.tower;
-  if (!t.trialEvery || floor % t.trialEvery !== t.trialOffset % t.trialEvery || floor % t.bossEvery === 0) return null;
-  const n = Math.floor(floor / t.trialEvery);
-  // Only elements some hero has, so every trial can be entered by someone.
-  const elements = ELEMENT_IDS.filter((e) => content.bundle.characters.some((c) => c.element === e));
-  switch (n % 4) {
-    case 1:
-      return { kind: 'rarity', max: floor >= 40 ? 3 : 4 };
-    case 3:
-      return { kind: 'duo' };
-    default:
-      return elements.length ? { kind: 'element', element: elements[hash32(floor, 5, 104729) % elements.length]! } : { kind: 'duo' };
-  }
+export interface TowerChallenge {
+  id: TowerChallengeId;
+  name: string;
+  icon: string;
+  /** What the enemies do. */
+  text: string;
+  /** Which heroes do well against it. */
+  counter: string;
+  /** Applied to every enemy (and its summons) on the floor. */
+  mods: Pick<EncounterMods, 'stats' | 'passive'>;
 }
 
-/** Whether a hero may enter a trial (the duo trial takes anyone, just fewer of them). */
-export function trialAllows(trial: TowerTrial, hero: Pick<CharacterDef, 'element' | 'rarity'>): boolean {
-  if (trial.kind === 'element') return hero.element === trial.element;
-  if (trial.kind === 'rarity') return hero.rarity <= trial.max;
-  return true;
-}
+const trigger = (on: PassiveTrigger, effects: Effect[], chance?: number): PassiveRule =>
+  chance === undefined ? { kind: 'trigger', on, effects } : { kind: 'trigger', on, chance, effects };
 
-/** Which heroes of a team enter a trial floor, in team order. */
-export function trialEntrants(content: ContentIndex, trial: TowerTrial, team: string[]): string[] {
-  const allowed = team.filter((id) => {
-    const hero = content.charactersById[id];
-    return hero && trialAllows(trial, hero);
-  });
-  return trial.kind === 'duo' ? allowed.slice(0, 2) : allowed;
-}
+export const TOWER_CHALLENGES: TowerChallenge[] = [
+  {
+    id: 'venom',
+    name: 'Venom',
+    icon: '🧪',
+    text: 'Each enemy may poison your whole team at the start of its turn.',
+    counter: 'Healers who cleanse, and heroes with high Effect RES.',
+    mods: { passive: { name: 'Venom', rules: [trigger('turnStart', [status('poison', 2, 'allEnemies')], 0.25)] } },
+  },
+  {
+    id: 'ironhide',
+    name: 'Ironhide',
+    icon: '🪨',
+    text: 'Enemies have 2.5× DEF and +10% HP.',
+    counter: 'Piercing attacks, DEF Down, and damage that scales with HP or DEF.',
+    mods: { stats: { def: 2.5, hp: 1.1 } },
+  },
+  {
+    id: 'empowered',
+    name: 'Empowered',
+    icon: '💪',
+    text: 'Enemies start with ATK Up and DEF Up, and may buff themselves again each turn.',
+    counter: 'Dispellers, and ATK Down to blunt their hits.',
+    mods: {
+      passive: {
+        name: 'Empowered',
+        rules: [trigger('battleStart', [status('atkUp', 3, 'self'), status('defUp', 3, 'self')]), trigger('turnStart', [status('atkUp', 2, 'self')], 0.3)],
+      },
+    },
+  },
+  {
+    id: 'swift',
+    name: 'Swift',
+    icon: '🌪️',
+    text: 'Enemies have +10% SPD and a big head start.',
+    counter: 'Delay and SPD Down, and tanks that taunt and shield.',
+    mods: { stats: { spd: 1.1 }, passive: { name: 'Swift', rules: [trigger('battleStart', [advance(0.4, 'self')])] } },
+  },
+  {
+    id: 'hex',
+    name: 'Hex',
+    icon: '🔇',
+    text: 'Hitting an enemy may silence the attacker for 2 turns.',
+    counter: 'Cleansers, high Effect RES, and heroes with strong basic attacks.',
+    mods: { passive: { name: 'Hex', rules: [trigger('hit', [status('silence', 2, 'target')], 0.4)] } },
+  },
+  {
+    id: 'undying',
+    name: 'Undying',
+    icon: '🌿',
+    text: 'Enemies often regenerate at the start of their turn.',
+    counter: 'Burst damage, Dispel, and burn or poison to outpace the healing.',
+    mods: { passive: { name: 'Undying', rules: [trigger('turnStart', [status('regen', 1, 'self')], 0.5)] } },
+  },
+  {
+    id: 'thorns',
+    name: 'Thorns',
+    icon: '🌵',
+    text: 'Hitting an enemy hurts the attacker.',
+    counter: 'Healers, shields, lifesteal, and big single hits over many small ones.',
+    mods: { passive: { name: 'Thorns', rules: [trigger('hit', [dmg(0.6, 'target')])] } },
+  },
+];
 
-export function describeTrial(trial: TowerTrial): { name: string; icon: string; rule: string } {
-  if (trial.kind === 'element') {
-    const el = ELEMENTS[trial.element];
-    return { name: `${el.label} Trial`, icon: el.icon, rule: `Only ${el.label} heroes may enter.` };
-  }
-  if (trial.kind === 'rarity') {
-    return { name: trial.max === 3 ? '★3 Trial' : 'Humble Trial', icon: '★', rule: trial.max === 3 ? 'Only ★3 heroes may enter.' : 'Only ★3 and ★4 heroes may enter.' };
-  }
-  return { name: 'Duo Trial', icon: '👥', rule: 'Only the first two heroes of your team enter.' };
-}
+/**
+ * The challenge on a floor. Consecutive floors always differ, every challenge comes up once in
+ * 7 floors, and floor 1 opens with a gentle one (Ironhide).
+ */
+export const towerChallenge = (floor: number): TowerChallenge => TOWER_CHALLENGES[(floor * 3 + 5) % TOWER_CHALLENGES.length]!;
 
 /**
  * Builds a tower floor. Floors are generated, so the tower never ends:
@@ -112,7 +153,7 @@ export function towerFloor(content: ContentIndex, floor: number): TowerFloor {
   // Deeper floors bring a second wave.
   const waves = !boss && floor >= t.wavesFrom ? [Array.from({ length: 3 }, (_, i) => pick(regulars, i + 11))] : [];
 
-  const trial = towerTrial(content, floor);
+  const challenge = towerChallenge(floor);
   const milestone = floor % t.milestoneEvery === 0;
   const reward: Reward = {
     gems: t.floorGems + (milestone ? t.milestoneReward.gems : 0),
@@ -128,9 +169,26 @@ export function towerFloor(content: ContentIndex, floor: number): TowerFloor {
     recommendedLevel: Math.min(maxLevel, enemyLevel + 3),
     theme: THEMES[Math.floor((floor - 1) / 10) % THEMES.length]!,
     encounter: { enemies: lineup(first.filter(Boolean)), waves: waves.map(lineup) },
-    // Bosses bring their own mechanics and trials restrict the team, so their floors are a little softer on stats.
-    mods: { statMult: Math.round(statMult * (boss ? t.bossMult : 1) * (trial ? t.trialMult : 1) * 100) / 100 },
+    mods: {
+      // Bosses bring their mechanics, so their floors are a little softer on stats.
+      statMult: Math.round(statMult * (boss ? t.bossMult : 1) * 100) / 100,
+      ...challenge.mods,
+      ...(boss ? { boss: bossKit(floor, pick(regulars, 21)) } : {}),
+    },
     reward,
-    trial,
+    challenge,
+  };
+}
+
+/**
+ * Mechanics a tower boss gets on top of whatever it already has: a charged attack to break,
+ * an enrage, and adds. They get sharper the higher the floor.
+ */
+function bossKit(floor: number, addUnit: string): NonNullable<EncounterMods['boss']> {
+  const deep = floor >= 30;
+  return {
+    charge: { every: floor >= 15 ? 3 : 4, breakPct: deep ? 0.2 : 0.15, mult: deep ? 1.8 : 1.5 },
+    enrage: { below: 0.5, atk: deep ? 1.4 : 1.25, spd: deep ? 1.25 : 1.15 },
+    adds: { at: floor >= 20 ? [0.66, 0.33] : [0.5], unit: addUnit, count: floor >= 20 ? 2 : 1 },
   };
 }

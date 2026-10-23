@@ -155,8 +155,13 @@ export type BattleEvent =
   | { type: 'heal'; source: string; target: string; amount: number }
   | { type: 'shield'; source: string; target: string; amount: number }
   | { type: 'statusApplied'; target: string; status: StatusId; turns: number }
-  | { type: 'statusResisted'; target: string; status: StatusId }
+  /** A debuff didn't land: resisted (Effect RES), or blocked by Immunity. */
+  | { type: 'statusResisted'; target: string; status: StatusId; immune?: boolean }
+  /** Cleanse or dispel removed these statuses. */
+  | { type: 'statusRemoved'; target: string; statuses: StatusId[] }
   | { type: 'advance'; target: string; amount: number }
+  | { type: 'delay'; target: string; amount: number }
+  | { type: 'revive'; source: string; target: string; hp: number }
   | { type: 'stunned'; actor: string }
   | { type: 'passive'; unit: string; name: string }
   /** A boss mechanic fired; `name` is the charged skill for charge, unleash and break. */

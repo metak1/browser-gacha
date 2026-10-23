@@ -10,6 +10,7 @@ import {
   skillFor,
   validTargets,
   type ActionKind,
+  type BattleUnit,
   type CompleteBattleResponse,
   type DungeonDef,
   type EventDef,
@@ -20,7 +21,6 @@ import {
   UI_ICONS,
   guideStep,
   towerFloor,
-  describeTrial,
 } from '@gacha/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -31,7 +31,8 @@ import { BattleStage } from '../battle/BattleStage';
 import { Hud } from '../battle/Hud';
 import { BattleTutorial } from '../battle/Tutorial';
 import { useBattleSession } from '../battle/sessions';
-import { useBattle, type LogLine } from '../battle/useBattle';
+import { CombatBars } from '../battle/CombatBars';
+import { useBattle, type LogLine, type UnitTally } from '../battle/useBattle';
 import '../battle/battle.css';
 import { Icon } from '../components/Art';
 import { GearChip } from '../components/Gear';
@@ -409,7 +410,9 @@ function BattleRunner({
               ) : source.kind === 'tower' ? (
                 <>
                   <b>🗼 Tower</b> Floor {source.floor}
-                  {towerFloor(content, source.floor).trial && <span className="wave-chip">{describeTrial(towerFloor(content, source.floor).trial!).name}</span>}
+                  <span className="wave-chip" title={towerFloor(content, source.floor).challenge.text}>
+                    {towerFloor(content, source.floor).challenge.icon} {towerFloor(content, source.floor).challenge.name}
+                  </span>
                 </>
               ) : source.kind === 'guild' ? (
                 <>
@@ -502,6 +505,8 @@ function BattleRunner({
           unlocked={newlyUnlocked(content.settings, clearedBefore.current, result.profile.clearedStages)}
           queued={queued}
           onStopQueued={() => setQueued(null)}
+          units={state.units}
+          tally={b.director.tally}
         />
       )}
     </div>
@@ -542,6 +547,8 @@ function ResultModal({
   unlocked,
   queued,
   onStopQueued,
+  units,
+  tally,
 }: {
   result: CompleteBattleResponse;
   source: BattleSource;
@@ -549,6 +556,8 @@ function ResultModal({
   unlocked: Feature[];
   queued: Queued | null;
   onStopQueued: () => void;
+  units: BattleUnit[];
+  tally: Record<string, UnitTally>;
 }) {
   const navigate = useNavigate();
   const content = useContent();
@@ -610,6 +619,7 @@ function ResultModal({
           </p>
         )}
         {result.xp && <XpBar xp={result.xp} />}
+        <CombatBars units={units} tally={tally} />
         {result.guild && (
           <div className="guild-result">
             <div className="guild-damage">💥 {result.guild.damage.toLocaleString()} damage</div>

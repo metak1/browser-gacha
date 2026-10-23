@@ -9,6 +9,10 @@ export const shield = (mult: number, to: EffectTarget = 'target', scale?: ScaleS
 export const energy = (amount: number, to: EffectTarget = 'target'): Effect => ({ kind: 'energy', to, amount });
 export const summonFx = (unit: string, count = 1): Effect => ({ kind: 'summon', to: 'self', unit, count });
 export const advance = (amount: number, to: EffectTarget = 'target'): Effect => ({ kind: 'advance', to, amount });
+export const delay = (amount: number, to: EffectTarget = 'target'): Effect => ({ kind: 'delay', to, amount });
+export const cleanse = (to: EffectTarget = 'target'): Effect => ({ kind: 'cleanse', to });
+export const dispel = (to: EffectTarget = 'target'): Effect => ({ kind: 'dispel', to });
+export const revive = (amount: number, to: EffectTarget = 'target'): Effect => ({ kind: 'revive', to, amount });
 export const status = (id: StatusId, turns: number, to: EffectTarget = 'target', chance?: number): Effect =>
   chance === undefined ? { kind: 'status', to, status: id, turns } : { kind: 'status', to, status: id, turns, chance };
 
@@ -57,14 +61,30 @@ export function scaleText(mult: number, scale: ScaleStat = 'atk'): string {
 export function describeEffect(effect: Effect, targeting: Targeting, targetLabel?: string): string {
   const who = targetText(effect.to, targeting, targetLabel);
   switch (effect.kind) {
-    case 'damage':
-      return `Deal ${scaleText(effect.mult, effect.scale)} damage to ${who}`;
+    case 'damage': {
+      const extras = [
+        effect.pierce ? `ignoring ${pct(effect.pierce)} of DEF` : '',
+        effect.lifesteal ? `healing self for ${pct(effect.lifesteal)} of the damage` : '',
+      ].filter(Boolean);
+      const hits = effect.hits && effect.hits > 1 ? ` in ${effect.hits} hits` : '';
+      return `Deal ${scaleText(effect.mult, effect.scale)} damage to ${who}${hits}${extras.length ? `, ${extras.join(', ')}` : ''}`;
+    }
     case 'heal':
       return `Heal ${who} for ${scaleText(effect.mult, effect.scale)}`;
     case 'shield':
       return `Shield ${who} for ${scaleText(effect.mult, effect.scale)}`;
     case 'advance':
       return `Advance ${who} by ${pct(effect.amount)}`;
+    case 'delay':
+      return `Delay ${who} by ${pct(effect.amount)}`;
+    case 'cleanse':
+      return `Remove all debuffs from ${who}`;
+    case 'dispel':
+      return `Remove all buffs from ${who}`;
+    case 'revive':
+      return effect.to === 'allAllies'
+        ? `Revive all fallen allies with ${pct(effect.amount)} HP`
+        : `Revive the first fallen ally with ${pct(effect.amount)} HP`;
     case 'energy':
       return `Grant ${who} ${effect.amount} energy`;
     case 'summon': {

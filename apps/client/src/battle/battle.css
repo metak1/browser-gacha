@@ -1036,3 +1036,45 @@
   .battle-session { --pip-w: 44vw; }
   .battle-session.pip { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* ---------- end-of-battle breakdown ---------- */
+
+.combat-bars {
+  /* Dark-surface steps of the validated palette (all-pairs safe); taken is a neutral. */
+  --bar-dealt: #d95926;
+  --bar-taken: #8a8fa8;
+  --bar-healed: #199e70;
+  --bar-shielded: #3987e5;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 4px;
+  text-align: left;
+}
+.combat-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.combat-tabs button {
+  display: grid;
+  gap: 1px;
+  padding: 4px 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.combat-tabs button b { color: var(--text); font-size: 0.8rem; }
+.combat-tabs button.on { border-color: var(--accent); color: var(--text); background: #2a3170; }
+.combat-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.combat-rows li { display: grid; grid-template-columns: minmax(0, 9em) 1fr; align-items: center; gap: 8px; }
+.combat-who { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 0.78rem; }
+.combat-who > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.combat-track { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* Thin bar, square at the baseline, 4px rounded at the value end; the value sits at its tip. */
+.combat-bar { flex: none; height: 14px; border-radius: 0 4px 4px 0; background: var(--bar, var(--accent)); }
+.combat-value { flex: none; font-size: 0.78rem; font-weight: 700; color: var(--text); }
+.combat-rows.dealt { --bar: var(--bar-dealt); }
+.combat-rows.taken { --bar: var(--bar-taken); }
+.combat-rows.healed { --bar: var(--bar-healed); }
+.combat-rows.shielded { --bar: var(--bar-shielded); }

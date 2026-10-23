@@ -28,6 +28,12 @@ export const STATUS_ICONS: Record<StatusId, number> = {
   defDown: 884,
   spdUp: 875,
   taunt: 663,
+  poison: 809,
+  regen: 668,
+  atkDown: 887,
+  spdDown: 890,
+  silence: 680,
+  immunity: 670,
 };
 
 interface ElementIcons {
@@ -68,6 +74,13 @@ export function defaultSkillIcon(element: ElementId, slot: 'basic' | 'skill' | '
     case 'advance':
     case 'energy':
       return ADVANCE;
+    case 'delay':
+      return STATUS_ICONS.spdDown;
+    case 'cleanse':
+    case 'revive':
+      return STATUS_ICONS.immunity;
+    case 'dispel':
+      return STATUS_ICONS.defDown;
     case 'summon':
       return icons.aoe;
     case 'status':

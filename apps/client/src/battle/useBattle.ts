@@ -68,6 +68,25 @@ export interface LogLine {
   text: string;
 }
 
+/** What each unit did over a battle, for the results screen. */
+export interface UnitTally {
+  dealt: number;
+  /** HP actually lost (damage soaked by a shield isn't counted). */
+  taken: number;
+  healed: number;
+  shielded: number;
+}
+
+/** Adds one event to the per-unit tally. Burn and poison ticks have no source, so they only count as taken. */
+function tallyEvent(tally: Record<string, UnitTally>, e: BattleEvent) {
+  const of = (uid: string) => (tally[uid] ??= { dealt: 0, taken: 0, healed: 0, shielded: 0 });
+  if (e.type === 'damage') {
+    if (e.source) of(e.source).dealt += e.amount;
+    of(e.target).taken += e.amount - e.absorbed;
+  } else if (e.type === 'heal') of(e.source).healed += e.amount;
+  else if (e.type === 'shield') of(e.source).shielded += e.amount;
+}
+
 export type Banner = 'start' | 'victory' | 'defeat' | { wave: number; of: number } | null;
 
 /** A boss mechanic announcement across the top of the stage. */
@@ -151,6 +170,7 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
     const engine = { current: null as BattleState | null };
     const display = { current: null as BattleState | null };
     const actions: BattleAction[] = [];
+    let tally: Record<string, UnitTally> = {};
     let slots: Record<string, Slot> = {};
     let run = 0;
     let nextId = 0;
@@ -289,7 +309,7 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
         case 'damage': {
           const source = e.source ? getUnit(state, e.source) : null;
           animate(e.target, 'hit', { clip: 'hurt' });
-          spawnFx({ uid: e.target, kind: e.status === 'burn' ? 'burn' : (source?.element ?? 'stone'), crit: e.crit });
+          spawnFx({ uid: e.target, kind: e.status === 'burn' ? 'burn' : e.status === 'poison' ? 'debuff' : (source?.element ?? 'stone'), crit: e.crit });
           if (e.crit) {
             onShake();
             sfx.crit();
@@ -316,6 +336,21 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
         case 'advance':
           spawnFx({ uid: e.target, kind: 'buff' });
           return sleep(T.minor);
+        case 'delay':
+          spawnFx({ uid: e.target, kind: 'debuff' });
+          sound('debuff', sfx.debuff);
+          return sleep(T.minor);
+        case 'statusRemoved': {
+          const buffs = STATUS_INFO[e.statuses[0]!].buff;
+          spawnFx({ uid: e.target, kind: buffs ? 'debuff' : 'heal' });
+          sound(buffs ? 'debuff' : 'heal', buffs ? sfx.debuff : sfx.heal);
+          return sleep(T.minor);
+        }
+        case 'revive':
+          animate(e.target, 'enter');
+          spawnFx({ uid: e.target, kind: 'heal' });
+          sfx.buff();
+          return sleep(T.summon);
         case 'passive':
           spawnFx({ uid: e.unit, kind: 'buff' });
           sound('buff', sfx.buff);
@@ -374,6 +409,7 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
       for (const e of events) {
         if (myRun !== run) return false;
         display.current = applyEvent(display.current!, e);
+        tallyEvent(tally, e);
         setView(display.current);
         await present(e, display.current);
       }
@@ -394,12 +430,17 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
       get slots() {
         return slots;
       },
+      /** Damage dealt and taken, healing and shields per unit, for what has played so far. */
+      get tally() {
+        return tally;
+      },
 
       start(s: BattleSetup) {
         const myRun = ++run;
         const { state, events } = startBattle(s);
         engine.current = state;
         actions.length = 0;
+        tally = {};
         slots = formation(state.units);
         display.current = { ...structuredClone(state), actorUid: null };
         setView(display.current);

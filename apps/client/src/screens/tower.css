@@ -57,15 +57,10 @@
   .tower-step.current { width: 78px; }
 }
 
-/* Trial floors */
-.tower-step.trial { border-color: #8fe3ff88; }
-.trial-tag { background: #0e2a3a; color: #bfeaff; }
-.tower-trial { display: grid; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #0e2a3a66; border: 2px solid #8fe3ff55; }
-.trial-head { display: flex; align-items: center; gap: 10px; }
-.trial-head > span:last-child { display: grid; }
-.trial-icon { font-size: 1.6rem; }
-.trial-team { display: flex; flex-wrap: wrap; gap: 8px; }
-.trial-hero { display: grid; justify-items: center; gap: 2px; min-width: 64px; padding: 4px 6px; border-radius: 6px; border: 2px solid transparent; }
-.trial-hero small { font-size: 0.7rem; }
-.trial-hero.in { border-color: var(--good); background: #1f5a3533; }
-.trial-hero.out { opacity: 0.4; filter: grayscale(1); }
+/* Floor challenges */
+.tower-challenge { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: #2a1a3a66; border: 2px solid #c79bff55; }
+.tower-challenge p { margin: 0; }
+.challenge-head { display: flex; align-items: center; gap: 10px; }
+.challenge-head > span:last-child { display: grid; }
+.challenge-icon { font-size: 1.6rem; }
+.challenge-counter { color: #bfe8ff; }
