@@ -1,0 +1,31 @@
+{
+  "name": "starlit-summons",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A turn-based gacha RPG that runs in the browser.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"npm run dev -w @gacha/server\" \"npm run dev -w @gacha/client\"",
+    "build": "npm run build -w @gacha/client",
+    "start": "npm run start -w @gacha/server",
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "balance": "tsx packages/shared/scripts/balance.ts",
+    "assets": "tsx tools/import-assets.ts",
+    "grant-all": "npm run grant-all -w @gacha/server --",
+    "make-admin": "npm run make-admin -w @gacha/server --",
+    "max-heroes": "npm run max-heroes -w @gacha/server --",
+    "reset-password": "npm run reset-password -w @gacha/server --"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

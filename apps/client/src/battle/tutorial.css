@@ -1,0 +1,25 @@
+.tutorial { position: fixed; inset: 0; z-index: 1000; }
+.tutorial-dim { position: absolute; inset: 0; background: #05061099; }
+.tutorial-spot {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px #05061099, 0 0 0 3px #ffd76a, 0 0 24px 6px #ffd76a88;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.tutorial-card {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--panel-2, #1d2244);
+  border: 1px solid #ffd76a88;
+  box-shadow: 0 12px 40px #000a;
+  animation: tutorial-in 0.25s ease-out;
+}
+.tutorial-card.center { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.tutorial-card h3 { margin: 2px 0 6px; color: #ffe39a; }
+.tutorial-card p { margin: 0 0 12px; line-height: 1.45; }
+.tutorial-actions { display: flex; justify-content: flex-end; gap: 8px; }
+@keyframes tutorial-in { from { opacity: 0; translate: 0 8px; } }

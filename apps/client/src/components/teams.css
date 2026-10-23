@@ -1,0 +1,63 @@
+/* ---------- team presets ---------- */
+.team-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.team-faces { display: inline-flex; gap: 3px; }
+.team-face { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--bg); border: 2px solid; overflow: hidden; }
+.team-edit { color: #9fd0ff; }
+
+/* Roster: the preset tabs sit over the team slots as one block of the same width. */
+.team-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  max-width: calc(4 * 150px + 3 * 12px);
+  margin-bottom: 12px;
+}
+.team-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 4px;
+  align-items: center;
+  min-height: 42px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 2px solid #ffffff14;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.team-tab-name { grid-column: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.team-tab small { grid-column: 1; font-size: 0.75rem; line-height: 1.3; white-space: nowrap; overflow: hidden; }
+.team-tab-edit { grid-column: 2; grid-row: 1 / span 2; font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; font-size: 0.75rem; opacity: 0.8; }
+.team-tab:hover { color: var(--text); }
+.team-tab.active { color: var(--text); border-color: var(--accent); background: var(--panel-2); }
+.team-tab.empty { border-style: dashed; }
+input.team-tab.editing { display: block; color: var(--text); border-color: var(--accent); cursor: text; }
+
+/* Team slots: one line per name, so long names never push the card around. */
+.team-slots .card-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 680px) {
+  /* One row of tabs that scrolls sideways, instead of an uneven 3 + 2 wrap. */
+  .team-tabs {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(96px, 1fr);
+    max-width: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .team-slots .badge { font-size: 0.6rem; padding: 1px 5px; }
+  .team-slots .card-info { padding: 4px 5px 6px; }
+  .team-slots .card-name { font-size: 0.75rem; }
+  .slot-empty .slot-hint { display: none; }
+}
+
+.dungeon-team { padding: 0 14px 10px; }
+.guild-attack { display: grid; gap: 8px; justify-items: stretch; }
+.event-stages .team-switch { margin-bottom: 8px; }
+.stage-side .team-switch { justify-content: flex-end; }

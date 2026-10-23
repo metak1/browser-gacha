@@ -1,0 +1,53 @@
+/*
+ * Sprite rendering. A sprite strip is a row of square frames. The visible box is
+ * the character's height (--h); one source pixel is --h / --src-h. The full frame
+ * is positioned so the character's feet (--ax, --ay) sit at the bottom centre of
+ * the box, so attack effects can extend past it without shifting the character.
+ */
+.unit-art { position: relative; display: inline-block; line-height: 1; }
+.unit-art.emoji { display: inline-block; }
+.unit-art.pixel {
+  --px: calc(var(--h) / var(--src-h));
+  width: var(--h);
+  height: var(--h);
+}
+.unit-art-frame {
+  --px: calc(var(--h) / var(--src-h));
+  position: absolute;
+  width: calc(var(--px) * var(--frame));
+  height: calc(var(--px) * var(--frame));
+  left: calc(50% - var(--px) * var(--ax));
+  top: calc(100% - var(--px) * var(--ay));
+  background-repeat: no-repeat;
+  /* Sized and stepped in percentages of the frame box, so every step lands exactly on a frame
+     boundary (pixel calc() here drifted part-way into neighbouring frames). */
+  background-size: calc(var(--frames) * 100%) 100%;
+  image-rendering: pixelated;
+  transform-origin: calc(var(--px) * var(--ax)) 0;
+  pointer-events: none;
+}
+.unit-art-frame.mirrored { transform: scaleX(-1); }
+.unit-art-frame.loop { animation: sprite-loop var(--dur) infinite; }
+.unit-art-frame.once { animation: sprite-once var(--dur) forwards; }
+/* 0% shows the first frame and 100% the last. Loops step `frames` times towards one frame past
+   the end (--end), so each frame shows for an equal share; one-shots stop on the last frame. */
+@keyframes sprite-loop {
+  from { background-position: 0% 0; }
+  to { background-position: var(--end, 100%) 0; }
+}
+@keyframes sprite-once {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit-art-frame.loop { animation: none; }
+}

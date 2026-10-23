@@ -1,0 +1,99 @@
+/* ---------- main navigation ---------- */
+.main-nav { position: relative; align-items: center; }
+.main-nav .nav-link { position: relative; display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; font: inherit; line-height: inherit; cursor: pointer; }
+/* Narrow laptops: drop the brand name so the bar stays on one row. */
+@media (max-width: 1100px) and (min-width: 681px) {
+  .brand-text { display: none; }
+  .main-nav .nav-link { padding: 8px 7px; }
+}
+.nav-menu { position: relative; }
+.nav-link.active, .main-nav button.nav-link.active { color: var(--text); background: var(--panel-2); }
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 340px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 2px solid #05060f;
+  box-shadow: 0 4px 0 #05060f, 0 12px 30px #000a;
+  animation: menu-in 0.12s ease-out;
+}
+.nav-dropdown.right { left: auto; right: 0; width: 260px; }
+@keyframes menu-in { from { opacity: 0; translate: 0 -4px; } }
+
+.mode-list { display: grid; gap: 2px; }
+.mode-item {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mode-item:hover { background: var(--panel-2); }
+.mode-item.locked { opacity: 0.55; }
+.mode-icon { font-size: 1.6rem; text-align: center; }
+.mode-text { display: grid; gap: 1px; min-width: 0; }
+.mode-text small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mode-badge { margin-left: 4px; padding: 0 6px; border-radius: 4px; background: #ff9d5c33; color: #ffb98a; font-size: 0.75rem; }
+
+/* ---------- phones: bottom tabs and sheets ---------- */
+.mobile-tabs { display: none; }
+@media (max-width: 680px) {
+  .main-nav, .settings-menu { display: none !important; }
+  /* The top bar keeps the brand star, counters and account. */
+  main { padding-bottom: 84px; }
+  .mobile-tabs {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 80; /* above the sheet backdrop, so tabs stay usable */
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: #0b0d1af5;
+    border-top: 2px solid #05060f;
+    box-shadow: 0 -3px 0 #ffffff0d;
+  }
+  .tab {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 1px;
+    padding: 4px 0;
+    border-radius: 6px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font: inherit;
+    text-decoration: none;
+  }
+  .tab span:first-child { font-size: 1.35rem; line-height: 1.2; }
+  .tab small { font-size: 0.75rem; }
+  .tab.active { color: var(--text); background: var(--panel-2); }
+  .tab .nav-badge { position: absolute; top: 0; right: 18%; }
+  .sheet-backdrop { position: fixed; inset: 0; z-index: 70; background: #05060fb3; display: flex; align-items: flex-end; }
+  .sheet {
+    width: 100%;
+    max-height: 75vh;
+    overflow-y: auto;
+    padding: 10px 10px calc(80px + env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+    background: var(--panel);
+    border-top: 2px solid #05060f;
+    animation: sheet-up 0.18s ease-out;
+  }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 8px; }
+  .sheet .mode-list + .mode-list { margin-top: 8px; padding-top: 8px; border-top: 1px solid #ffffff14; }
+}
+@keyframes sheet-up { from { translate: 0 40px; opacity: 0; } }

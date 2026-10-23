@@ -1,0 +1,9 @@
+node_modules/
+dist/
+apps/server/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+# Raw third-party packs (unzipped downloads); `npm run assets` copies what the game needs.
+asset-packs/

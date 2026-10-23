@@ -1,0 +1,27 @@
+.events-page { max-width: 1100px; margin: 0 auto; }
+.event { margin-bottom: 24px; }
+.event-banner { position: relative; height: 200px; overflow: hidden; border-radius: 8px; border: 2px solid #05060f; box-shadow: 0 3px 0 #05060f; }
+.event-title {
+  position: absolute; inset: auto 0 0 0; z-index: 2;
+  display: flex; align-items: flex-end; gap: 14px; padding: 14px 18px;
+  background: linear-gradient(0deg, #000d, transparent);
+}
+.event-title h2 { margin: 0; font-size: 1.8rem; color: #ffe39a; text-shadow: 2px 2px 0 #05060f; }
+.event-title p { margin: 4px 0 0; max-width: 620px; font-size: 0.9rem; }
+.event-emoji { font-size: 3.4rem; line-height: 1; }
+.event-side { margin-left: auto; display: grid; justify-items: end; gap: 6px; }
+.event-body { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; }
+.event-stage { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px; border-radius: 6px; background: var(--bg); margin-top: 8px; }
+.event-stage.locked { opacity: 0.55; }
+.event-foes { display: flex; gap: 4px; margin-top: 4px; }
+.event-stage-rewards { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.shop-item { display: grid; justify-items: center; gap: 6px; padding: 10px 8px; border-radius: 6px; background: var(--bg); border: 2px solid #ffffff12; text-align: center; }
+.shop-item.hero { grid-column: span 2; border-color: #ffcc4d88; background: radial-gradient(circle at 50% 30%, #ffcc4d22, var(--bg) 70%); }
+.shop-item.sold { opacity: 0.45; }
+.shop-item-art { min-height: 60px; display: grid; place-items: center; }
+.friend-picker { margin: 6px 0 4px; display: grid; gap: 4px; }
+.friend-options { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.friend-option { display: inline-flex; align-items: center; gap: 4px; }
+.friend-hint { margin: 6px 0; }
+@media (max-width: 860px) { .event-body { grid-template-columns: 1fr; } .event-title p { display: none; } }

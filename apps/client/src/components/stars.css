@@ -1,0 +1,42 @@
+.stars { display: inline-flex; gap: 1px; line-height: 1; letter-spacing: 0; }
+.stars .on { color: #ffd23a; text-shadow: 0 0 6px #ffb80088, 0 1px 0 #7a5200; }
+.stars .off { color: #ffffff2e; }
+.stars.sm { font-size: 0.9rem; }
+.stars.md { font-size: 1.1rem; }
+.stars.lg { font-size: 2.6rem; gap: 6px; }
+.stars.animate span { animation: star-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.stars.animate .off { animation-name: star-fade; }
+@keyframes star-pop { from { transform: scale(0) rotate(-90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes star-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.objectives { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 0.85rem; text-align: left; }
+.objectives li { display: flex; gap: 6px; align-items: baseline; }
+.objective-mark { width: 1.1em; text-align: center; color: #ffd23a; flex: none; }
+.objectives li.met .objective-mark { color: var(--good); }
+.objectives li.missed { opacity: 0.6; }
+.objectives li.missed .objective-mark { color: #ff7a8a; }
+
+/* Campaign: stars under map nodes, chapter totals and chests. */
+.node-stars { position: absolute; top: calc(100% + 18px); left: 50%; transform: translateX(-50%); pointer-events: none; }
+.chapter-stars { position: absolute; top: 14px; right: 18px; z-index: 3; font-weight: 800; text-shadow: 0 2px 6px #000; font-size: 1.05rem; }
+.chapter-stars .on { margin-right: 4px; }
+.chests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chest {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 8px; border-radius: 12px;
+  background: var(--panel, #1c1f3a); border: 1px solid #ffffff1a;
+  font: inherit; color: inherit; font-size: 0.85rem;
+}
+.chest .chest-icon { font-size: 1.5rem; }
+.chest .chest-need { font-weight: 800; color: #ffd23a; white-space: nowrap; }
+.chest.locked { opacity: 0.6; }
+.chest.claimed { opacity: 0.5; }
+.chest.ready { cursor: pointer; border-color: #ffd23a; box-shadow: 0 0 14px #ffd23a55; animation: chest-wiggle 1.6s ease-in-out infinite; }
+.chest.ready:hover { background: #2a2c50; }
+@keyframes chest-wiggle { 0%, 80%, 100% { transform: none; } 85% { transform: rotate(-3deg); } 90% { transform: rotate(3deg); } 95% { transform: rotate(-2deg); } }
+.stage-objectives { margin-top: 10px; }
+.stage-objectives .stars { margin-left: 6px; }
+
+/* Battle result */
+.result-stars { margin: 4px 0 10px; display: grid; justify-items: center; gap: 8px; }
+.result-stars .new-best { color: #ffd23a; font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; }

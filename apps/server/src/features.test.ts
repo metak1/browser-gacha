@@ -1,0 +1,357 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import {
+  autoBattle,
+  createDefaultContent,
+  seededRandom,
+  type ArenaLeaderboardEntryDTO,
+  type ArenaStatusDTO,
+  type CompleteBattleResponse,
+  type GearActionResponse,
+  type ProfileDTO,
+  type StartBattleResponse,
+} from '@gacha/shared';
+import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { buildApp } from './app';
+import type { ServiceContext } from './services/context';
+
+const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
+let app: FastifyInstance;
+let clock = Date.UTC(2026, 9, 20, 12);
+
+beforeEach(async () => {
+  clock = Date.UTC(2026, 9, 20, 12);
+  app = await buildApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(11), now: () => clock } });
+});
+afterEach(async () => app.close());
+
+function device() {
+  let sid: string | undefined;
+  return async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) {
+    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
+    const cookie = res.cookies.find((c) => c.name === 'sid');
+    if (cookie) sid = cookie.value || undefined;
+    return { status: res.statusCode, body: res.json() as T };
+  };
+}
+
+async function guest() {
+  const call = device();
+  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
+  // Open the arena and dungeons (they unlock with campaign progress).
+  const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+  for (const id of ['1-4', '2-1']) ctx.progress.recordClear(body.user.id, id, clock);
+  return { call, profile: body };
+}
+
+/** Plays a campaign stage on auto until it's won (or gives up). */
+async function winStage(call: ReturnType<typeof device>, stageId: string) {
+  for (let i = 0; i < 10; i++) {
+    const start = await call<StartBattleResponse>('POST', '/battles', { stageId });
+    const { actions, state } = autoBattle(start.body.setup);
+    const done = await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
+    if (state.outcome === 'victory') return done.body;
+  }
+  throw new Error('could not win');
+}
+
+describe('gear', () => {
+  it('drops from stages, equips, boosts battle stats, upgrades and salvages', async () => {
+    const { call, profile } = await guest();
+    app.services.admin.grant(profile.user.id, { gold: 100_000 });
+
+    let drops = 0;
+    let result: CompleteBattleResponse | null = null;
+    for (let i = 0; i < 12 && drops === 0; i++) {
+      result = await winStage(call, '1-1');
+      drops += result.drops.length;
+    }
+    expect(drops).toBeGreaterThan(0);
+    const item = result!.profile.gear[0]!;
+    expect(item.equippedTo).toBeNull();
+
+    const before = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
+    const equip = await call<GearActionResponse>('POST', `/gear/${item.id}/equip`, { charId: 'torch' });
+    expect(equip.body.item!.equippedTo).toBe('torch');
+    const after = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
+    const torch = (s: StartBattleResponse) => s.setup.allies.find((a) => a.id === 'torch')!.stats;
+    expect(JSON.stringify(torch(after.body))).not.toBe(JSON.stringify(torch(before.body)));
+
+    const up = await call<GearActionResponse>('POST', `/gear/${item.id}/upgrade`);
+    expect(up.body.item!.level).toBe(1);
+    expect(up.body.profile.wallet.gold).toBeLessThan(equip.body.profile.wallet.gold);
+
+    const salvage = await call<GearActionResponse>('POST', `/gear/${item.id}/salvage`);
+    expect(salvage.body.profile.gear.find((g) => g.id === item.id)).toBeUndefined();
+    expect(salvage.body.profile.wallet.gold).toBeGreaterThan(up.body.profile.wallet.gold);
+  });
+
+  it("can't touch someone else's gear or equip unowned heroes", async () => {
+    const a = await guest();
+    const b = await guest();
+    let gear = a.profile.gear;
+    for (let i = 0; i < 12 && !gear.length; i++) gear = (await winStage(a.call, '1-1')).profile.gear;
+    const id = gear[0]!.id;
+    expect((await b.call('POST', `/gear/${id}/upgrade`)).status).toBe(404);
+    expect((await a.call('POST', `/gear/${id}/equip`, { charId: 'ignis' })).status).toBe(400);
+  });
+});
+
+describe('arena', () => {
+  it('offers bots when alone, spends tickets and moves the rating', async () => {
+    const { call } = await guest();
+    const status = (await call<ArenaStatusDTO>('GET', '/arena')).body;
+    expect(status.rating).toBe(1000);
+    expect(status.opponents).toHaveLength(3);
+    expect(status.opponents.every((o) => o.isBot)).toBe(true);
+    expect(status.defense.length).toBeGreaterThan(0);
+
+    const opp = status.opponents[0]!;
+    const start = await call<StartBattleResponse>('POST', '/arena/battles', { opponentId: opp.id });
+    expect(start.body.mode).toBe('arena');
+    expect(start.body.setup.enemies.map((e) => e.id).sort()).toEqual(opp.team.map((t) => t.id).sort());
+    const { actions, state } = autoBattle(start.body.setup);
+    const done = await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
+    expect(done.body.arena!.ratingAfter - done.body.arena!.ratingBefore).toBe(done.body.arena!.delta);
+    expect(done.body.arena!.delta > 0).toBe(state.outcome === 'victory');
+
+    const next = (await call<ArenaStatusDTO>('GET', '/arena')).body;
+    expect(next.tickets).toBe(status.tickets - 1);
+    expect(next.history[0]!.youAttacked).toBe(true);
+    // The same opponent can't be fought twice from one list.
+    expect((await call('POST', '/arena/battles', { opponentId: opp.id })).status).toBe(404);
+  });
+
+  it('rejects made-up opponents and runs out of tickets', async () => {
+    const { call } = await guest();
+    await call('GET', '/arena');
+    expect((await call('POST', '/arena/battles', { opponentId: 'bot-fake' })).status).toBe(404);
+    const max = createDefaultContent().settings.arenaTicketsPerDay;
+    for (let i = 0; i < max; i++) {
+      const status = (await call<ArenaStatusDTO>('POST', '/arena/refresh')).body;
+      expect((await call('POST', '/arena/battles', { opponentId: status.opponents[0]!.id })).status).toBe(200);
+    }
+    const status = (await call<ArenaStatusDTO>('POST', '/arena/refresh')).body;
+    const res = await call<{ error: string }>('POST', '/arena/battles', { opponentId: status.opponents[0]!.id });
+    expect(res.body.error).toBe('no_tickets');
+  });
+
+  it('matches real players and updates both ratings', async () => {
+    const defender = await guest();
+    await defender.call('PUT', '/arena/defense', { team: ['pebble', 'puddle'] });
+    const attacker = await guest();
+    const status = (await attacker.call<ArenaStatusDTO>('GET', '/arena')).body;
+    const real = status.opponents.find((o) => !o.isBot)!;
+    expect(real.id).toBe(defender.profile.user.id);
+
+    const start = await attacker.call<StartBattleResponse>('POST', '/arena/battles', { opponentId: real.id });
+    const { actions } = autoBattle(start.body.setup);
+    const done = await attacker.call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
+    const def = (await defender.call<ArenaStatusDTO>('GET', '/arena')).body;
+    expect(def.rating).not.toBe(1000);
+    expect(Math.sign(def.rating - 1000)).toBe(-Math.sign(done.body.arena!.delta));
+    expect(def.history[0]!.youAttacked).toBe(false);
+
+    const board = (await attacker.call<ArenaLeaderboardEntryDTO[]>('GET', '/arena/leaderboard')).body;
+    expect(board.some((e) => e.isYou)).toBe(true);
+  });
+
+  it('pays the weekly tier reward and soft-resets the rating', async () => {
+    const { call, profile } = await guest();
+    await call('GET', '/arena');
+    // Test-only: reach the arena repository behind the service to set up a Gold-tier rating.
+    const repo = (app.services.arena as unknown as { ctx: ServiceContext }).ctx.arena;
+    repo.save({ ...repo.get(profile.user.id)!, rating: 1300 });
+
+    clock += 7 * 24 * 3600 * 1000;
+    const before = (await call<ProfileDTO>('GET', '/me')).body.wallet.gems;
+    const status = (await call<ArenaStatusDTO>('GET', '/arena')).body;
+    expect(status.seasonReward?.tier).toBe('Gold');
+    expect(status.rating).toBe(1150);
+    expect((await call<ProfileDTO>('GET', '/me')).body.wallet.gems).toBe(before + status.seasonReward!.reward.gems);
+    expect((await call<ArenaStatusDTO>('GET', '/arena')).body.seasonReward).toBeNull();
+  });
+});
+
+describe('content upgrade', () => {
+  it('adds ultimates, gear and drops to content saved by the previous version', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'gacha-upgrade-'));
+    const dbPath = join(dir, 'game.db');
+    const first = await buildApp({ ...baseConfig, dbPath });
+    await first.close();
+
+    // Make the stored content look like it came from before ultimates/gear existed.
+    const raw = new DatabaseSync(dbPath);
+    for (const row of raw.prepare("SELECT kind, id, data FROM content WHERE kind IN ('characters', 'enemies', 'stages')").all() as {
+      kind: string;
+      id: string;
+      data: string;
+    }[]) {
+      const doc = JSON.parse(row.data) as Record<string, unknown>;
+      delete doc.ultimate;
+      delete doc.drops;
+      raw.prepare('UPDATE content SET data = ? WHERE kind = ? AND id = ?').run(JSON.stringify(doc), row.kind, row.id);
+    }
+    raw.exec("DELETE FROM content WHERE kind = 'gear' OR id LIKE '%-ult'; UPDATE meta SET value = '1' WHERE key = 'content_schema';");
+    raw.close();
+
+    const second = await buildApp({ ...baseConfig, dbPath });
+    const c = second.services.content.current;
+    expect(c.charactersById.ignis!.ultimate).toBe('ignis-ult');
+    expect(c.bundle.gear.length).toBeGreaterThan(0);
+    expect(c.stagesById['1-1']!.drops.length).toBeGreaterThan(0);
+    await second.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('art upgrade', () => {
+  it('adds icons, sprite units and their stages to content from before art existed', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'gacha-art-'));
+    const dbPath = join(dir, 'game.db');
+    const first = await buildApp({ ...baseConfig, dbPath });
+    await first.close();
+
+    // Roll the stored content back to how v2 saved it.
+    const raw = new DatabaseSync(dbPath);
+    for (const row of raw.prepare("SELECT kind, id, data FROM content WHERE kind IN ('skills', 'gear', 'stages', 'characters', 'enemies')").all() as {
+      kind: string;
+      id: string;
+      data: string;
+    }[]) {
+      const doc = JSON.parse(row.data) as Record<string, unknown>;
+      delete doc.icon;
+      delete doc.sprite;
+      if (row.kind === 'stages' && row.id === '2-1') doc.enemies = [{ id: 'imp', level: 7 }, { id: 'wolf', level: 7 }, { id: 'imp', level: 7 }];
+      if (row.kind === 'stages' && row.id === '2-2') doc.enemies = [{ id: 'golem', level: 30 }]; // customised by an admin
+      raw.prepare('UPDATE content SET data = ? WHERE kind = ? AND id = ?').run(JSON.stringify(doc), row.kind, row.id);
+    }
+    raw.exec(`DELETE FROM content WHERE (kind = 'characters' AND id = 'aldric') OR (kind = 'enemies' AND id IN ('orc', 'demon', 'blood-fiend'));
+              UPDATE meta SET value = '2' WHERE key = 'content_schema';`);
+    raw.close();
+
+    const second = await buildApp({ ...baseConfig, dbPath });
+    const c = second.services.content.current;
+    expect(c.skillsById['ignis-basic']!.icon).toBeGreaterThan(0);
+    expect(c.gearById['runed-saber']!.icon).toBeGreaterThan(0);
+    expect(c.charactersById.aldric!.sprite).toBe('soldier');
+    expect(c.enemiesById.demon!.sprite).toBe('demon');
+    // v3 swapped the demon in; v8 then swaps the hellhound in, since the lineup was still the default.
+    expect(c.stagesById['2-1']!.enemies.map((e) => e.id)).toEqual(['imp', 'hellhound', 'imp']);
+    // Admin edits are left alone.
+    expect(c.stagesById['2-2']!.enemies.map((e) => e.id)).toEqual(['golem']);
+    // Battles carry the sprite through to the client.
+    const setup = (await import('@gacha/shared')).buildBattleSetup(c, 1, [{ id: 'aldric', level: 5, constellation: 0 }], c.stagesById['2-1']!);
+    expect(setup.allies[0]!.sprite).toBe('soldier');
+    expect(setup.allies[0]!.basic.icon).toBeGreaterThan(0);
+    await second.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('roster tools and the tower', () => {
+  const ctxOf = () => (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+
+  it('levels up several times at once, stopping at the cap or when gold runs out', async () => {
+    const { call, profile } = await guest();
+    app.services.admin.grant(profile.user.id, { gold: 100_000 });
+    const hero = profile.team[0]!;
+    const five = await call<ProfileDTO>('POST', `/roster/${hero}/level-up`, { count: 5 });
+    expect(five.body.roster.find((c) => c.id === hero)!.level).toBe(6);
+    // Asking for more than the cap allows just stops at the cap.
+    const max = await call<ProfileDTO>('POST', `/roster/${hero}/level-up`, { count: 100 });
+    expect(max.body.roster.find((c) => c.id === hero)!.level).toBe(20);
+    expect((await call('POST', `/roster/${hero}/level-up`, { count: 1 })).status).toBe(409);
+    // A plain call still levels once.
+    const other = profile.team[1]!;
+    const one = await call<ProfileDTO>('POST', `/roster/${other}/level-up`);
+    expect(one.body.roster.find((c) => c.id === other)!.level).toBe(2);
+  });
+
+  it('auto-equips the best free gear without taking it from other heroes', async () => {
+    const { call, profile } = await guest();
+    const ctx = ctxOf();
+    const [a, b] = profile.team as [string, string];
+    const weapon = (id: string, atk: number) => ({
+      id, templateId: 'runed-saber', slot: 'weapon' as const, rarity: 4 as const, level: 0, mainBase: atk,
+      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null,
+    });
+    ctx.gear.insert(profile.user.id, weapon('weak', 10), clock);
+    ctx.gear.insert(profile.user.id, weapon('strong', 60), clock);
+    ctx.gear.insert(profile.user.id, weapon('taken', 90), clock);
+    ctx.gear.setEquipped(profile.user.id, 'taken', b);
+
+    const res = await call<ProfileDTO>('POST', `/roster/${a}/auto-equip`);
+    expect(res.status).toBe(200);
+    const gear = ctx.gear.list(profile.user.id);
+    expect(gear.find((g) => g.id === 'strong')!.equippedTo).toBe(a);
+    expect(gear.find((g) => g.id === 'taken')!.equippedTo).toBe(b);
+    expect(gear.find((g) => g.id === 'weak')!.equippedTo).toBeNull();
+  });
+
+  it('reforges gear randomly for stones and gold, and salvage pays stones', async () => {
+    const BLADE = '00000000-0000-4000-8000-000000000001';
+    const { call, profile } = await guest();
+    const ctx = ctxOf();
+    const r = createDefaultContent().settings.reforge;
+    ctx.gear.insert(profile.user.id, {
+      id: BLADE, templateId: 'starforged-edge', slot: 'weapon', rarity: 5, level: 0, mainBase: 40,
+      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null,
+    }, clock);
+
+    // Gold is checked first, then stones.
+    expect((await call<{ error: string }>('POST', `/gear/${BLADE}/reforge`, { sub: 0 })).body).toMatchObject({ error: 'insufficient_funds' });
+    app.services.admin.grant(profile.user.id, { gold: 100_000 });
+    expect((await call<{ error: string }>('POST', `/gear/${BLADE}/reforge`, { sub: 0 })).body).toMatchObject({ error: 'insufficient_materials' });
+    ctx.materials.add(profile.user.id, r.material, 20);
+
+    let last = 'hp';
+    let res!: { body: GearActionResponse };
+    for (let i = 0; i < 5; i++) {
+      res = await call<GearActionResponse>('POST', `/gear/${BLADE}/reforge`, { sub: 0 });
+      const sub = res.body.item!.subs[0]!;
+      // Always a different stat, never the main stat, and the roll count is kept.
+      expect(sub.stat).not.toBe(last);
+      expect(sub.stat).not.toBe('atk');
+      expect(sub.rolls).toBe(1);
+      last = sub.stat;
+    }
+    expect(res.body.profile.materials[r.material]).toBe(20 - 5 * r.stones);
+    // There is no way to choose the result.
+    expect((await call('POST', `/gear/${BLADE}/perfect`, { sub: 0, stat: 'atkPct' })).status).toBe(404);
+    const perfect = res;
+
+    // Salvaging a ★5 pays reforge stones.
+    const before = perfect.body.profile.materials[r.material] ?? 0;
+    const salvaged = await call<GearActionResponse>('POST', `/gear/${BLADE}/salvage`);
+    expect(salvaged.body.profile.materials[r.material]).toBe(before + r.salvageStones.r5);
+  });
+
+  it('climbs the tower one floor at a time, paying each floor once, with a leaderboard', async () => {
+    const { call, profile } = await guest();
+    expect((await call<{ error: string }>('POST', '/tower/battles', { floor: 1 })).body).toMatchObject({ error: 'feature_locked' });
+    const ctx = ctxOf();
+    ctx.progress.recordClear(profile.user.id, '2-4', clock);
+    for (const id of profile.team) ctx.roster.setLevel(profile.user.id, id, 30);
+    expect((await call('POST', '/tower/battles', { floor: 2 })).status).toBe(400);
+
+    const start = await call<StartBattleResponse>('POST', '/tower/battles', { floor: 1 });
+    expect(start.body.mode).toBe('tower');
+    const { actions, state } = autoBattle(start.body.setup);
+    expect(state.outcome).toBe('victory');
+    const done = await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
+    expect(done.body.tower).toEqual({ floor: 1, best: 1 });
+    const t = createDefaultContent().settings.tower;
+    expect(done.body.rewards).toEqual({ gems: t.floorGems, gold: t.floorGold + t.floorGoldPerFloor });
+
+    // Floor 1 can't be farmed; floor 2 is next.
+    expect((await call('POST', '/tower/battles', { floor: 1 })).status).toBe(400);
+    const board = await call<{ best: number; myRank: number; leaders: { floor: number; me: boolean }[] }>('GET', '/tower');
+    expect(board.body.best).toBe(1);
+    expect(board.body.myRank).toBe(1);
+    expect(board.body.leaders[0]).toMatchObject({ floor: 1, me: true });
+  });
+});

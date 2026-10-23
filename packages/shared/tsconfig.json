@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Only the balance script uses Node APIs; src stays runtime-agnostic.
+    "types": ["node"]
+  },
+  "include": ["src", "scripts"]
+}

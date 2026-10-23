@@ -1,0 +1,58 @@
+/* ---------- endless tower ---------- */
+.tower-hero {
+  position: relative;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #05060f;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+.tower-hero > .scene { position: absolute; inset: 0; }
+/* A wide, short banner: show the horizon rather than the ground the image is anchored to. */
+.tower-hero .scene-img { object-position: center 45%; }
+.tower-hero-text { position: relative; display: grid; text-shadow: 0 2px 0 #05060f; }
+.tower-hero-text small { color: #ffd76a; letter-spacing: 1px; }
+.tower-hero-text h1 { margin: 0; font-size: 2.4rem; }
+.tower-steps { position: relative; display: grid; gap: 4px; justify-items: center; }
+.tower-step {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  padding: 3px 0;
+  border-radius: 4px;
+  background: #0b0d1ae6;
+  border: 2px solid #ffffff22;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.tower-step.current { width: 104px; color: var(--text); border-color: #ffd76a; box-shadow: 0 0 12px #ffd76a66; }
+.tower-step.done { color: var(--good); opacity: 0.75; }
+.tower-step.boss { border-color: #ff5a6a88; }
+
+.tower-body { display: grid; grid-template-columns: 1fr 300px; gap: 16px; margin-top: 16px; align-items: start; }
+.tower-floor { display: grid; gap: 10px; }
+.tower-floor h3 { margin: 0; }
+.tower-foes { display: flex; flex-wrap: wrap; gap: 8px; }
+.tower-reward { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.boss-tag { background: #3a0e16; color: #ffb3bb; }
+.tower-side { display: grid; gap: 12px; }
+.tower-side h3 { margin-top: 0; }
+.tower-milestone { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ffffff10; }
+.tower-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.tower-board li { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; padding: 4px 6px; border-radius: 4px; }
+.tower-board li.me { background: var(--panel-2); color: #ffd76a; }
+.tower-board .rank { color: var(--muted); }
+.tower-board .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+@media (max-width: 860px) {
+  .tower-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .tower-hero { height: 170px; padding: 12px; }
+  .tower-hero-text h1 { font-size: 1.8rem; }
+  .tower-step { width: 64px; }
+  .tower-step.current { width: 78px; }
+}

@@ -1,0 +1,173 @@
+/* Particle keyframes use fixed drift values (no var() in transforms) so the browser can run them on the compositor. */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* The pixel backdrop: scaled up without smoothing, anchored to the ground line at the bottom. */
+.scene-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center bottom;
+  image-rendering: pixelated;
+  user-select: none;
+}
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, transparent 55%, #0006 100%);
+}
+
+.twinkle { animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: 0.15; } }
+
+.pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+@keyframes pulse-glow { 50% { opacity: 0.45; } }
+
+.aurora { animation: aurora 14s ease-in-out infinite alternate; transform-origin: center; }
+@keyframes aurora {
+  from { transform: translateX(-60px) skewX(-4deg); opacity: 0.55; }
+  to { transform: translateX(60px) skewX(4deg); opacity: 0.85; }
+}
+
+.nebula { animation: nebula 30s ease-in-out infinite alternate; }
+@keyframes nebula { to { transform: translate(40px, 10px) scale(1.05); } }
+
+.planet { animation: bob-slow 12s ease-in-out infinite; }
+.sun { animation: bob-slow 16s ease-in-out infinite; }
+@keyframes bob-slow { 50% { transform: translateY(12px); } }
+
+.spin-dash { animation: dash 30s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -640; } }
+
+/* Clouds drift across the sky. */
+.clouds { position: absolute; inset: 0; }
+.cloud {
+  position: absolute;
+  left: 0;
+  width: 260px;
+  height: 70px;
+  transform: scale(var(--s));
+  background:
+    radial-gradient(closest-side, #fffd, #fff0) 0 20px / 120px 60px no-repeat,
+    radial-gradient(closest-side, #fffe, #fff0) 60px 0 / 140px 80px no-repeat,
+    radial-gradient(closest-side, #fffd, #fff0) 130px 16px / 130px 60px no-repeat;
+  opacity: 0.75;
+  filter: blur(2px);
+  animation: cloud-drift 140s linear infinite;
+}
+.scene-frost .cloud { opacity: 0.25; }
+@keyframes cloud-drift {
+  from { translate: -300px 0; }
+  to { translate: calc(100vw + 300px) 0; }
+}
+
+/* Particles: each theme gets its own motion. */
+.particles { position: absolute; inset: 0; }
+.particles span {
+  position: absolute;
+  border-radius: 50%;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+.scene-meadow .particles span {
+  background: #fff7c2;
+  box-shadow: 0 0 6px #fff3a0;
+  opacity: 0.7;
+  animation-name: pollen;
+}
+@keyframes pollen {
+  0% { transform: translate(0, 0); opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { transform: translate(30px, -120px); opacity: 0; }
+}
+
+.scene-ember .particles span {
+  top: auto !important;
+  bottom: -10px;
+  background: #ffb15a;
+  box-shadow: 0 0 8px #ff6a1a, 0 0 2px #fff;
+  animation-name: ember-rise;
+}
+@keyframes ember-rise {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate(-40px, -105vh) scale(0.3); opacity: 0; }
+}
+
+.scene-frost .particles span {
+  top: -10px !important;
+  background: #fff;
+  opacity: 0.85;
+  animation-name: snow-fall;
+}
+@keyframes snow-fall {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-50px, 110vh); }
+}
+
+.scene-cosmos .particles span {
+  background: #d9c8ff;
+  box-shadow: 0 0 10px #a07bff;
+  animation-name: sparkle-rise;
+}
+@keyframes sparkle-rise {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  30% { opacity: 0.9; }
+  100% { transform: translate(20px, -160px) scale(1); opacity: 0; }
+}
+
+/* Storm: driving rain, lightning flashes, dark clouds. */
+.scene-storm .cloud { opacity: 0.35; filter: blur(3px) brightness(0.45); animation-duration: 70s; }
+.scene-storm .particles span {
+  top: -10px !important;
+  width: 3px !important;
+  height: 12px !important;
+  background: #b8c8ff;
+  opacity: 0.55;
+  animation-name: rain-fall;
+}
+@keyframes rain-fall {
+  0% { transform: translate(0, 0) rotate(12deg); }
+  100% { transform: translate(-90px, 110vh) rotate(12deg); }
+}
+.lightning { opacity: 0; animation: lightning 7s linear infinite; }
+@keyframes lightning { 0%, 89%, 93%, 100% { opacity: 0; } 90%, 92% { opacity: 1; } 91% { opacity: 0.2; } }
+.storm-flash { position: absolute; inset: 0; background: #dfe8ff; opacity: 0; pointer-events: none; animation: storm-flash 7s linear infinite; }
+@keyframes storm-flash { 0%, 89%, 93%, 100% { opacity: 0; } 90%, 92% { opacity: 0.18; } 91% { opacity: 0.05; } }
+
+/* Deep: rising bubbles, swaying kelp, light shafts. */
+.scene-deep .particles span {
+  top: auto !important;
+  bottom: -10px;
+  background: transparent;
+  border: 1.5px solid #c8f6ff99;
+  animation-name: bubble-rise;
+}
+@keyframes bubble-rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translate(25px, -105vh); opacity: 0; }
+}
+.kelp { transform-box: fill-box; transform-origin: bottom center; animation: kelp-sway 5s ease-in-out infinite alternate; }
+@keyframes kelp-sway { from { transform: skewX(-6deg); } to { transform: skewX(6deg); } }
+.light-shafts { animation: shafts 9s ease-in-out infinite alternate; }
+@keyframes shafts { from { opacity: 0.2; } to { opacity: 0.4; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene *::before { animation: none !important; }
+}
+
+/* Pixel particles: hard square edges, no soft glow. */
+.particles span { border-radius: 0 !important; box-shadow: none !important; }
+.scene-ember .particles span { background: #ffb15a; outline: 3px solid #ff6a1a55; }
+
+/* Off-screen scenes stop their weather (see Scene.tsx). */
+.scene.paused .particles span,
+.scene.paused .storm-flash { animation-play-state: paused; }

@@ -1,0 +1,31 @@
+/* The new-player tutorial. Pages stay usable behind it except for modal cards. */
+.guide { position: fixed; inset: 0; z-index: 900; pointer-events: none; }
+.guide.blocking { pointer-events: auto; }
+.guide .guide-card { pointer-events: auto; }
+.guide-spot { animation: guide-pulse 1.4s ease-in-out infinite; }
+@keyframes guide-pulse {
+  50% { box-shadow: 0 0 0 9999px #05061099, 0 0 0 4px #ffd76a, 0 0 32px 10px #ffd76acc; }
+}
+.guide-card.dock { left: 50%; bottom: 24px; transform: translateX(-50%); }
+.guide-tag { color: #ffd76a; letter-spacing: 0.5px; }
+.guide-skip { margin-right: auto; background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+.guide-skip:hover { color: var(--text); }
+@media (max-width: 680px) {
+  /* Above the bottom tab bar. */
+  .guide-card.dock { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* The free first 10× summon. */
+.free-pull { position: relative; }
+.free-ribbon {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #ff5a6a;
+  color: #fff;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 0 #05060f;
+  animation: badge-pop 1.6s ease-in-out infinite;
+}

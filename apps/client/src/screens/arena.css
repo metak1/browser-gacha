@@ -1,0 +1,82 @@
+.arena-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 26px;
+  border-radius: 20px;
+  border: 1px solid #ffffff22;
+  background:
+    radial-gradient(circle at 15% 50%, #ffcc4d33, transparent 45%),
+    radial-gradient(circle at 90% 20%, #7c8cff44, transparent 50%),
+    linear-gradient(135deg, #2a1f4a, #0f1228);
+  box-shadow: 0 14px 40px #0009;
+}
+.arena-tier { display: flex; align-items: center; gap: 16px; }
+.arena-tier-icon { font-size: 4rem; filter: drop-shadow(0 0 16px #ffcc4d88); animation: lobby-idle 3s ease-in-out infinite; }
+.arena-tier small { text-transform: uppercase; letter-spacing: 1px; font-weight: 700; font-size: 0.72rem; }
+.arena-rating {
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff, #ffe9a8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.arena-progress { width: 220px; height: 8px; border-radius: 999px; background: #0008; overflow: hidden; margin: 6px 0 2px; }
+.arena-progress div { height: 100%; background: linear-gradient(90deg, #ffcc4d, #fff6c8); }
+.arena-stats { display: flex; gap: 10px; }
+.arena-stats > div {
+  display: grid;
+  justify-items: center;
+  min-width: 96px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0b0d1a99;
+  border: 1px solid var(--border);
+}
+.arena-stats b { font-size: 1.3rem; }
+.arena-stats span { color: var(--muted); font-size: 0.75rem; }
+.arena-weekly { width: 100%; margin: 0; }
+.season-banner { border-color: var(--r5); background: linear-gradient(90deg, #ffcc4d22, var(--panel)); }
+
+.arena-grid { display: grid; grid-template-columns: 1.2fr 1fr 0.9fr; gap: 0 14px; align-items: start; }
+.opponent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.opponent-info .tag { margin-left: 8px; }
+.opponent-team { display: flex; gap: 4px; margin-top: 6px; font-size: 1.5rem; }
+.opponent-team sub { font-size: 0.72rem; font-weight: 800; color: #ffd76a; }
+
+.defense-team { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.defense-hero { display: grid; justify-items: center; padding: 6px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
+.defense-hero > span { font-size: 1.8rem; }
+.defense-hero small { font-size: 0.72rem; }
+.mt { margin-top: 18px; }
+
+.arena-history { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; }
+.history-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; font-size: 0.82rem; padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.history-row .result { font-weight: 800; }
+.history-row.won .result, .history-row.won .delta { color: var(--good); }
+.history-row.lost .result, .history-row.lost .delta { color: var(--bad); }
+.history-row .delta { font-weight: 800; min-width: 34px; text-align: right; }
+
+.leaderboard { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.leaderboard td { padding: 6px 6px; border-bottom: 1px solid var(--border); }
+.leaderboard .rank { width: 40px; font-weight: 800; }
+.leaderboard .rating { text-align: right; font-weight: 800; }
+.leaderboard tr.you { background: #7c8cff22; }
+
+@media (max-width: 1000px) {
+  .arena-grid { grid-template-columns: 1fr; }
+}

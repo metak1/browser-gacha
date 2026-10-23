@@ -1,0 +1,51 @@
+.social-page { max-width: 1000px; margin: 0 auto; }
+.social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.social-grid .panel { margin-top: 0; }
+.social-grid h3 { margin-top: 14px; }
+.social-grid h3:first-child { margin-top: 0; }
+.friend-code { display: flex; align-items: center; gap: 10px; }
+.friend-code code { font-family: var(--pixel-font, monospace); font-size: 1.5rem; letter-spacing: 3px; padding: 4px 10px; background: var(--bg); border-radius: 4px; color: #ffe39a; }
+.support-pick { display: flex; align-items: center; gap: 10px; }
+.friend-add, .guild-create { display: flex; gap: 8px; flex-wrap: wrap; }
+.friend-add input, .guild-create input, .guild-search {
+  flex: 1; min-width: 140px; padding: 8px 10px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font: inherit;
+}
+.guild-create input { flex-basis: 100%; }
+.guild-search { width: 100%; margin-bottom: 8px; }
+.request-row, .friend-row, .member-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--bg); margin-top: 6px; }
+.friend-row { justify-content: flex-start; }
+.friend-art { width: 44px; display: grid; place-items: center; }
+.friend-info { flex: 1; display: grid; gap: 2px; }
+.title-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; background: #ffd76a22; color: #ffe39a; font-size: 0.75rem; }
+.guild-desc { display: block; }
+.guild-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.guild-head h2 { margin: 0 0 4px; }
+.guild-head-actions { display: flex; gap: 6px; }
+.guild-boss { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; background: radial-gradient(circle at 15% 50%, #5a142455, var(--panel) 60%); }
+.boss-art { width: 140px; display: grid; place-items: center; }
+.boss-info h2 { margin: 2px 0 8px; }
+.boss-hp { position: relative; height: 22px; background: #05060f; border: 2px solid #05060f; margin-bottom: 10px; }
+.boss-hp span { position: absolute; inset: 0 auto 0 0; background: #e0455a; box-shadow: inset 0 -4px 0 #9a2034; }
+.boss-hp b { position: relative; display: block; text-align: center; font-size: 0.8rem; line-height: 18px; text-shadow: 1px 1px 0 #000; }
+.boss-chests { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.member-rank { width: 24px; color: var(--muted); }
+.member-row > span:nth-child(2) { flex: 1; }
+.member-dmg { white-space: nowrap; }
+@media (max-width: 760px) {
+  .social-grid { grid-template-columns: 1fr; }
+  .guild-boss { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+}
+
+/* Support hero details (friends tab). */
+.friend-entry { margin-top: 6px; }
+.friend-entry .friend-row { margin-top: 0; }
+.friend-entry.open .friend-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+button.friend-info { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; }
+.friend-more { color: #9fd0ff; }
+.support-card { display: grid; gap: 8px; padding: 10px 12px; margin-top: 8px; border-radius: 6px; background: var(--bg); border: 2px solid #ffffff10; }
+.friend-entry .support-card { margin-top: 0; border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.support-head { display: flex; gap: 12px; align-items: center; }
+.support-art { width: 64px; display: grid; place-items: center; }
+.support-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.support-stats span { display: grid; justify-items: center; padding: 4px; border-radius: 4px; background: var(--panel); }
+.support-gear { display: flex; flex-wrap: wrap; gap: 6px; }

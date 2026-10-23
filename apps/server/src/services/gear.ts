@@ -1,0 +1,217 @@
+import { randomUUID } from 'node:crypto';
+import {
+  applyPassiveCombat,
+  ascensionBonus,
+  bestLoadout,
+  constellationOf,
+  gearSalvageValue,
+  gearUpgradeCost,
+  reforgeGold,
+  reforgeSub,
+  roleCombat,
+  rollGear,
+  salvageStones,
+  scaleStats,
+  upgradeGear,
+  type GearItem,
+  type SalvagedDTO,
+  type StageDef,
+  type TeamMember,
+} from '@gacha/shared';
+import { badRequest, conflict, notFound } from '../errors';
+import type { ServiceContext } from './context';
+import type { MissionService } from './missions';
+
+/** Player inventories: drops, equipping, upgrades and salvage. */
+export class GearService {
+  constructor(
+    private readonly ctx: ServiceContext,
+    private readonly missions: MissionService,
+  ) {}
+
+  list(userId: string): GearItem[] {
+    return this.ctx.gear.list(userId);
+  }
+
+  /** Resolves a player's heroes (levels, constellation, worn gear) for a battle setup. */
+  teamMembers(userId: string, charIds: string[]): TeamMember[] {
+    const { roster, gear, content } = this.ctx;
+    return charIds
+      .filter((id) => content.current.charactersById[id])
+      .flatMap((id) => {
+        const owned = roster.get(userId, id);
+        if (!owned) return [];
+        return [
+          {
+            id,
+            level: owned.level,
+            constellation: constellationOf(owned.copies),
+            gear: gear.equippedOn(userId, id),
+            ascension: owned.ascension,
+            skillLevel: owned.skillLevel,
+            ultLevel: owned.ultLevel,
+          },
+        ];
+      });
+  }
+
+  equip(userId: string, gearId: string, charId: string | null) {
+    const { db, gear, roster, content } = this.ctx;
+    db.transaction(() => {
+      const item = gear.get(userId, gearId);
+      if (!item) throw notFound('Gear not found');
+      if (charId === null) {
+        gear.setEquipped(userId, gearId, null);
+        return;
+      }
+      if (!roster.get(userId, charId) || !content.current.charactersById[charId]) {
+        throw badRequest('invalid_character', `You don't own ${charId}`);
+      }
+      // Moving gear between heroes, or replacing what's in the slot, are both fine.
+      gear.setEquipped(userId, gearId, null);
+      gear.unequipSlot(userId, charId, item.slot);
+      gear.setEquipped(userId, gearId, charId);
+    });
+  }
+
+  /** Puts the best free gear on a hero, slot by slot (see bestLoadout). Returns how many pieces changed. */
+  autoEquip(userId: string, charId: string): number {
+    const { db, gear, roster, content } = this.ctx;
+    const c = content.current.charactersById[charId];
+    return db.transaction(() => {
+      const owned = roster.get(userId, charId);
+      if (!c || !owned) throw badRequest('invalid_character', `You don't own ${charId}`);
+      const prog = content.current.settings.progression;
+      const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(prog, owned.ascension));
+      const combat = applyPassiveCombat(roleCombat(c.role), c.passive);
+      const plan = bestLoadout(base, gear.list(userId), charId, combat).filter((s) => s.best && s.best.id !== s.current?.id);
+      for (const s of plan) {
+        gear.unequipSlot(userId, charId, s.slot);
+        gear.setEquipped(userId, s.best!.id, charId);
+      }
+      return plan.length;
+    });
+  }
+
+  upgrade(userId: string, gearId: string): GearItem {
+    const { db, gear, users, content, random } = this.ctx;
+    const { settings } = content.current;
+    return db.transaction(() => {
+      const item = gear.get(userId, gearId);
+      if (!item) throw notFound('Gear not found');
+      if (item.level >= settings.gearMaxLevel) throw conflict('max_level', 'Already at max level');
+      const cost = gearUpgradeCost(settings, item);
+      if (users.findById(userId)!.wallet.gold < cost) throw badRequest('insufficient_funds', `Need ${cost} gold`);
+      const next = upgradeGear(item, random);
+      gear.saveRolls(userId, next);
+      users.adjustWallet(userId, { gold: -cost });
+      this.missions.record(userId, 'upgradeGear');
+      return next;
+    });
+  }
+
+  salvage(userId: string, gearId: string): number {
+    const { db, gear, users, content } = this.ctx;
+    return db.transaction(() => {
+      const item = gear.get(userId, gearId);
+      if (!item) throw notFound('Gear not found');
+      const gold = gearSalvageValue(content.current.settings, item);
+      gear.delete(userId, gearId);
+      users.adjustWallet(userId, { gold });
+      this.addStones(userId, salvageStones(content.current.settings, item.rarity));
+      return gold;
+    });
+  }
+
+  private addStones(userId: string, count: number) {
+    if (count > 0) this.ctx.materials.add(userId, this.ctx.content.current.settings.reforge.material, count);
+  }
+
+  /** Pays a reforge's gold and stones, or throws. Inside a transaction. */
+  private payForge(userId: string, gold: number, stones: number) {
+    const { users, materials, content } = this.ctx;
+    const material = content.current.settings.reforge.material;
+    if (users.findById(userId)!.wallet.gold < gold) throw badRequest('insufficient_funds', `Need ${gold} gold`);
+    if (!materials.spend(userId, material, stones)) throw badRequest('insufficient_materials', `Need ${stones} reforge stone${stones === 1 ? '' : 's'}`);
+    users.adjustWallet(userId, { gold: -gold });
+  }
+
+  /** Rerolls one substat into a different random stat (see reforgeSub). Always random. */
+  reforge(userId: string, gearId: string, sub: number): GearItem {
+    const { db, gear, content, random } = this.ctx;
+    const settings = content.current.settings;
+    return db.transaction(() => {
+      const item = gear.get(userId, gearId);
+      if (!item) throw notFound('Gear not found');
+      if (!item.subs[sub]) throw badRequest('invalid_substat', 'No such bonus stat');
+      this.payForge(userId, reforgeGold(settings, item), settings.reforge.stones);
+      const next = reforgeSub(item, sub, random);
+      gear.saveRolls(userId, next);
+      return next;
+    });
+  }
+
+
+  /** Rolls a stage's drop table. Call inside the victory transaction. */
+  /** Gear of this rarity or lower is salvaged on drop (0 = keep everything). */
+  private autoSalvage(userId: string): number {
+    const v = this.ctx.users.prefs(userId).autoSalvage;
+    return v === 3 || v === 4 ? v : 0;
+  }
+
+  /**
+   * Rolls a drop table; `chanceMult` scales every chance (hard mode), capped at 100%.
+   * Drops at or below the player's auto-salvage rarity become gold instead.
+   */
+  rollDrops(userId: string, table: StageDef['drops'], chanceMult = 1): { drops: GearItem[]; inventoryFull: boolean; salvaged: SalvagedDTO } {
+    const { gear, content, random, now, users } = this.ctx;
+    const settings = content.current.settings;
+    const cap = settings.gearInventoryCap;
+    const salvageAt = this.autoSalvage(userId);
+    let count = gear.count(userId);
+    const drops: GearItem[] = [];
+    const salvaged: SalvagedDTO = { count: 0, gold: 0, stones: 0 };
+    let inventoryFull = false;
+    for (const entry of table) {
+      const template = content.current.gearById[entry.gear];
+      if (!template || random() >= Math.min(1, entry.chance * chanceMult)) continue;
+      if (template.rarity <= salvageAt) {
+        const gold = gearSalvageValue(settings, { level: 0, rarity: template.rarity });
+        const stones = salvageStones(settings, template.rarity);
+        users.adjustWallet(userId, { gold });
+        this.addStones(userId, stones);
+        salvaged.count++;
+        salvaged.gold += gold;
+        salvaged.stones += stones;
+        continue;
+      }
+      if (count >= cap) {
+        inventoryFull = true;
+        continue;
+      }
+      const item: GearItem = { id: randomUUID(), ...rollGear(template, random), equippedTo: null };
+      gear.insert(userId, item, now());
+      drops.push(item);
+      count++;
+    }
+    return { drops, inventoryFull, salvaged };
+  }
+
+  /** Salvages every unequipped, unupgraded item of this rarity or lower. */
+  salvageBulk(userId: string, maxRarity: number): SalvagedDTO {
+    const { db, gear, users, content } = this.ctx;
+    return db.transaction(() => {
+      const items = gear.list(userId).filter((g) => g.rarity <= maxRarity && g.level === 0 && !g.equippedTo);
+      let gold = 0;
+      let stones = 0;
+      for (const item of items) {
+        gold += gearSalvageValue(content.current.settings, item);
+        stones += salvageStones(content.current.settings, item.rarity);
+        gear.delete(userId, item.id);
+      }
+      users.adjustWallet(userId, { gold });
+      this.addStones(userId, stones);
+      return { count: items.length, gold, stones };
+    });
+  }
+}

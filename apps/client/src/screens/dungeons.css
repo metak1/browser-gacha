@@ -1,0 +1,32 @@
+.dungeons { max-width: 1100px; margin: 0 auto; }
+.dungeon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 16px; margin-top: 12px; }
+.dungeon { background: var(--panel); border: 1px solid #ffffff14; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.dungeon.closed { opacity: 0.72; }
+.dungeon.closed .dungeon-banner { filter: grayscale(0.6) brightness(0.7); }
+.dungeon-banner { position: relative; height: 120px; overflow: hidden; }
+.dungeon-title {
+  position: absolute; inset: auto 0 0 0; z-index: 2;
+  display: flex; align-items: flex-end; gap: 10px;
+  padding: 10px 14px; background: linear-gradient(0deg, #000c, transparent);
+  text-shadow: 0 2px 4px #000;
+}
+.dungeon-title h2 { margin: 0; font-size: 1.25rem; }
+.dungeon-emoji { font-size: 2.2rem; line-height: 1; }
+.dungeon-days { display: flex; gap: 3px; margin-top: 3px; }
+.dungeon-days .day { font-size: 0.72rem; font-weight: 800; padding: 1px 5px; border-radius: 6px; background: #ffffff14; color: #ffffff66; }
+.dungeon-days .day.on { background: #ffd76a33; color: #ffe39a; }
+.dungeon-days .day.today { outline: 1.5px solid #fff; }
+.dungeon-status { margin-left: auto; font-weight: 800; font-size: 0.85rem; padding: 3px 10px; border-radius: 999px; background: #0008; white-space: nowrap; }
+.dungeon-status.ok { color: var(--good); }
+.dungeon-desc { margin: 10px 14px 0; }
+.tiers { display: grid; gap: 8px; padding: 10px 14px 14px; }
+.tier { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
+.tier.locked { opacity: 0.55; }
+.tier-info { display: grid; gap: 2px; min-width: 0; }
+.tier-foes { font-size: 1.05rem; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tier-foes .boss { font-size: 1.4rem; }
+.tier-rewards { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; max-width: 210px; }
+@media (max-width: 640px) {
+  .tier { grid-template-columns: 1fr; }
+  .tier-rewards { justify-content: flex-start; max-width: none; }
+}

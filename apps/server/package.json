@@ -1,0 +1,24 @@
+{
+  "name": "@gacha/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "grant-all": "tsx src/scripts/grant-all.ts",
+    "make-admin": "tsx src/scripts/make-admin.ts",
+    "reset-password": "tsx src/scripts/reset-password.ts",
+    "max-heroes": "tsx src/scripts/max-heroes.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.3",
+    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/static": "^10.1.6",
+    "@gacha/shared": "*",
+    "fastify": "^5.12.7",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  }
+}

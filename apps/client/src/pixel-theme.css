@@ -1,0 +1,152 @@
+/*
+ * Pixel-art theme, layered over the base styles so the UI matches the pixel
+ * sprites and backdrops: a pixel font, squarer corners, and hard stepped
+ * shadows and bevels instead of soft blurs. Rules are prefixed with `html` so
+ * they also win over screen styles that load later.
+ */
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/pixelify-sans-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/pixelify-sans-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* Tiny5: a crisp pixel font that stays legible at small UI sizes. */
+@font-face {
+  font-family: 'Tiny5';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/tiny5-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Tiny5';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/tiny5-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --radius: 6px;
+  /* Body and UI text: crisp at small sizes. */
+  --pixel-font: 'Tiny5', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Big titles: rounder and more decorative. */
+  --title-font: 'Pixelify Sans', 'Tiny5', system-ui, sans-serif;
+  /* A two-step hard shadow, like a sprite's outline and drop. */
+  --pixel-drop: 0 3px 0 #05060f, 0 0 0 2px #05060f;
+}
+
+/* Pixel fonts have one weight: emphasis comes from size and colour, and the browser
+   must not fake a bold (it smears the pixels). */
+html body { font-family: var(--pixel-font); font-size: 1.0625rem; letter-spacing: 0.4px; font-synthesis: none; }
+html input, html select, html textarea, html button { font-family: var(--pixel-font); }
+html h1,
+html h2,
+html .lobby-logo h1,
+html .modal h2,
+html .chapter-title h2,
+html .banner-hero h2 { font-family: var(--title-font); letter-spacing: 0.5px; }
+html .small { font-size: 0.85rem; }
+
+/* ---------- surfaces ---------- */
+
+html .panel,
+html .modal,
+html .stage-detail,
+html .dungeon,
+html .mission,
+html .hud {
+  border-radius: 6px;
+  border-width: 2px;
+  box-shadow: var(--pixel-drop), inset 0 2px 0 #ffffff12;
+}
+html .modal { border-radius: 8px; }
+html .modal.victory { box-shadow: var(--pixel-drop), 0 0 0 4px #ffcc4d55; }
+
+/* ---------- buttons ---------- */
+
+html .btn {
+  border-radius: 6px;
+  border: 2px solid #05060f;
+  box-shadow: inset 0 -3px 0 #0006, inset 0 2px 0 #ffffff22, 0 3px 0 #05060f;
+  transition: transform 0.06s, background 0.15s, box-shadow 0.06s;
+}
+html .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 -1px 0 #0006, inset 0 2px 0 #ffffff22, 0 1px 0 #05060f; }
+html .btn.primary {
+  background: #6b78f0;
+  border-color: #05060f;
+  box-shadow: inset 0 -4px 0 #3c45b8, inset 0 3px 0 #a6afff, 0 3px 0 #05060f;
+}
+html .btn.primary:hover:not(:disabled) { background: #7b88ff; }
+html .btn.glow { animation: none; box-shadow: inset 0 -4px 0 #3c45b8, inset 0 3px 0 #a6afff, 0 3px 0 #05060f, 0 0 0 3px #ffd76a; }
+html .summon-cta { background: #f0b232; color: #2a1a00; box-shadow: inset 0 -4px 0 #b06e10, inset 0 3px 0 #ffe39a, 0 3px 0 #05060f; }
+
+html .pill,
+html .chip,
+html .account-chip,
+html .tag {
+  border-radius: 4px;
+  border-width: 2px;
+}
+html .chip.active { box-shadow: inset 0 -2px 0 #0005; }
+
+/* ---------- campaign ---------- */
+
+html .chapter-map { border-radius: 8px; border: 2px solid #05060f; box-shadow: var(--pixel-drop); }
+html .node { border-radius: 8px; border-width: 3px; box-shadow: 0 3px 0 #05060f; }
+html .node.boss { border-radius: 10px; }
+html .node-label { border-radius: 3px; }
+html .trail path { stroke-dasharray: 6 10; stroke-linecap: butt; }
+
+/* ---------- battle ---------- */
+
+html .battle-stage { border-radius: 8px; border: 2px solid #05060f; box-shadow: var(--pixel-drop); }
+html .sprite-hp,
+html .sprite-energy,
+html .portrait-hp,
+html .portrait-energy {
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #05060f;
+}
+html .sprite-hp .fill { background: #3ec98a; box-shadow: inset 0 -2px 0 #1f8a58; }
+html .enemy .sprite-hp .fill { background: #e0455a; box-shadow: inset 0 -2px 0 #9a2034; }
+html .portrait-hp .fill { background: #3ec98a; box-shadow: inset 0 -2px 0 #1f8a58; }
+html .sprite .popup {
+  font-family: var(--pixel-font);
+  -webkit-text-stroke: 0;
+  text-shadow: 2px 0 0 #05060f, -2px 0 0 #05060f, 0 2px 0 #05060f, 0 -2px 0 #05060f, 2px 2px 0 #05060f;
+}
+html .portrait,
+html .turn-chip,
+html .icon-btn { border-radius: 6px; }
+html .stage-banner span { font-family: var(--pixel-font); font-style: normal; letter-spacing: 0.6cqw; }
+html .cutin-band { border-radius: 0; }
+
+/* ---------- cards ---------- */
+
+html .card { border-radius: 8px; border-width: 2px; box-shadow: 0 3px 0 #05060f; }
+
+/* Pixel emoji: an <img> sized like the emoji glyph it replaces. */
+.pixel-emoji {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: bottom;
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+/* "Larger text" setting: every rem-sized thing grows by 12.5%. */
+html.large-text { font-size: 112.5%; }
