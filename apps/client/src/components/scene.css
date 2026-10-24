@@ -171,3 +171,32 @@
 /* Off-screen scenes stop their weather (see Scene.tsx). */
 .scene.paused .particles span,
 .scene.paused .storm-flash { animation-play-state: paused; }
+
+/* Medieval scenes. */
+/* Kingdom: petals drifting down on the breeze. */
+.scene-kingdom .particles span { top: -10px !important; background: #ffd0e0; opacity: 0.85; animation-name: petal-fall; }
+@keyframes petal-fall {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(40px, 55vh) rotate(180deg); }
+  100% { transform: translate(-10px, 110vh) rotate(360deg); }
+}
+/* Village: golden chaff drifting up from the fields. */
+.scene-village .particles span { background: #ffe08a; opacity: 0.7; animation-name: pollen; }
+/* Forest: fireflies wandering and blinking. */
+.scene-forest .particles span { background: #d8ff6a; outline: 3px solid #b8ff4a33; animation-name: firefly; animation-timing-function: ease-in-out; animation-direction: alternate; }
+@keyframes firefly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  25% { opacity: 1; }
+  50% { transform: translate(24px, -18px); opacity: 0.2; }
+  75% { opacity: 1; }
+  100% { transform: translate(-16px, -36px); opacity: 0; }
+}
+/* Ruins: autumn leaves falling sideways. */
+.scene-ruins .particles span { top: -10px !important; background: #e0703a; opacity: 0.9; animation-name: leaf-fall; }
+.scene-ruins .particles span:nth-child(3n) { background: #c8a03a; }
+@keyframes leaf-fall {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-120px, 110vh) rotate(540deg); }
+}
+/* Camp: sparks rising from the fires. */
+.scene-camp .particles span { top: auto !important; bottom: -10px; background: #ffb15a; outline: 3px solid #ff6a1a44; animation-name: ember-rise; }

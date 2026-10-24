@@ -102,6 +102,151 @@ function haze(c: Ctx, cx: number, cy: number, rx: number, ry: number, color: str
   }
 }
 
+// ---------- medieval pieces ----------
+
+/** A block of stone with a staggered brick pattern and a lit top edge. */
+function stoneWall(c: Ctx, x: number, y: number, w: number, h: number, stone: string, mortar: string, light?: string) {
+  px(c, x, y, stone, w, h);
+  for (let row = 0; row * 4 < h; row++) {
+    px(c, x, y + row * 4, mortar, w, 1);
+    for (let bx = (row % 2) * 3; bx < w; bx += 6) px(c, x + bx, y + row * 4, mortar, 1, 4);
+  }
+  if (light) px(c, x, y, light, w, 1);
+}
+
+/** Merlons along the top of a wall. */
+function crenels(c: Ctx, x: number, y: number, w: number, color: string, size = 3) {
+  for (let bx = 0; bx < w; bx += size * 2) px(c, x + bx, y - size, color, Math.min(size, w - bx), size);
+}
+
+/** A cone roof on a tower, with a pennant on top. */
+function coneRoof(c: Ctx, x: number, y: number, w: number, h: number, color: string, shade: string, flag?: string) {
+  for (let i = 0; i < h; i++) {
+    const half = Math.round(((i + 1) / h) * (w / 2 + 1));
+    px(c, x + w / 2 - half, y - h + i, color, half, 1);
+    px(c, x + w / 2, y - h + i, shade, half, 1);
+  }
+  if (flag) {
+    px(c, x + w / 2, y - h - 6, '#3a2a22', 1, 6);
+    px(c, x + w / 2 + 1, y - h - 6, flag, 4, 1);
+    px(c, x + w / 2 + 1, y - h - 5, flag, 3, 1);
+    px(c, x + w / 2 + 1, y - h - 4, flag, 1, 1);
+  }
+}
+
+/** A hanging banner on a rod: a trim cross on the cloth and a swallow-tail at the bottom. */
+function banner(c: Ctx, x: number, y: number, w: number, h: number, color: string, trim: string) {
+  px(c, x - 1, y - 1, '#3a2a22', w + 2, 1);
+  const tail = Math.min(3, Math.floor(w / 2));
+  px(c, x, y, color, w, h - tail);
+  // The last rows leave a widening gap in the middle.
+  for (let k = 0; k < tail; k++) {
+    const side = Math.floor(w / 2) - k - 1;
+    px(c, x, y + h - tail + k, color, side, 1);
+    px(c, x + w - side, y + h - tail + k, color, side, 1);
+  }
+  px(c, x + Math.floor(w / 2) - 1, y + 2, trim, 2, h - tail - 4);
+  px(c, x + 1, y + Math.floor((h - tail) / 2) - 1, trim, w - 2, 1);
+}
+
+/** A thatched (or tiled) gable roof as a triangle with darker straw lines. */
+function gableRoof(c: Ctx, x: number, y: number, w: number, h: number, color: string, dark: string) {
+  for (let i = 0; i < h; i++) {
+    const half = Math.round(((i + 1) / h) * (w / 2 + 2));
+    px(c, x + w / 2 - half, y - h + i, i % 3 === 2 ? dark : color, half * 2, 1);
+  }
+}
+
+function cottage(c: Ctx, x: number, base: number, w: number, h: number, roof: string, roofDark: string, smoke = true) {
+  const wall = '#e6d3ad';
+  const beam = '#6a4a2a';
+  px(c, x, base - h, wall, w, h);
+  // Timber frame.
+  px(c, x, base - h, beam, w, 1);
+  px(c, x, base - h, beam, 1, h);
+  px(c, x + w - 1, base - h, beam, 1, h);
+  px(c, x + Math.floor(w / 2), base - h, beam, 1, h);
+  for (let k = 0; k < h; k++) px(c, x + Math.round((k / h) * (w / 2)), base - h + k, beam);
+  px(c, x + 2, base - h + 3, '#ffd27a', 3, 3);
+  px(c, x + w - 6, base - h + 3, '#ffd27a', 3, 3);
+  px(c, x + Math.floor(w / 2) + 2, base - 6, '#4a3020', 3, 6);
+  gableRoof(c, x, base - h, w, Math.round(w / 2.2), roof, roofDark);
+  px(c, x + w - 5, base - h - Math.round(w / 2.2) + 1, '#7a6a5a', 3, 5);
+  if (smoke) haze(c, x + w - 4, base - h - Math.round(w / 2.2) - 8, 6, 9, '#c9c4c8', 0.45);
+}
+
+function windmill(c: Ctx, x: number, base: number) {
+  for (let y = base - 46; y < base; y++) {
+    const half = 5 + Math.round(((y - (base - 46)) / 46) * 5);
+    px(c, x - half, y, '#d6c6a4', half * 2, 1);
+    px(c, x + half - 2, y, '#b8a682', 2, 1);
+  }
+  px(c, x - 2, base - 8, '#4a3020', 4, 8);
+  px(c, x - 1, base - 30, '#ffd27a', 2, 3);
+  coneRoof(c, x - 7, base - 46, 14, 8, '#7a4a2a', '#5a361e');
+  // Four sails as a lattice X around the hub.
+  const hx = x;
+  const hy = base - 50;
+  for (let t = 3; t < 26; t++) {
+    for (const [dx, dy] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
+      px(c, hx + dx * t * 0.8, hy + dy * t * 0.8, '#5a3a22');
+      if (t > 8 && t % 2 === 0) px(c, hx + dx * t * 0.8 + dy * 2, hy + dy * t * 0.8 - dx * 2, '#f0e6d0', 2, 2);
+    }
+  }
+  px(c, hx - 1, hy - 1, '#3a2a22', 3, 3);
+}
+
+function column(c: Ctx, x: number, base: number, h: number, stone: string, shade: string, broken: boolean, rng: Rng) {
+  px(c, x - 1, base - 3, shade, 9, 3);
+  px(c, x, base - h, stone, 7, h - 3);
+  px(c, x + 5, base - h, shade, 2, h - 3);
+  for (let fx = 2; fx < 5; fx += 2) px(c, x + fx, base - h + 2, shade, 1, h - 6);
+  if (broken) {
+    for (let k = 0; k < 7; k++) px(c, x + k, base - h - Math.round(rng() * 3), stone, 1, 3);
+  } else {
+    px(c, x - 1, base - h - 3, stone, 9, 3);
+    px(c, x - 1, base - h - 1, shade, 9, 1);
+  }
+}
+
+function tent(c: Ctx, x: number, base: number, w: number, h: number, color: string, stripe: string, flag?: string) {
+  for (let i = 0; i < h; i++) {
+    const half = Math.round(((i + 1) / h) * (w / 2));
+    for (let k = -half; k < half; k++) px(c, x + k, base - h + i, Math.floor((k + w) / 4) % 2 ? color : stripe);
+  }
+  // Open flap.
+  for (let i = 0; i < Math.round(h * 0.55); i++) px(c, x - Math.round(i * 0.35), base - Math.round(h * 0.55) + i, '#2a1a14', Math.max(1, Math.round(i * 0.7)), 1);
+  px(c, x, base - h - 5, '#3a2a22', 1, 5);
+  if (flag) {
+    px(c, x + 1, base - h - 5, flag, 5, 2);
+    px(c, x + 1, base - h - 3, flag, 3, 1);
+  }
+}
+
+function campfire(c: Ctx, x: number, y: number) {
+  haze(c, x, y - 2, 16, 9, '#ff8a2a', 0.5);
+  px(c, x - 4, y, '#4a2a18', 9, 2);
+  px(c, x - 3, y - 1, '#6a3a1e', 2, 1);
+  px(c, x + 2, y - 1, '#6a3a1e', 2, 1);
+  px(c, x - 2, y - 4, '#ff6a1a', 5, 3);
+  px(c, x - 1, y - 7, '#ffb15a', 3, 3);
+  px(c, x, y - 9, '#ffe28a', 1, 2);
+  haze(c, x + 3, y - 24, 6, 14, '#6a6070', 0.35);
+}
+
+function torch(c: Ctx, x: number, y: number) {
+  haze(c, x, y - 2, 7, 6, '#ffb15a', 0.45);
+  px(c, x, y, '#4a3020', 1, 4);
+  px(c, x - 1, y - 2, '#ff8a2a', 3, 2);
+  px(c, x, y - 3, '#ffe28a', 1, 1);
+}
+
+function crow(c: Ctx, x: number, y: number, color = '#1a1220') {
+  px(c, x - 2, y - 1, color, 2, 1);
+  px(c, x, y, color, 1, 1);
+  px(c, x + 1, y - 1, color, 2, 1);
+}
+
 // ---------- themes ----------
 
 const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
@@ -286,6 +431,217 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     }
     for (let i = 0; i < 20; i++) px(c, rng() * SCENE_W, GROUND + rng() * 70, '#f2e6bf');
   },
+
+  kingdom(c, rng) {
+    sky(c, ['#3f7bdc', '#5f97e8', '#8ab8f0', '#bcd8f6', '#f4ead0'], 0, GROUND);
+    disc(c, 60, 26, 11, '#fff6d8');
+    disc(c, 60, 26, 8, '#fffbe9');
+    for (let i = 0; i < 4; i++) cloud(c, rng, 30 + i * 80 + rng() * 20, 16 + rng() * 22, 3 + Math.floor(rng() * 2), '#ffffff', '#d6e6f7');
+    fillRidge(c, ridge(rng, 90, 14, 0.9), '#8fa9d0', '#b4c8e6', GROUND + 2);
+    // The castle hill.
+    const hill = Array.from({ length: SCENE_W }, (_, x) => Math.round(98 - Math.max(0, 16 - ((x - 238) / 9) ** 2 / 4)));
+    fillRidge(c, hill, '#5a9e56', '#7cbc6a', GROUND + 4);
+    const stone = '#a6a9b4';
+    const mortar = '#868a98';
+    const light = '#c8cbd4';
+    // Curtain wall, towers, keep.
+    // Walls run down into the hill so the castle sits on it.
+    stoneWall(c, 184, 62, 104, 30, stone, mortar, light);
+    crenels(c, 184, 62, 104, stone);
+    for (const tx of [176, 286]) {
+      stoneWall(c, tx, 46, 14, 46, stone, mortar, light);
+      crenels(c, tx, 46, 14, stone, 2);
+      coneRoof(c, tx - 1, 43, 16, 12, '#c8463a', '#9a3028', '#ffd24a');
+      px(c, tx + 6, 58, '#2a2a38', 2, 4);
+    }
+    stoneWall(c, 218, 34, 36, 58, stone, mortar, light);
+    crenels(c, 218, 34, 36, stone);
+    stoneWall(c, 231, 14, 10, 20, stone, mortar, light);
+    coneRoof(c, 229, 14, 14, 14, '#3a5cc8', '#2a449a', '#ff4a4a');
+    for (const [wx, wy] of [[224, 44], [244, 44], [234, 24], [224, 58], [244, 58]] as const) px(c, wx, wy, '#2a2a38', 2, 4);
+    banner(c, 210, 64, 6, 14, '#c8463a', '#ffd24a');
+    banner(c, 262, 64, 6, 14, '#c8463a', '#ffd24a');
+    banner(c, 233, 40, 6, 12, '#3a5cc8', '#ffffff');
+    // Gatehouse with a portcullis.
+    px(c, 228, 78, '#2a1e18', 16, 14);
+    disc(c, 236, 78, 8, '#2a1e18');
+    for (let gx = 229; gx < 244; gx += 3) px(c, gx, 74, '#5a5048', 1, 18);
+    for (let gy = 76; gy < 92; gy += 3) px(c, 228, gy, '#5a5048', 16, 1);
+    torch(c, 224, 80);
+    torch(c, 248, 80);
+    // The hill in front of the walls' feet.
+    fillRidge(c, hill.map((t, x) => (x > 170 && x < 306 ? Math.max(t, 92) : t)), '#5a9e56', '#7cbc6a', GROUND + 4);
+    for (let i = 0; i < 10; i++) roundTree(c, Math.round(rng() * 160), 101 + Math.round(rng() * 3), 4 + Math.floor(rng() * 3), '#2f7a3e', '#4f9e52');
+    // Grass, with a cobbled road across the field.
+    px(c, 0, GROUND, '#6dbb5f', SCENE_W, 2);
+    px(c, 0, GROUND + 2, '#5aa84f', SCENE_W, SCENE_H - GROUND - 2);
+    groundNoise(c, rng, ['#4e9a46', '#68b85c', '#4a9142'], 0.16);
+    for (let y = 128; y < 152; y++) {
+      for (let x = 0; x < SCENE_W; x++) {
+        const row = Math.floor((y - 128) / 4);
+        const edge = (x + row * 3) % 7 === 0 || (y - 128) % 4 === 0;
+        px(c, x, y, edge ? '#7a7466' : (x * 7 + row * 13) % 5 === 0 ? '#b2aa98' : '#9d9584');
+      }
+    }
+    px(c, 0, 127, '#4a8a42', SCENE_W, 1);
+    px(c, 0, 152, '#4a8a42', SCENE_W, 1);
+  },
+
+  village(c, rng) {
+    sky(c, ['#3a4c94', '#76669e', '#cf7f72', '#efa964', '#ffd88a'], 0, GROUND);
+    disc(c, 84, 80, 16, '#ffb45a');
+    disc(c, 84, 80, 12, '#ffd27a');
+    for (let i = 0; i < 4; i++) cloud(c, rng, 40 + i * 80 + rng() * 20, 20 + rng() * 20, 3, '#f6b89a', '#d88a7a');
+    fillRidge(c, ridge(rng, 92, 12, 0.9), '#8a6c94', '#a487ac', GROUND + 2);
+    fillRidge(c, ridge(rng, 99, 5, 0.6), '#a89048', '#c4aa58', GROUND + 4);
+    windmill(c, 44, 100);
+    cottage(c, 132, 100, 22, 13, '#c8a04a', '#a8823a');
+    cottage(c, 178, 101, 26, 15, '#b8903e', '#98742e');
+    cottage(c, 236, 100, 20, 12, '#c8a04a', '#a8823a', false);
+    cottage(c, 276, 101, 24, 14, '#a85a3a', '#88442a');
+    // Chapel tower.
+    px(c, 214, 70, '#d8c8a8', 9, 31);
+    coneRoof(c, 213, 70, 11, 12, '#6a4a3a', '#4a3428');
+    px(c, 217, 77, '#4a3020', 2, 4);
+    // Fence.
+    for (let x = 0; x < SCENE_W; x += 6) px(c, x, 98, '#7a5634', 1, 5);
+    px(c, 0, 99, '#8a6640', SCENE_W, 1);
+    // Wheat field with a dirt path across it.
+    px(c, 0, GROUND, '#d8b04a', SCENE_W, SCENE_H - GROUND);
+    for (let y = GROUND + 1; y < SCENE_H; y += 3) {
+      for (let x = (y * 5) % 4; x < SCENE_W; x += 4) px(c, x, y, rng() < 0.5 ? '#c49a3a' : '#e8c460', 1, 2);
+    }
+    for (let y = 132; y < 150; y++) {
+      for (let x = 0; x < SCENE_W; x++) px(c, x, y, (x + y) % 9 === 0 ? '#8a6038' : rng() < 0.1 ? '#b8885a' : '#a8784a');
+    }
+    for (let i = 0; i < 6; i++) {
+      const hx = 20 + rng() * 280;
+      const hy = 112 + rng() * 14;
+      disc(c, Math.round(hx), Math.round(hy), 5, '#c8963a');
+      px(c, hx - 5, hy + 3, '#a8782a', 11, 2);
+    }
+  },
+
+  forest(c, rng) {
+    sky(c, ['#040b10', '#08161a', '#0d241f', '#123426', '#1a4630'], 0, GROUND);
+    stars(c, rng, 30, 40, ['#cfe8d8', '#ffffff']);
+    disc(c, 250, 24, 10, '#d8f0e0');
+    disc(c, 254, 21, 8, '#0d241f');
+    haze(c, 250, 24, 26, 18, '#4a8a6a', 0.25);
+    // Layers of pines, darker towards the front.
+    for (const [count, base, hmin, dark, lit] of [
+      [26, 96, 26, '#0f2a22', '#14352a'],
+      [20, 101, 34, '#09201a', '#0e2a20'],
+    ] as const) {
+      for (let i = 0; i < count; i++) pine(c, Math.round(rng() * SCENE_W), base + Math.round(rng() * 3), hmin + Math.floor(rng() * 14), dark, lit);
+    }
+    haze(c, 160, 92, 180, 10, '#5a8a78', 0.35);
+    // Giant old trunks with roots.
+    for (const [tx, w] of [[26, 14], [118, 10], [214, 16], [296, 12]] as const) {
+      px(c, tx, 0, '#22180f', w, GROUND + 2);
+      px(c, tx + w - 3, 0, '#2e2216', 2, GROUND + 2);
+      for (let y = 6; y < GROUND; y += 9) px(c, tx + 2 + ((y / 9) % 3), y, '#160f0a', 2, 4);
+      for (let k = 0; k < 6; k++) px(c, tx - k, GROUND - 3 + Math.round(k / 2), '#22180f', 2, 2);
+      for (let k = 0; k < 6; k++) px(c, tx + w + k - 1, GROUND - 3 + Math.round(k / 2), '#22180f', 2, 2);
+    }
+    px(c, 0, GROUND, '#1a3420', SCENE_W, SCENE_H - GROUND);
+    groundNoise(c, rng, ['#14291a', '#22422a', '#1c3a22'], 0.3);
+    // Ferns.
+    for (let i = 0; i < 24; i++) {
+      const fx = rng() * SCENE_W;
+      const fy = GROUND + 4 + rng() * 70;
+      for (let k = 0; k < 4; k++) {
+        px(c, fx - k, fy - k, '#2e5a32');
+        px(c, fx + k, fy - k, '#2e5a32');
+      }
+    }
+    // Glowing mushrooms.
+    for (let i = 0; i < 9; i++) {
+      const mx = Math.round(rng() * SCENE_W);
+      const my = Math.round(GROUND + 2 + rng() * 60);
+      const glow = rng() < 0.5 ? '#ff6ab8' : '#5ae8e0';
+      haze(c, mx, my - 2, 7, 5, glow, 0.35);
+      px(c, mx, my - 2, '#e8e0c8', 1, 3);
+      px(c, mx - 2, my - 4, glow, 5, 2);
+      px(c, mx - 1, my - 5, glow, 3, 1);
+    }
+    haze(c, 160, 160, 200, 14, '#3a6a5a', 0.2);
+  },
+
+  ruins(c, rng) {
+    sky(c, ['#2a1a46', '#5a2c56', '#9e4250', '#dc7848', '#f6be6c'], 0, GROUND);
+    disc(c, 250, 84, 18, '#ff9a4a');
+    disc(c, 250, 84, 14, '#ffc46a');
+    for (let i = 0; i < 7; i++) crow(c, 40 + rng() * 220, 14 + rng() * 34);
+    fillRidge(c, ridge(rng, 92, 16, 1.1), '#5a2e52', '#74405e', GROUND + 2);
+    fillRidge(c, ridge(rng, 100, 6, 0.7), '#4a3040', '#5e3c4c', GROUND + 4);
+    const stone = '#c9b89c';
+    const shade = '#a69378';
+    // A broken arch on the left.
+    px(c, 32, 50, stone, 10, 52);
+    px(c, 40, 50, shade, 2, 52);
+    px(c, 74, 62, stone, 10, 40);
+    px(c, 82, 62, shade, 2, 40);
+    for (let a = 180; a <= 300; a += 2) {
+      const r = (a * Math.PI) / 180;
+      px(c, 58 + Math.cos(r) * 21, 54 + Math.sin(r) * 18, stone, 4, 4);
+    }
+    px(c, 56, 34, '#e0d0b4', 5, 4);
+    // A colonnade, some columns broken, one lintel still standing.
+    const cols = [130, 152, 174, 196, 218, 290];
+    const heights = [44, 30, 46, 46, 22, 36];
+    cols.forEach((x, i) => column(c, x, 101, heights[i]!, stone, shade, ![0, 2, 3].includes(i), rng));
+    px(c, 170, 52, stone, 36, 4);
+    px(c, 170, 55, shade, 36, 1);
+    px(c, 168, 50, stone, 40, 2);
+    // Ivy.
+    for (let i = 0; i < 40; i++) {
+      const x = cols[Math.floor(rng() * cols.length)]! + rng() * 7;
+      px(c, x, 60 + rng() * 40, rng() < 0.5 ? '#4a7a3a' : '#5e9246', 2, 2);
+    }
+    px(c, 0, GROUND, '#7a6448', SCENE_W, SCENE_H - GROUND);
+    groundNoise(c, rng, ['#6a5640', '#8a7456', '#5e7a3a'], 0.25);
+    // Fallen blocks.
+    for (let i = 0; i < 10; i++) {
+      const bx = rng() * SCENE_W;
+      const by = GROUND + 6 + rng() * 66;
+      const w = 4 + Math.floor(rng() * 6);
+      px(c, bx, by, stone, w, 3);
+      px(c, bx, by + 3, shade, w, 1);
+    }
+  },
+
+  camp(c, rng) {
+    sky(c, ['#1a1a3c', '#38284c', '#683a4c', '#a8584a', '#e2985a'], 0, GROUND);
+    stars(c, rng, 30, 40);
+    fillRidge(c, ridge(rng, 90, 14, 1), '#3c2a40', '#4e3650', GROUND + 2);
+    // Palisade of sharpened logs.
+    for (let x = 0; x < SCENE_W; x += 4) {
+      const h = 18 + ((x * 7) % 5);
+      px(c, x, 100 - h, '#5a3a22', 3, h);
+      px(c, x + 1, 100 - h - 2, '#5a3a22', 1, 2);
+      px(c, x + 2, 100 - h, '#3e2816', 1, h);
+    }
+    px(c, 0, 88, '#3e2816', SCENE_W, 1);
+    // Tents and banners.
+    tent(c, 52, 101, 30, 18, '#c8463a', '#efe0c8', '#c8463a');
+    tent(c, 128, 101, 24, 15, '#3a5cc8', '#efe0c8');
+    tent(c, 206, 101, 40, 24, '#8a3a8a', '#e8c860', '#e8c860');
+    tent(c, 284, 101, 26, 16, '#3a8a4a', '#efe0c8');
+    for (const [bx, color] of [[92, '#c8463a'], [166, '#3a5cc8'], [252, '#8a3a8a']] as const) {
+      px(c, bx, 50, '#3a2a22', 1, 52);
+      banner(c, bx + 1, 52, 7, 18, color, '#e8c860');
+    }
+    // Weapon rack.
+    for (let k = 0; k < 4; k++) px(c, 108 + k * 3, 84, '#8a8a96', 1, 17);
+    px(c, 106, 92, '#5a3a22', 14, 1);
+    px(c, 0, GROUND, '#5a4634', SCENE_W, SCENE_H - GROUND);
+    groundNoise(c, rng, ['#4a3a2a', '#6a5440', '#3e3022'], 0.28);
+    // Cart tracks.
+    for (const ty of [130, 136]) for (let x = 0; x < SCENE_W; x++) if (rng() < 0.7) px(c, x, ty, '#463626');
+    campfire(c, 96, 104);
+    campfire(c, 250, 104);
+  },
 };
 
 const cache = new Map<SceneTheme, string>();
@@ -300,7 +656,7 @@ export function sceneImage(theme: SceneTheme): string | null {
   canvas.height = SCENE_H;
   const c = canvas.getContext('2d');
   if (!c) return null;
-  const seeds: Record<SceneTheme, number> = { meadow: 11, ember: 23, frost: 37, cosmos: 51, storm: 63, deep: 77 };
+  const seeds: Record<SceneTheme, number> = { meadow: 11, ember: 23, frost: 37, cosmos: 51, storm: 63, deep: 77, kingdom: 89, village: 97, forest: 103, ruins: 113, camp: 127 };
   DRAW[theme](c, seededRandom(seeds[theme]));
   const url = canvas.toDataURL('image/png');
   cache.set(theme, url);

@@ -4,7 +4,7 @@ import { DEFAULT_STAMINA } from './schemas';
 import type { ContentBundle, EncounterEnemy } from './types';
 
 /** Bump when a new upgrade step is added below. */
-export const CONTENT_SCHEMA_VERSION = 28;
+export const CONTENT_SCHEMA_VERSION = 29;
 
 /**
  * Brings content saved by an older version of the game up to date by merging
@@ -672,6 +672,18 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
     if (b.settings.stamina.max === 120) {
       b.settings.stamina.max = DEFAULT_STAMINA.max;
       changed = true;
+    }
+  }
+
+  if (fromVersion < 29) {
+    // v29: medieval landscapes. The Armory moves to the war camp and the Bastion to the ruins,
+    // if they're still on their old themes.
+    for (const [id, from, to] of [['armory', 'ember', 'camp'], ['bastion', 'frost', 'ruins']] as const) {
+      const dg = b.dungeons.find((d) => d.id === id);
+      if (dg?.theme === from) {
+        dg.theme = to;
+        changed = true;
+      }
     }
   }
 

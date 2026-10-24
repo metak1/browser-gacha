@@ -155,6 +155,13 @@ The game also shows these credits on the Account page.
 The whole game uses a pixel-art look to match the Tiny RPG sprites. Sound and music are synthesized with Web Audio.
 
 - **Pixel backdrops:** [pixelScene.ts](apps/client/src/components/pixelScene.ts) paints each theme procedurally at 320×180, from a fixed seed: dithered skies, ridges with snow caps, pixel trees and clouds, castles, a volcano, a temple and lava cracks. It caches the result as an image, which is scaled up with `image-rendering: pixelated` and anchored to the ground. Weather particles (snow, embers, rain, bubbles) are square pixels on top.
+  - **Themes (11):** meadow, ember, frost, storm, deep, cosmos, plus five medieval ones:
+    - **kingdom:** a royal castle on a hill with banners, torches, a portcullis and a cobbled road; falling petals.
+    - **village:** thatched cottages, a windmill, a chapel and wheat fields at golden hour; drifting chaff.
+    - **forest:** a dark enchanted wood with giant trunks, glowing mushrooms and fog; fireflies.
+    - **ruins:** a broken arch and colonnade overgrown with ivy at sunset, with crows; falling leaves.
+    - **camp:** a war camp at dusk with striped tents, a palisade, banners and campfires; rising sparks.
+  - **Where they're used:** any chapter, dungeon or event can pick one in admin. The Armory uses camp and the Bastion uses ruins (content upgrade v29, only if they were still on their old themes). Arena fights take place in the kingdom. The endless tower cycles through all 11, ten floors each.
 - **Pixel emoji:** heroes and enemies without a sprite are drawn as pixel art by [`PixelEmoji`](apps/client/src/components/Art.tsx). The emoji is rendered at 16px on a canvas, its edges hardened, its colours posterised and a dark outline added like the sprites, then it is scaled up crisply.
 - **Pixel UI:** [pixel-theme.css](apps/client/src/pixel-theme.css) sets the fonts (self-hosted in `public/fonts`, both SIL Open Font License): **Tiny5** for text, because it stays crisp at small sizes, and **Pixelify Sans** for big titles. Pixel fonts have one weight and faux bold is disabled. Panels and buttons get squarer corners, hard stepped shadows and bevels instead of soft blurs, HP bars are flat pixel bars, and damage numbers have a pixel outline.
 

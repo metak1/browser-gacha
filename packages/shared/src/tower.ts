@@ -18,7 +18,7 @@ export function towerBest(cleared: Iterable<string>): number {
   return best;
 }
 
-const THEMES: SceneTheme[] = ['meadow', 'ember', 'frost', 'storm', 'deep', 'cosmos'];
+const THEMES: SceneTheme[] = ['meadow', 'village', 'forest', 'ember', 'camp', 'frost', 'kingdom', 'storm', 'ruins', 'deep', 'cosmos'];
 
 export interface TowerFloor {
   floor: number;

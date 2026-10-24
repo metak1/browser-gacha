@@ -3,8 +3,8 @@
 import type { GearSlot, GearStat } from '../gear';
 import type { ElementId, Passive, Rarity, Role, Skill, Stats } from '../types';
 
-export type SceneTheme = 'meadow' | 'ember' | 'frost' | 'cosmos' | 'storm' | 'deep';
-export const SCENE_THEMES: SceneTheme[] = ['meadow', 'ember', 'frost', 'cosmos', 'storm', 'deep'];
+export type SceneTheme = 'meadow' | 'ember' | 'frost' | 'cosmos' | 'storm' | 'deep' | 'kingdom' | 'village' | 'forest' | 'ruins' | 'camp';
+export const SCENE_THEMES: SceneTheme[] = ['meadow', 'ember', 'frost', 'cosmos', 'storm', 'deep', 'kingdom', 'village', 'forest', 'ruins', 'camp'];
 
 /** One enemy in an encounter. */
 export interface EncounterEnemy {

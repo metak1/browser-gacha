@@ -652,14 +652,14 @@ function gearDungeon(
   };
 }
 const gearDungeons: DungeonDef[] = [
-  gearDungeon('armory', 'The Armory', '⚒️', 'ember', ['precision', 'ruin'], 'ironhide',
+  gearDungeon('armory', 'The Armory', '⚒️', 'camp', ['precision', 'ruin'], 'ironhide',
     'Crit gear: Precision and Ruin. Its armoured guards shrug off weak hits.', [
       [17, ['orc', 'black-knight', 'orc'], []],
       [35, ['minotaur', 'black-knight', 'orc-rider'], [['orc', 'orc', 'orc']]],
       [47, ['orc-rider', 'black-knight', 'orc-rider'], [['minotaur', 'orc', 'minotaur']]],
       [47, ['minotaur', 'black-knight', 'minotaur'], [['orc', 'warlord', 'orc']]],
     ]),
-  gearDungeon('bastion', 'The Bastion', '🏰', 'frost', ['vitality', 'bulwark'], 'empowered',
+  gearDungeon('bastion', 'The Bastion', '🏰', 'ruins', ['vitality', 'bulwark'], 'empowered',
     'Survival gear: Vitality and Bulwark. Its undead garrison fights buffed and keeps buffing.', [
       [14, ['skeleton', 'wolf', 'skeleton'], []],
       [28, ['skeleton-archer', 'wraith', 'wolf'], [['wolf', 'wolf']]],

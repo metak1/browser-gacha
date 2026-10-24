@@ -209,7 +209,9 @@ function BattleRunner({
   const theme: SceneTheme =
     source.kind === 'tower'
       ? towerFloor(content, source.floor).theme
-      : source.kind === 'arena' || source.kind === 'guild'
+      : source.kind === 'arena'
+      ? 'kingdom'
+      : source.kind === 'guild'
       ? 'cosmos'
       : source.kind === 'dungeon'
         ? source.dungeon.theme

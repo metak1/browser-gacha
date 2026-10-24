@@ -152,7 +152,7 @@ describe('gear dungeons', () => {
   it('turns a v21 Armory into the crit-set dungeon and adds the other two', () => {
     const b = createDefaultContent();
     const v21 = structuredClone(b.dungeons.find((d) => d.id === 'armory')!);
-    Object.assign(v21, { sets: [], mechanic: null, description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.' });
+    Object.assign(v21, { theme: 'ember', sets: [], mechanic: null, description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.' });
     v21.tiers = v21.tiers.map((t, i) => ({
       ...t,
       enemies: [

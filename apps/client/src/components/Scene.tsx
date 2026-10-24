@@ -11,7 +11,7 @@ import './scene.css';
  */
 type Rng = () => number;
 
-const THEME_SEED: Record<SceneTheme, number> = { meadow: 11, ember: 23, frost: 37, cosmos: 51, storm: 63, deep: 77 };
+const THEME_SEED: Record<SceneTheme, number> = { meadow: 11, ember: 23, frost: 37, cosmos: 51, storm: 63, deep: 77, kingdom: 89, village: 97, forest: 103, ruins: 113, camp: 127 };
 
 interface Particle {
   left: number;
@@ -39,6 +39,11 @@ const PARTICLES: Record<SceneTheme, { count: number; duration: [number, number] 
   cosmos: { count: 24, duration: [10, 22] },
   storm: { count: 50, duration: [0.7, 1.3] },
   deep: { count: 30, duration: [6, 14] },
+  kingdom: { count: 20, duration: [9, 16] },
+  village: { count: 24, duration: [10, 18] },
+  forest: { count: 26, duration: [6, 12] },
+  ruins: { count: 22, duration: [8, 15] },
+  camp: { count: 26, duration: [4, 8] },
 };
 
 /**
