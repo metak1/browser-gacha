@@ -7,7 +7,9 @@ describe('migrations', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db);
     // Back to v11, with an old SPD charm (equipped) and a normal charm.
-    db.exec('ALTER TABLE gear DROP COLUMN set_id; ALTER TABLE gear DROP COLUMN locked; ALTER TABLE characters DROP COLUMN gear_set; PRAGMA user_version = 11');
+    db.exec(
+      'ALTER TABLE gear DROP COLUMN set_id; ALTER TABLE gear DROP COLUMN locked; ALTER TABLE characters DROP COLUMN gear_set; ALTER TABLE gear ADD COLUMN forge INTEGER NOT NULL DEFAULT 0; CREATE TABLE dungeon_runs (user_id TEXT, dungeon_id TEXT, day TEXT, runs INTEGER); PRAGMA user_version = 11',
+    );
     db.prepare("INSERT INTO users (id, gems, gold, created_at) VALUES ('u', 0, 0, 0)").run();
     const insert = db.prepare(
       "INSERT INTO gear (id, user_id, template_id, slot, rarity, level, main_base, main, subs, equipped_to, created_at) VALUES (?, 'u', ?, 'charm', 5, 0, 6, ?, '[]', 'aldric', 0)",
@@ -27,6 +29,25 @@ describe('migrations', () => {
     // Still worn by the same hero, now in their boots slot.
     expect(slots.feather).toMatchObject({ slot: 'boots', equipped_to: 'aldric' });
     expect(slots.locket).toMatchObject({ slot: 'charm' });
+    db.close();
+  });
+});
+
+describe('migration v15', () => {
+  it('drops the daily dungeon run table and the gear forge column', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db);
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .map((r) => r.name);
+    expect(tables).not.toContain('dungeon_runs');
+    const gearColumns = db
+      .prepare('PRAGMA table_info(gear)')
+      .all()
+      .map((r) => r.name);
+    expect(gearColumns).not.toContain('forge');
+    expect(gearColumns).toContain('locked');
     db.close();
   });
 });

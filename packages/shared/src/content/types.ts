@@ -217,7 +217,8 @@ export interface PlayerLevelSettings {
   rewardStamina: number;
   /** XP per stamina spent (campaign, hard, sweeps, events) and per other win. */
   xpPerStamina: number;
-  xpDungeon: number;
+  /** XP per endless tower win (other wins give XP per stamina spent). */
+  xpTower: number;
   xpArena: number;
   xpGuild: number;
   /** Titles unlocked by reaching a level. */

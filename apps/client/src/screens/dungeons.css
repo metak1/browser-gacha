@@ -32,8 +32,8 @@
 }
 
 /* Gear dungeons: set picker and gear odds. */
-.set-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 14px 10px; }
-.set-picker .chip { padding-inline: 8px; }
+.dungeon-sets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 14px 10px; }
+.dungeon-sets .chip { padding-inline: 8px; }
 .gear-odds small { margin-left: 2px; }
 
 

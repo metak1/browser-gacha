@@ -29,7 +29,7 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
           {num('Level-up gems 💎', lv.rewardGems, (rewardGems) => setLv({ rewardGems }))}
           {num('Level-up stamina ⚡', lv.rewardStamina, (rewardStamina) => setLv({ rewardStamina }))}
           {num('XP per stamina spent', lv.xpPerStamina, (xpPerStamina) => setLv({ xpPerStamina }), 'Campaign, hard, events and sweeps.')}
-          {num('XP per dungeon win', lv.xpDungeon, (xpDungeon) => setLv({ xpDungeon }))}
+          {num('XP per tower win', lv.xpTower, (xpTower) => setLv({ xpTower }))}
           {num('XP per arena win', lv.xpArena, (xpArena) => setLv({ xpArena }))}
           {num('XP per guild attack', lv.xpGuild, (xpGuild) => setLv({ xpGuild }))}
         </FormGrid>

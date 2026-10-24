@@ -383,7 +383,7 @@ Open any item (**Roster → Gear**, or from a hero's gear slot) and expand **�
   - It never becomes the main stat or a duplicate of another bonus stat.
   - It **keeps its roll count**, so upgrade boosts aren't lost.
 - **Roll counts:** substats store their roll count (`rolls`). Older items have it estimated from their value.
-- **Storage:** the Reforge Stone was added to existing content in content upgrade v13. The gear table's `forge` column (DB migration v11) is left over from an early version with a "perfect" option and is unused.
+- **Storage:** the Reforge Stone was added to existing content in content upgrade v13. The gear table's `forge` column (DB migration v11) was left over from an early version with a "perfect" option; migration v15 drops it, along with the old daily dungeon run counts.
 - **Editing:** every number is under **Admin → Settings → Gear forge**.
 
 ## Recommended builds

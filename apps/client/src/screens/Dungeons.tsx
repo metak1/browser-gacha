@@ -202,7 +202,7 @@ function DungeonSets({ dungeon }: { dungeon: DungeonDef }) {
   const content = useContent();
   const sets = dungeon.sets.length ? dungeon.sets.flatMap((id) => content.gearSetsById[id] ?? []) : content.bundle.gearSets;
   return (
-    <div className="set-picker">
+    <div className="dungeon-sets">
       <span className="small muted">Drops:</span>
       {sets.map((s) => (
         <span key={s.id} className="chip" title={s.bonuses.map((b) => `${b.pieces} pc: ${formatGearRoll(b)}`).join(' · ')}>

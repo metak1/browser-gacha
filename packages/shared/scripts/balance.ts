@@ -242,7 +242,7 @@ function progression() {
                 sources().filter((x) => x.dungeon),
                 'essence',
               );
-            if (src) gain(src, p.xpDungeon);
+            if (src) gain(src, 50); // old rules: a flat 50 XP per dungeon win
             spend();
           }
         }

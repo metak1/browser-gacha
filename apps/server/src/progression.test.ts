@@ -129,7 +129,6 @@ describe('progression upgrade', () => {
       UPDATE characters SET level = 35;
       DROP TABLE materials;
       DROP TABLE chapter_chests;
-      DROP TABLE dungeon_runs;
       ALTER TABLE users DROP COLUMN stamina;
       ALTER TABLE users DROP COLUMN stamina_at;
       ALTER TABLE users DROP COLUMN flags;
@@ -140,7 +139,7 @@ describe('progression upgrade', () => {
       ALTER TABLE users DROP COLUMN login_days;
       DROP TABLE friends; DROP TABLE support_uses; DROP TABLE guild_chests; DROP TABLE guild_attempts; DROP TABLE guild_damage; DROP TABLE guild_members; DROP TABLE guilds; DROP TABLE event_purchases; DROP TABLE event_wallets;
       ALTER TABLE stage_clears DROP COLUMN stars;
-      DROP TABLE team_presets; ALTER TABLE teams DROP COLUMN active_preset; ALTER TABLE gear DROP COLUMN forge; ALTER TABLE gear DROP COLUMN set_id; ALTER TABLE gear DROP COLUMN locked;
+      DROP TABLE team_presets; ALTER TABLE teams DROP COLUMN active_preset; ALTER TABLE gear DROP COLUMN set_id; ALTER TABLE gear DROP COLUMN locked;
       DELETE FROM content WHERE kind = 'materials';
       DELETE FROM content WHERE kind = 'dungeons';
       DELETE FROM content WHERE kind = 'characters' AND id = 'elara';

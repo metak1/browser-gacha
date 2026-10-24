@@ -322,7 +322,7 @@ export class BattleService {
             : battle.mode === 'arena'
               ? p.xpArena
               : battle.mode === 'tower'
-                ? p.xpDungeon
+                ? p.xpTower
                 : staminaSpent * p.xpPerStamina;
       return { ...result, xp: grantXp(this.ctx, userId, xp) };
     });

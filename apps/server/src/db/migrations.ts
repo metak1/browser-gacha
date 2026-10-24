@@ -183,7 +183,7 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (user_id, chapter_id, stars)
   );
   `,
-  // v6: daily dungeon runs. Hard-mode and dungeon-tier clears live in stage_clears ("hard:1-1", "dungeon:id:0").
+  // v6: daily dungeon runs (dropped in v15). Hard-mode and dungeon-tier clears live in stage_clears ("hard:1-1", "dungeon:id:0").
   `
   CREATE TABLE dungeon_runs (
     user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -285,7 +285,7 @@ const MIGRATIONS: string[] = [
   );
   ALTER TABLE teams ADD COLUMN active_preset INTEGER NOT NULL DEFAULT 0;
   `,
-  // v11: forge points on gear (from an early version of reforging; no longer used).
+  // v11: forge points on gear (from an early version of reforging; dropped in v15).
   `
   ALTER TABLE gear ADD COLUMN forge INTEGER NOT NULL DEFAULT 0;
   `,
@@ -301,6 +301,12 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE gear ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE characters ADD COLUMN gear_set TEXT;
+  `,
+  // v15: drop what's no longer used: daily dungeon run counts (dungeons cost stamina now) and
+  // gear forge points (from an early version of reforging).
+  `
+  DROP TABLE dungeon_runs;
+  ALTER TABLE gear DROP COLUMN forge;
   `,
 ];
 

@@ -278,3 +278,14 @@ describe('hero stats', () => {
     }
   });
 });
+
+describe('settings', () => {
+  it('reads XP per tower win from settings saved under its old name, xpDungeon', async () => {
+    const { settingsSchema } = await import('./schemas');
+    const { xpTower: _, ...rest } = createDefaultContent().settings.playerLevel;
+    const old = { ...createDefaultContent().settings, playerLevel: { ...rest, xpDungeon: 77 } };
+    expect(settingsSchema.parse(old).playerLevel.xpTower).toBe(77);
+    // Settings that already use the new name keep it.
+    expect(settingsSchema.parse(createDefaultContent().settings).playerLevel.xpTower).toBe(createDefaultContent().settings.playerLevel.xpTower);
+  });
+});

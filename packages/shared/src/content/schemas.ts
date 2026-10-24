@@ -282,7 +282,7 @@ export const DEFAULT_PLAYER_LEVEL = {
   rewardGems: 50,
   rewardStamina: 30,
   xpPerStamina: 6,
-  xpDungeon: 50,
+  xpTower: 50,
   xpArena: 40,
   xpGuild: 40,
   titles: [
@@ -526,18 +526,22 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
   unlocks: z.object({ arena: id.nullable(), dungeons: id.nullable(), tower: id.nullable().default('2-4') }).default(DEFAULT_UNLOCKS),
   maxSweep: int(1, 100).default(10),
   playerLevel: z
-    .object({
-      maxLevel: int(1, 999),
-      xpBase: int(1, 1_000_000),
-      xpPerLevel: int(0, 1_000_000),
-      rewardGems: int(0, 1_000_000),
-      rewardStamina: int(0, 10_000),
-      xpPerStamina: int(0, 10_000),
-      xpDungeon: int(0, 100_000),
-      xpArena: int(0, 100_000),
-      xpGuild: int(0, 100_000),
-      titles: z.array(z.object({ level: int(1, 999), title: name })).max(20),
-    })
+    // Stored settings from before the rename call it xpDungeon.
+    .preprocess(
+      (v) => (v && typeof v === 'object' && 'xpDungeon' in v && !('xpTower' in v) ? { ...v, xpTower: (v as { xpDungeon: unknown }).xpDungeon } : v),
+      z.object({
+        maxLevel: int(1, 999),
+        xpBase: int(1, 1_000_000),
+        xpPerLevel: int(0, 1_000_000),
+        rewardGems: int(0, 1_000_000),
+        rewardStamina: int(0, 10_000),
+        xpPerStamina: int(0, 10_000),
+        xpTower: int(0, 100_000),
+        xpArena: int(0, 100_000),
+        xpGuild: int(0, 100_000),
+        titles: z.array(z.object({ level: int(1, 999), title: name })).max(20),
+      }),
+    )
     .default(DEFAULT_PLAYER_LEVEL),
   loginCalendar: z.array(reward).min(1).max(31).default(DEFAULT_LOGIN_CALENDAR),
   social: z.object({ maxFriends: int(0, 500), supportGold: int(0, 1_000_000) }).default(DEFAULT_SOCIAL),
