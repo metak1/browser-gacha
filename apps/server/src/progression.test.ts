@@ -165,7 +165,7 @@ describe('progression upgrade', () => {
       DELETE FROM content WHERE kind = 'stages' AND (id LIKE '4-%' OR id LIKE '5-%' OR id LIKE '6-%');
       DELETE FROM content WHERE kind = 'enemies' AND id IN ('harpy', 'thunderbird', 'warlord', 'demon-lord');
       DELETE FROM content WHERE kind = 'missions' AND id IN ('daily-dungeon', 'storm-breaker');
-      UPDATE meta SET value = '3' WHERE key = 'content_schema';
+      UPDATE meta SET value = '3' WHERE key = 'content_schema'; DELETE FROM meta WHERE key = 'content_upgrades';
       PRAGMA user_version = 3;
     `);
     for (const row of raw.prepare("SELECT id, data FROM content WHERE kind IN ('characters', 'stages', 'chapters')").all() as { id: string; data: string }[]) {

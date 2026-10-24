@@ -199,7 +199,9 @@ describe('content upgrade', () => {
       delete doc.drops;
       raw.prepare('UPDATE content SET data = ? WHERE kind = ? AND id = ?').run(JSON.stringify(doc), row.kind, row.id);
     }
-    raw.exec("DELETE FROM content WHERE kind = 'gear' OR id LIKE '%-ult'; UPDATE meta SET value = '1' WHERE key = 'content_schema';");
+    raw.exec(
+      "DELETE FROM content WHERE kind = 'gear' OR id LIKE '%-ult'; UPDATE meta SET value = '1' WHERE key = 'content_schema'; DELETE FROM meta WHERE key = 'content_upgrades';",
+    );
     raw.close();
 
     const second = await buildTestApp({ ...baseConfig, dbPath });
@@ -239,7 +241,7 @@ describe('art upgrade', () => {
       raw.prepare('UPDATE content SET data = ? WHERE kind = ? AND id = ?').run(JSON.stringify(doc), row.kind, row.id);
     }
     raw.exec(`DELETE FROM content WHERE (kind = 'characters' AND id = 'aldric') OR (kind = 'enemies' AND id IN ('orc', 'demon', 'blood-fiend'));
-              UPDATE meta SET value = '2' WHERE key = 'content_schema';`);
+              UPDATE meta SET value = '2' WHERE key = 'content_schema'; DELETE FROM meta WHERE key = 'content_upgrades';`);
     raw.close();
 
     const second = await buildTestApp({ ...baseConfig, dbPath });

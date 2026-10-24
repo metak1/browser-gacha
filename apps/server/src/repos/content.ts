@@ -44,13 +44,23 @@ export class ContentRepo {
     this.setMeta('content_version', version);
   }
 
-  /** Which content upgrades (see upgradeContent) have been applied. */
+  /** The highest content upgrade version applied; from before the ledger, and still written for older builds. */
   schemaVersion(): number {
     return this.meta('content_schema');
   }
 
   setSchemaVersion(version: number) {
     this.setMeta('content_schema', version);
+  }
+
+  /** Ids of the content upgrade steps that have run (see upgradeContent), or null on a save from before the ledger. */
+  appliedUpgrades(): string[] | null {
+    const raw = this.db.get<{ value: string }>('SELECT value FROM meta WHERE key = ?', 'content_upgrades')?.value;
+    return raw ? (JSON.parse(raw) as string[]) : null;
+  }
+
+  setAppliedUpgrades(ids: string[]) {
+    this.db.run('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', 'content_upgrades', JSON.stringify(ids));
   }
 
   private meta(key: string): number {

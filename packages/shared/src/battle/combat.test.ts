@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildBattleSetup, indexContent } from '../content';
 import { createDefaultContent, REFERENCE_TEAM } from '../content/defaults';
-import { upgradeContent } from '../content/upgrade';
+import { appliedThrough, upgradeContent } from '../content/upgrade';
 import { act, currentActor, startBattle } from './engine';
 import { chooseAction } from './ai';
 import type { BattleEvent, BattleSetup, BattleState } from './types';
@@ -110,7 +110,7 @@ describe('stat-scaling spells upgrade', () => {
       { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
     ];
     mossy.effects = [{ kind: 'heal', to: 'allAllies', mult: 1.5 }]; // an admin edit
-    const { bundle } = upgradeContent(b, 13);
+    const { bundle } = upgradeContent(b, appliedThrough(13));
     expect(bundle.skills.find((s) => s.id === 'gaia-skill')!.effects[0]).toMatchObject({ kind: 'shield', scale: 'def' });
     expect(bundle.skills.find((s) => s.id === 'mossy-skill')!.effects).toEqual([{ kind: 'heal', to: 'allAllies', mult: 1.5 }]);
   });

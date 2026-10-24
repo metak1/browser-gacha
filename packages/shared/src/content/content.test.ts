@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildBattleSetup, indexContent, isStageUnlocked } from './index';
 import { createDefaultContent } from './defaults';
-import { upgradeContent } from './upgrade';
+import { appliedThrough, CONTENT_UPGRADES, upgradeContent } from './upgrade';
 import { validateBundle } from './validate';
 
 describe('content', () => {
@@ -68,7 +68,7 @@ describe('difficulty curve upgrade', () => {
   }
 
   it('moves stages on the old defaults to the new curve', () => {
-    const { bundle } = upgradeContent(oldContent(), 10);
+    const { bundle } = upgradeContent(oldContent(), appliedThrough(10));
     const s = bundle.stages.find((x) => x.id === '2-4')!;
     const def = createDefaultContent().stages.find((x) => x.id === '2-4')!;
     expect(s.enemies.map((e) => e.level)).toEqual(def.enemies.map((e) => e.level));
@@ -81,7 +81,7 @@ describe('difficulty curve upgrade', () => {
     const s = b.stages.find((x) => x.id === '2-4')!;
     s.recommendedLevel = 20;
     s.objectives = [{ kind: 'win' }, { kind: 'maxActions', value: 33 }];
-    const { bundle } = upgradeContent(b, 10);
+    const { bundle } = upgradeContent(b, appliedThrough(10));
     const after = bundle.stages.find((x) => x.id === '2-4')!;
     expect(after.recommendedLevel).toBe(20);
     expect(after.statMult).toBe(1);
@@ -125,7 +125,7 @@ describe('boots', () => {
       { gear: 'lucky-clover', chance: 0.3 },
       { gear: 'moon-pendant', chance: 0.15 },
     ];
-    const { bundle } = upgradeContent(b, 14);
+    const { bundle } = upgradeContent(b, appliedThrough(14));
     expect(validateBundle(bundle)).toEqual([]);
     expect(bundle.gear.find((g) => g.id === 'lucky-clover')).toMatchObject({ slot: 'boots', name: 'Clover Sandals' });
     // Renamed by an admin: moved to boots, name kept.
@@ -144,7 +144,7 @@ describe('the Armory', () => {
   it('is added to older content, and a first-draft Armory gets the tuned enemy levels', () => {
     const fresh = createDefaultContent();
     const old = { ...fresh, dungeons: fresh.dungeons.filter((d) => d.id !== 'armory') };
-    const added = upgradeContent(old, 19).bundle.dungeons.find((d) => d.id === 'armory')!;
+    const added = upgradeContent(old, appliedThrough(19)).bundle.dungeons.find((d) => d.id === 'armory')!;
     expect(added.tiers.every((t) => t.gearRolls && t.materialDrops.length === 0)).toBe(true);
 
     const draft = createDefaultContent();
@@ -152,7 +152,7 @@ describe('the Armory', () => {
     [12, 27, 42, 52].forEach((lv, i) => {
       for (const e of [...a.tiers[i]!.enemies, ...a.tiers[i]!.waves.flat()]) e.level = lv;
     });
-    const fixed = upgradeContent(draft, 20).bundle.dungeons.find((d) => d.id === 'armory')!;
+    const fixed = upgradeContent(draft, appliedThrough(20)).bundle.dungeons.find((d) => d.id === 'armory')!;
     expect(fixed.tiers.map((t) => t.enemies[0]!.level)).toEqual(
       createDefaultContent()
         .dungeons.find((d) => d.id === 'armory')!
@@ -200,7 +200,7 @@ describe('gear dungeons', () => {
       ),
     }));
     b.dungeons = [...b.dungeons.filter((d) => !['armory', 'bastion', 'windspire'].includes(d.id)), v21];
-    const { bundle } = upgradeContent(b, 21);
+    const { bundle } = upgradeContent(b, appliedThrough(21));
     const def = createDefaultContent();
     for (const id of ['armory', 'bastion', 'windspire']) {
       expect(bundle.dungeons.find((d) => d.id === id)).toEqual(def.dungeons.find((d) => d.id === id));
@@ -214,7 +214,7 @@ describe('gear dungeons', () => {
     b.dungeons.find((d) => d.id === 'armory')!.tiers[3]!.stamina = 25; // edited by an admin
     Object.assign(b.settings.stamina, { campaignCost: 6, hardCost: 12 });
     b.settings.playerLevel.xpPerStamina = 10;
-    const { bundle } = upgradeContent(b, 25);
+    const { bundle } = upgradeContent(b, appliedThrough(25));
     expect(bundle.dungeons.find((d) => d.id === 'armory')!.tiers.map((t) => t.stamina)).toEqual([10, 10, 10, 25]);
     expect(bundle.dungeons.find((d) => d.id === 'ember-forge')!.tiers.map((t) => t.stamina)).toEqual([10, 10, 10]);
     expect(bundle.settings.stamina).toMatchObject({ campaignCost: 10, hardCost: 10 });
@@ -226,8 +226,36 @@ describe('gear dungeons', () => {
     b.dungeons.find((d) => d.id === 'armory')!.description =
       'Crit gear (Precision, Ruin). Its armoured guards shrug off weak hits: bring piercing, DEF Down, or damage that scales with HP or DEF.';
     b.dungeons.find((d) => d.id === 'bastion')!.description = 'My own text.';
-    const { bundle } = upgradeContent(b, 23);
+    const { bundle } = upgradeContent(b, appliedThrough(23));
     expect(bundle.dungeons.find((d) => d.id === 'armory')!.description).toBe('Crit gear: Precision and Ruin. Its armoured guards shrug off weak hits.');
     expect(bundle.dungeons.find((d) => d.id === 'bastion')!.description).toBe('My own text.');
+  });
+});
+
+describe('content upgrade ledger', () => {
+  it('lists each step once, oldest first', () => {
+    const ids = CONTENT_UPGRADES.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const versions = CONTENT_UPGRADES.map((s) => s.version);
+    expect(versions).toEqual([...versions].sort((a, b) => a - b));
+  });
+
+  it('runs only the steps a save has not had', () => {
+    const all = new Set(CONTENT_UPGRADES.map((s) => s.id));
+    const none = upgradeContent(createDefaultContent(), all);
+    expect(none.ran).toEqual([]);
+    expect(none.changed).toBe(false);
+    // A save from before the ledger at the last version but one gets just the newest step.
+    const latest = CONTENT_UPGRADES.at(-1)!;
+    expect(upgradeContent(createDefaultContent(), appliedThrough(latest.version - 1)).ran).toEqual([latest.id]);
+  });
+
+  it('re-runs a step whose id is missing, as when a step is renamed to redo it', () => {
+    const b = createDefaultContent();
+    b.settings.stamina.max = 120;
+    const applied = new Set(CONTENT_UPGRADES.map((s) => s.id).filter((id) => id !== 'v28-stamina-cap-200'));
+    const { bundle, ran } = upgradeContent(b, applied);
+    expect(ran).toEqual(['v28-stamina-cap-200']);
+    expect(bundle.settings.stamina.max).toBe(200);
   });
 });

@@ -221,6 +221,9 @@ The whole game uses a pixel-art look to match the Tiny RPG sprites. Sound and mu
 - **Settings:** tiers, rewards and every number above are editable in the admin Settings panel.
 
 **Upgrading older saves.** Database migration v3 adds the gear and arena tables. On startup the server also runs content upgrades ([upgrade.ts](packages/shared/src/content/upgrade.ts)). These merge the new default ultimates, gear templates, drop tables and missions into content saved by an earlier version, without overwriting anything an admin changed.
+  - **Named steps:** each upgrade is a step with an id (`v22-three-gear-dungeons`) in [content/upgrades/](packages/shared/src/content/upgrades/), grouped by topic. The server keeps a ledger of the ids that have run (`content_upgrades` in the `meta` table). A save from before the ledger is mapped onto it from its old schema version, so nothing runs twice.
+  - **Adding one:** append a step to the right file (or a new one listed in [upgrade.ts](packages/shared/src/content/upgrade.ts)) with a new id and the next version. Change only values still on their old default (`setIfStill` helps), and use literal old values rather than today's defaults.
+  - **Redoing one:** if a step shipped with a bug, or a dev server ran a draft of it mid-edit, give the fixed step a new id. It then runs again everywhere, with no repair step needed.
 
 ## Campaign, hard mode and dungeons
 

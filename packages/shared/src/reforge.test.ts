@@ -76,7 +76,7 @@ describe('random main stats', () => {
 
   it('switches default templates still on their old fixed main to random', async () => {
     const { createDefaultContent } = await import('./content/defaults');
-    const { upgradeContent } = await import('./content/upgrade');
+    const { appliedThrough, upgradeContent } = await import('./content/upgrade');
     const b = createDefaultContent();
     Object.assign(
       b.gear.find((g) => g.id === 'runed-saber')!,
@@ -86,7 +86,7 @@ describe('random main stats', () => {
       b.gear.find((g) => g.id === 'knight-mail')!,
       { mainStat: 'hp', mainBase: 250 },
     ); // an admin edit
-    const { bundle } = upgradeContent(b, 15);
+    const { bundle } = upgradeContent(b, appliedThrough(15));
     expect(bundle.gear.find((g) => g.id === 'runed-saber')!.mainStat).toBeNull();
     expect(bundle.gear.find((g) => g.id === 'knight-mail')).toMatchObject({ mainStat: 'hp', mainBase: 250 });
   });

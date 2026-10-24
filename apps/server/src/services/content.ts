@@ -1,7 +1,9 @@
 import {
   bundleSchema,
   CONTENT_KINDS,
+  appliedThrough,
   CONTENT_SCHEMA_VERSION,
+  CONTENT_UPGRADES,
   CONTENT_SCHEMAS,
   createDefaultContent,
   indexContent,
@@ -110,6 +112,7 @@ export class ContentService {
         this.writeAll(defaults);
         this.repo.setVersion(defaults.version);
         this.repo.setSchemaVersion(CONTENT_SCHEMA_VERSION);
+        this.repo.setAppliedUpgrades(CONTENT_UPGRADES.map((s) => s.id));
       });
       return indexContent(defaults);
     }
@@ -125,10 +128,13 @@ export class ContentService {
     const parsed = bundleSchema.safeParse(raw);
     if (!parsed.success) throw new Error(`Stored content is invalid: ${parsed.error.message}`);
 
-    const fromSchema = this.repo.schemaVersion();
+    // Saves from before the ledger only know the highest version they had; record what that covers.
+    const ledger = this.repo.appliedUpgrades();
+    const applied = new Set(ledger ?? appliedThrough(this.repo.schemaVersion()));
+    if (!ledger) this.repo.setAppliedUpgrades([...applied]);
     let bundle = parsed.data;
-    if (fromSchema < CONTENT_SCHEMA_VERSION) {
-      const upgraded = upgradeContent(bundle, fromSchema);
+    if (CONTENT_UPGRADES.some((s) => !applied.has(s.id))) {
+      const upgraded = upgradeContent(bundle, applied);
       bundle = upgraded.changed ? { ...upgraded.bundle, version: bundle.version + 1 } : bundle;
       const errors = validateBundle(bundle);
       if (errors.length) throw new Error(`Content upgrade produced invalid content:\n${errors.join('\n')}`);
@@ -137,6 +143,7 @@ export class ContentService {
         this.writeAll(bundle);
         this.repo.setVersion(bundle.version);
         this.repo.setSchemaVersion(CONTENT_SCHEMA_VERSION);
+        this.repo.setAppliedUpgrades([...applied, ...upgraded.ran]);
       });
     }
     const errors = validateBundle(bundle);
