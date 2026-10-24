@@ -1,31 +1,18 @@
 import { autoBattle, seededRandom, type CompleteBattleResponse, type ProfileDTO, type StartBattleResponse, type SweepResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
-import type { ServiceContext } from './services/context';
+import { buildTestApp, newGuest, TEST_CONFIG } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 let clock = Date.UTC(2026, 9, 20, 12); // a Tuesday
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(9), now: () => clock } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(9), now: () => clock } });
 });
 afterEach(async () => app.close());
 
-async function guest() {
-  let sid: string | undefined;
-  const call = async <T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) => {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-  const { body: profile } = await call<ProfileDTO>('POST', '/auth/guest');
-  const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
-  return { call, profile, ctx };
-}
+const guest = () => newGuest(app);
 
 describe('stamina', () => {
   it('starts full, is spent on battles, refunded on defeat and regenerates', async () => {

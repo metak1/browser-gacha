@@ -13,32 +13,17 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
+import { buildTestApp, newGuest, TEST_CONFIG } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 const prog = createDefaultContent().settings.progression;
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(21) } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(21) } });
 });
 afterEach(async () => app.close());
 
-function device() {
-  let sid: string | undefined;
-  return async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-}
-
-async function guest() {
-  const call = device();
-  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
-  return { call, profile: body };
-}
+const guest = () => newGuest(app);
 
 const hero = (p: ProfileDTO, id: string) => p.roster.find((c) => c.id === id)!;
 
@@ -130,7 +115,7 @@ describe('progression upgrade', () => {
   it('keeps high-level heroes above the new base cap and adds materials and lore', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-prog-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildTestApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...TEST_CONFIG, dbPath });
     const userId = first.services.auth.createGuest().userId;
     await first.close();
 
@@ -184,7 +169,7 @@ describe('progression upgrade', () => {
     raw.prepare("UPDATE content SET data = ? WHERE kind = 'settings'").run(JSON.stringify(settings));
     raw.close();
 
-    const second = await buildTestApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...TEST_CONFIG, dbPath });
     const profile = second.services.player.profile(userId);
     expect(profile.roster.every((c) => c.level === 35 && c.ascension === 2)).toBe(true);
     const c = second.services.content.current;

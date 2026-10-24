@@ -11,38 +11,20 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { seededRandom } from '@gacha/shared';
-import { buildTestApp } from './testing';
+import { buildTestApp, client, newGuest, TEST_CONFIG } from './testing';
 
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildTestApp(
-    { dbPath: ':memory:', cookieSecure: false, clientDist: null, logger: false, rateLimit: false },
-    { overrides: { random: seededRandom(3) } },
-  );
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(3) } });
 });
 
 afterEach(async () => {
   await app.close();
 });
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
-
-function device() {
-  let sid: string | undefined;
-  return async function call<T>(method: Method, url: string, payload?: object) {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: (res.body ? res.json() : null) as T };
-  };
-}
-
-async function guest() {
-  const call = device();
-  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
-  return { call, profile: body };
-}
+const device = () => client(app);
+const guest = () => newGuest(app);
 
 async function adminUser() {
   const g = await guest();

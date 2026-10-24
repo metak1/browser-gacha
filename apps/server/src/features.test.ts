@@ -18,40 +18,22 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
-import type { ServiceContext } from './services/context';
+import { buildTestApp, makeGear, newGuest, serviceContext, TEST_CONFIG, type Client } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 let clock = Date.UTC(2026, 9, 20, 12);
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(11), now: () => clock } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(11), now: () => clock } });
 });
 afterEach(async () => app.close());
 
-function device() {
-  let sid: string | undefined;
-  return async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-}
-
-async function guest() {
-  const call = device();
-  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
-  // Open the arena and dungeons (they unlock with campaign progress).
-  const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
-  for (const id of ['1-4', '2-1']) ctx.progress.recordClear(body.user.id, id, clock);
-  return { call, profile: body };
-}
+// Arena and dungeons open with campaign progress.
+const guest = () => newGuest(app, { cleared: ['1-4', '2-1'], at: clock });
 
 /** Plays a campaign stage on auto until it's won (or gives up). */
-async function winStage(call: ReturnType<typeof device>, stageId: string) {
+async function winStage(call: Client, stageId: string) {
   for (let i = 0; i < 10; i++) {
     const start = await call<StartBattleResponse>('POST', '/battles', { stageId });
     const { actions, state } = autoBattle(start.body.setup);
@@ -167,7 +149,7 @@ describe('arena', () => {
     const { call, profile } = await guest();
     await call('GET', '/arena');
     // Test-only: reach the arena repository behind the service to set up a Gold-tier rating.
-    const repo = (app.services.arena as unknown as { ctx: ServiceContext }).ctx.arena;
+    const repo = serviceContext(app).arena;
     repo.save({ ...repo.get(profile.user.id)!, rating: 1300 });
 
     clock += 7 * 24 * 3600 * 1000;
@@ -184,7 +166,7 @@ describe('content upgrade', () => {
   it('adds ultimates, gear and drops to content saved by the previous version', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-upgrade-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildTestApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...TEST_CONFIG, dbPath });
     await first.close();
 
     // Make the stored content look like it came from before ultimates/gear existed.
@@ -204,7 +186,7 @@ describe('content upgrade', () => {
     );
     raw.close();
 
-    const second = await buildTestApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...TEST_CONFIG, dbPath });
     const c = second.services.content.current;
     expect(c.charactersById.ignis!.ultimate).toBe('ignis-ult');
     expect(c.bundle.gear.length).toBeGreaterThan(0);
@@ -218,7 +200,7 @@ describe('art upgrade', () => {
   it('adds icons, sprite units and their stages to content from before art existed', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'gacha-art-'));
     const dbPath = join(dir, 'game.db');
-    const first = await buildTestApp({ ...baseConfig, dbPath });
+    const first = await buildTestApp({ ...TEST_CONFIG, dbPath });
     await first.close();
 
     // Roll the stored content back to how v2 saved it.
@@ -244,7 +226,7 @@ describe('art upgrade', () => {
               UPDATE meta SET value = '2' WHERE key = 'content_schema'; DELETE FROM meta WHERE key = 'content_upgrades';`);
     raw.close();
 
-    const second = await buildTestApp({ ...baseConfig, dbPath });
+    const second = await buildTestApp({ ...TEST_CONFIG, dbPath });
     const c = second.services.content.current;
     expect(c.skillsById['ignis-basic']!.icon).toBeGreaterThan(0);
     expect(c.gearById['runed-saber']!.icon).toBeGreaterThan(0);
@@ -266,7 +248,7 @@ describe('art upgrade', () => {
 describe('gear dungeons', () => {
   it("drop only gear from the dungeon's two sets at random, in fights and sweeps, and the loot can be sold", async () => {
     const { call, profile } = await guest();
-    const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+    const ctx = serviceContext(app);
     for (const id of profile.team) ctx.roster.setLevel(profile.user.id, id, 40);
     const tier = createDefaultContent().dungeons.find((d) => d.id === 'armory')!.tiers[0]!;
 
@@ -298,7 +280,7 @@ describe('gear dungeons', () => {
 });
 
 describe('roster tools and the tower', () => {
-  const ctxOf = () => (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+  const ctxOf = () => serviceContext(app);
 
   it('levels up several times at once, stopping at the cap or when gold runs out', async () => {
     const { call, profile } = await guest();
@@ -320,20 +302,7 @@ describe('roster tools and the tower', () => {
     const { call, profile } = await guest();
     const ctx = ctxOf();
     const [a, b] = profile.team as [string, string];
-    const weapon = (id: string, atk: number) => ({
-      id,
-      templateId: 'runed-saber',
-      slot: 'weapon' as const,
-      rarity: 4 as const,
-      level: 0,
-      mainBase: atk,
-      main: { stat: 'atk' as const, value: atk },
-      subs: [],
-      forge: 0,
-      equippedTo: null,
-      set: null,
-      locked: false,
-    });
+    const weapon = (id: string, atk: number) => makeGear({ id, main: { stat: 'atk', value: atk } });
     ctx.gear.insert(profile.user.id, weapon('weak', 10), clock);
     ctx.gear.insert(profile.user.id, weapon('strong', 60), clock);
     ctx.gear.insert(profile.user.id, weapon('taken', 90), clock);
@@ -351,19 +320,7 @@ describe('roster tools and the tower', () => {
     const { call, profile } = await guest();
     const ctx = ctxOf();
     const hero = profile.team[0]!;
-    const piece = (id: string, slot: GearSlot, set: string, atk: number) => ({
-      id,
-      templateId: 'runed-saber',
-      slot,
-      rarity: 4 as const,
-      level: 0,
-      mainBase: atk,
-      main: { stat: 'atk' as const, value: atk },
-      subs: [],
-      equippedTo: null,
-      set,
-      locked: false,
-    });
+    const piece = (id: string, slot: GearSlot, set: string, atk: number) => makeGear({ id, slot, set, main: { stat: 'atk', value: atk } });
     for (const slot of ['weapon', 'armor', 'charm', 'boots'] as const) {
       ctx.gear.insert(profile.user.id, piece(`gale-${slot}`, slot, 'gale', 5), clock);
       ctx.gear.insert(profile.user.id, piece(`ruin-${slot}`, slot, 'ruin', 80), clock);
@@ -391,23 +348,7 @@ describe('roster tools and the tower', () => {
     const ctx = ctxOf();
     const ids = ['00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2'];
     for (const id of ids) {
-      ctx.gear.insert(
-        profile.user.id,
-        {
-          id,
-          templateId: 'runed-saber',
-          slot: 'weapon',
-          rarity: 3,
-          level: 0,
-          mainBase: 10,
-          main: { stat: 'atk', value: 10 },
-          subs: [],
-          equippedTo: null,
-          set: null,
-          locked: false,
-        },
-        clock,
-      );
+      ctx.gear.insert(profile.user.id, makeGear({ id, rarity: 3 }), clock);
     }
     const lock = await call<GearActionResponse>('POST', `/gear/${ids[0]}/lock`, { locked: true });
     expect(lock.body.item!.locked).toBe(true);
@@ -429,19 +370,7 @@ describe('roster tools and the tower', () => {
     const r = createDefaultContent().settings.reforge;
     ctx.gear.insert(
       profile.user.id,
-      {
-        id: BLADE,
-        templateId: 'starforged-edge',
-        slot: 'weapon',
-        rarity: 5,
-        level: 0,
-        mainBase: 40,
-        main: { stat: 'atk', value: 40 },
-        subs: [{ stat: 'hp', value: 100, rolls: 1 }],
-        equippedTo: null,
-        set: null,
-        locked: false,
-      },
+      makeGear({ id: BLADE, templateId: 'starforged-edge', rarity: 5, main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }] }),
       clock,
     );
 

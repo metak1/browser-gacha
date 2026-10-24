@@ -9,7 +9,7 @@ import {
 } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
+import { buildTestApp, client, newGuest as guest, TEST_CONFIG } from './testing';
 import { DEFAULT_ACTIVITY_CHESTS, DEFAULT_LOGIN_CALENDAR, seededRandom, type ClaimMissionResponse } from '@gacha/shared';
 
 let app: FastifyInstance;
@@ -20,32 +20,15 @@ const { pullCost: PULL_COST, startingGems: STARTING_GEMS, dailyGems: DAILY_GEMS 
 const STARTER_CHARACTERS = REFERENCE_TEAM;
 
 beforeEach(async () => {
-  app = await buildTestApp(
-    { dbPath: ':memory:', cookieSecure: false, clientDist: null, logger: false, rateLimit: false },
-    { overrides: { random: seededRandom(1) } },
-  );
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(1) } });
 });
 
 afterEach(async () => {
   await app.close();
 });
 
-/** A cookie-carrying client, like one browser. */
-function device() {
-  let sid: string | undefined;
-  return async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-}
-
-async function newGuest() {
-  const call = device();
-  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
-  return { call, profile: body };
-}
+const device = () => client(app);
+const newGuest = () => guest(app);
 
 describe('auth', () => {
   it('rejects anonymous requests', async () => {

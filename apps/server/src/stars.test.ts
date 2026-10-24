@@ -1,28 +1,16 @@
 import { autoBattle, seededRandom, type CompleteBattleResponse, type ProfileDTO, type StartBattleResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
-import type { ServiceContext } from './services/context';
+import { buildTestApp, newGuest, serviceContext, TEST_CONFIG } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(5), now: () => Date.UTC(2026, 9, 20, 12) } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(5), now: () => Date.UTC(2026, 9, 20, 12) } });
 });
 afterEach(async () => app.close());
 
-async function guest() {
-  let sid: string | undefined;
-  const call = async <T>(method: 'GET' | 'POST', url: string, payload?: object) => {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-  const { body } = await call<ProfileDTO>('POST', '/auth/guest');
-  return { call, profile: body };
-}
+const guest = () => newGuest(app);
 
 describe('stage stars and chapter chests', () => {
   it('scores objectives, keeps the best stars and opens chests once', async () => {
@@ -43,7 +31,7 @@ describe('stage stars and chapter chests', () => {
     // Can't open before earning the stars.
     expect((await call('POST', '/chapters/1/chests/2/claim')).status).toBe(400);
 
-    const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
+    const ctx = serviceContext(app);
     for (const id of profile.team) ctx.roster.setLevel(profile.user.id, id, 15);
     const start = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-1' });
     const { actions, state } = autoBattle(start.body.setup);

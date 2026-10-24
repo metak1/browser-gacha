@@ -1,42 +1,21 @@
-import { autoBattle, seededRandom, type CompleteBattleResponse, type GuildDTO, type ProfileDTO, type SocialDTO, type StartBattleResponse } from '@gacha/shared';
+import { seededRandom, type GuildDTO, type ProfileDTO, type SocialDTO, type StartBattleResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
-import type { ServiceContext } from './services/context';
+import { autoPlay, buildTestApp, newGuest, serviceContext, TEST_CONFIG, type Client } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 // Inside the default Harvest Moon event (2026-10-15 .. 2026-11-15).
 let clock = Date.UTC(2026, 9, 20, 12);
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(4), now: () => clock } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(4), now: () => clock } });
 });
 afterEach(async () => app.close());
 
-const ctx = () => (app.services.player as unknown as { ctx: ServiceContext }).ctx;
-
-async function player(strong = true) {
-  let sid: string | undefined;
-  const call = async <T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: object) => {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-  const { body: profile } = await call<ProfileDTO>('POST', '/auth/guest');
-  if (strong) {
-    for (const id of profile.team) ctx().db.run('UPDATE characters SET level = 60, ascension = 4 WHERE user_id = ? AND char_id = ?', profile.user.id, id);
-  }
-  return { call, profile, id: profile.user.id };
-}
-
-async function play(call: Awaited<ReturnType<typeof player>>['call'], start: { status: number; body: StartBattleResponse }) {
-  expect(start.status).toBe(200);
-  const { actions } = autoBattle(start.body.setup);
-  return (await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions })).body;
-}
+const ctx = () => serviceContext(app);
+const player = (strong = true) => newGuest(app, { strong });
+const play = async (call: Client, start: { status: number; body: StartBattleResponse }) => (await autoPlay(call, start)).result;
 
 describe('player level and titles', () => {
   it('earns XP from wins, levels up with rewards, and unlocks titles', async () => {

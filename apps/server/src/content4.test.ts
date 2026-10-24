@@ -1,44 +1,20 @@
-import { autoBattle, hardKey, seededRandom, type CompleteBattleResponse, type ProfileDTO, type StartBattleResponse } from '@gacha/shared';
+import { hardKey, seededRandom, type ProfileDTO, type StartBattleResponse } from '@gacha/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildTestApp } from './testing';
-import type { ServiceContext } from './services/context';
+import { autoPlay, buildTestApp, newGuest, TEST_CONFIG } from './testing';
 
-const baseConfig = { cookieSecure: false, clientDist: null, logger: false, rateLimit: false };
 let app: FastifyInstance;
 // A Tuesday (UTC): the Tidal Grotto is open, the Ember Forge is not.
 let clock = Date.UTC(2026, 9, 20, 12);
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 9, 20, 12);
-  app = await buildTestApp({ ...baseConfig, dbPath: ':memory:' }, { overrides: { random: seededRandom(3), now: () => clock } });
+  app = await buildTestApp(TEST_CONFIG, { overrides: { random: seededRandom(3), now: () => clock } });
 });
 afterEach(async () => app.close());
 
-async function strongGuest() {
-  let sid: string | undefined;
-  const call = async <T>(method: 'GET' | 'POST', url: string, payload?: object) => {
-    const res = await app.inject({ method, url: `/api${url}`, payload, cookies: sid ? { sid } : {} });
-    const cookie = res.cookies.find((c) => c.name === 'sid');
-    if (cookie) sid = cookie.value || undefined;
-    return { status: res.statusCode, body: res.json() as T };
-  };
-  const { body: profile } = await call<ProfileDTO>('POST', '/auth/guest');
-  const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
-  for (const id of profile.team) {
-    ctx.roster.setLevel(profile.user.id, id, 60);
-    ctx.db.run('UPDATE characters SET ascension = 4 WHERE user_id = ? AND char_id = ?', profile.user.id, id);
-  }
-  return { call, profile, ctx };
-}
-
-async function play(call: Awaited<ReturnType<typeof strongGuest>>['call'], start: { status: number; body: StartBattleResponse }) {
-  expect(start.status).toBe(200);
-  const { actions, state } = autoBattle(start.body.setup);
-  const done = await call<CompleteBattleResponse>('POST', `/battles/${start.body.battleId}/complete`, { actions });
-  expect(done.status).toBe(200);
-  return { state, result: done.body };
-}
+const strongGuest = () => newGuest(app, { strong: true });
+const play = autoPlay;
 
 describe('hard mode', () => {
   it('opens after the chapter is cleared, pays more and tracks its own clears', async () => {
