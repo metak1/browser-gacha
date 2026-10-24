@@ -24,7 +24,6 @@ import {
   type ArenaResultDTO,
   type BattleAction,
   type BattleSetup,
-  type DungeonDef,
   type GearItem,
   type TeamMember,
   type XpGainDTO,
@@ -278,7 +277,7 @@ export class BattleService {
   }
 
   complete(userId: string, battleId: string, actions: BattleAction[]): BattleResult {
-    const { db, users, progress, now } = this.ctx;
+    const { db, progress, now } = this.ctx;
     const battle = progress.findBattle(battleId);
     if (!battle || battle.userId !== userId) throw notFound('Battle not found');
     if (battle.status !== 'active') throw conflict('battle_finished', 'This battle has already been completed');

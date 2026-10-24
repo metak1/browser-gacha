@@ -1,10 +1,10 @@
 import { summonKey } from '../battle/engine';
 import type { BattleSetup, UnitMechanics, UnitSpec } from '../battle/types';
-import { applyGear, applyGearCombat, type GearItem, type GearSets } from '../gear';
+import { applyGear, applyGearCombat, statPower, type GearItem, type GearSets } from '../gear';
 import { ascensionBonus, levelSkill } from '../progression';
 import { applyPassiveCombat, applyPassiveStats } from '../skills';
-import { roleCombat, scaleStats } from '../stats';
-import type { Passive, Rarity } from '../types';
+import { constellationOf, roleCombat, scaleStats } from '../stats';
+import type { CombatStats, Passive, Rarity, Stats } from '../types';
 import type {
   BannerDef,
   ChapterDef,
@@ -140,6 +140,38 @@ export function skillUsage(content: ContentIndex, skillId: string): string[] {
   return users;
 }
 
+/**
+ * A unit's stats before gear: level, constellation and ascension scale the base stats, then the
+ * passive's stat bonuses apply; combat stats come from the role and the passive. Battle setup,
+ * the hero sheet, auto-equip and power sorting all start from this, so they agree.
+ */
+export function unitBase(
+  prog: GameSettings['progression'],
+  def: Pick<CharacterDef, 'base' | 'role' | 'passive'>,
+  level: number,
+  constellation = 0,
+  ascension = 0,
+): { stats: Stats; combat: CombatStats } {
+  return {
+    stats: applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, ascension)), def.passive),
+    combat: applyPassiveCombat(roleCombat(def.role), def.passive),
+  };
+}
+
+/** An owned hero with the given gear worn: base stats (see unitBase), final stats and one power number. */
+export function heroStats(
+  content: ContentIndex,
+  owned: { id: string; level: number; copies: number; ascension: number },
+  gear: Pick<GearItem, 'main' | 'subs' | 'set'>[],
+): { base: Stats; combatBase: CombatStats; stats: Stats; combat: CombatStats; power: number } | null {
+  const def = content.charactersById[owned.id];
+  if (!def) return null;
+  const { stats: base, combat: combatBase } = unitBase(content.settings.progression, def, owned.level, constellationOf(owned.copies), owned.ascension);
+  const stats = applyGear(base, gear, content.gearSetsById);
+  const combat = applyGearCombat(combatBase, gear, content.gearSetsById);
+  return { base, combatBase, stats, combat, power: statPower(stats, combat) };
+}
+
 /** Resolves a unit into the self-contained form the battle engine runs on. */
 export function resolveUnit(
   content: ContentIndex,
@@ -159,6 +191,7 @@ export function resolveUnit(
   if (def.skill && !skill) throw new Error(`${def.name} has an unknown skill: ${def.skill}`);
   // A missing ultimate just means "none": it isn't required for the unit to work.
   const ultimate = def.ultimate ? (content.skillsById[def.ultimate] ?? null) : null;
+  const base = unitBase(prog, def, level, constellation, progress.ascension ?? 0);
   const spec: UnitSpec = {
     kind,
     id,
@@ -169,12 +202,8 @@ export function resolveUnit(
     role: def.role,
     boss: 'boss' in def ? def.boss : false,
     level,
-    stats: applyGear(
-      applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, progress.ascension ?? 0)), def.passive),
-      gear,
-      content.gearSetsById,
-    ),
-    combat: applyGearCombat(applyPassiveCombat(roleCombat(def.role), def.passive), gear, content.gearSetsById),
+    stats: applyGear(base.stats, gear, content.gearSetsById),
+    combat: applyGearCombat(base.combat, gear, content.gearSetsById),
     passive: def.passive ? structuredClone(def.passive) : null,
     // Copies, so editing content later can never reach into a battle in progress.
     basic: structuredClone(basic),

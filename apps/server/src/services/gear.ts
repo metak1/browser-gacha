@@ -1,7 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import {
-  applyPassiveCombat,
-  ascensionBonus,
   bestLoadout,
   constellationOf,
   gearSalvageValue,
@@ -9,10 +7,8 @@ import {
   pickGearTemplate,
   reforgeGold,
   reforgeSub,
-  roleCombat,
   rollGear,
   salvageStones,
-  scaleStats,
   upgradeGear,
   type GearDef,
   type GearItem,
@@ -20,6 +16,7 @@ import {
   type SalvagedDTO,
   type StageDef,
   type TeamMember,
+  unitBase,
 } from '@gacha/shared';
 import { badRequest, conflict, notFound } from '../errors';
 import type { ServiceContext } from './context';
@@ -100,9 +97,7 @@ export class GearService {
     return db.transaction(() => {
       const owned = roster.get(userId, charId);
       if (!c || !owned) throw badRequest('invalid_character', `You don't own ${charId}`);
-      const prog = content.current.settings.progression;
-      const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(prog, owned.ascension));
-      const combat = applyPassiveCombat(roleCombat(c.role), c.passive);
+      const { stats: base, combat } = unitBase(content.current.settings.progression, c, owned.level, constellationOf(owned.copies), owned.ascension);
       const sets = content.current.gearSetsById;
       const target = owned.gearSet && sets[owned.gearSet] ? owned.gearSet : null;
       const plan = bestLoadout(base, gear.list(userId), charId, sets, combat, target).filter((s) => s.best && s.best.id !== s.current?.id);

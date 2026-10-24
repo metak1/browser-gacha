@@ -23,8 +23,6 @@ import {
   gearStatLabel,
   heroBuild,
   applyGearCombat,
-  applyPassiveCombat,
-  roleCombat,
   COMBAT_LABEL,
   COMBAT_STATS,
   type CharacterDef,
@@ -33,13 +31,13 @@ import {
   GEAR_SLOTS,
   gearScore,
   levelUpCost,
-  scaleStats,
   type ElementId,
   type Rarity,
   type Role,
   type GearSlot,
   type OwnedCharacterDTO,
   type Skill,
+  unitBase,
 } from '@gacha/shared';
 import { useState } from 'react';
 import { api, errorMessage } from '../api';
@@ -325,15 +323,14 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
   const cap = levelCap(prog, rank, settings.maxLevel);
   const bonus = ascensionBonus(prog, rank);
   const worn = profile.gear.filter((g) => g.equippedTo === charId);
-  const base = scaleStats(c.base, level, con, bonus);
+  const { stats: base, combat: combatBase } = unitBase(prog, c, level, con, rank);
   const sets = content.gearSetsById;
   const stats = applyGear(base, worn, sets);
-  const next = level < cap ? applyGear(scaleStats(c.base, level + 1, con, bonus), worn, sets) : null;
+  const next = level < cap ? applyGear(unitBase(prog, c, level + 1, con, rank).stats, worn, sets) : null;
   const cost = levelUpCost(settings, level);
   const bulk5 = bulkLevelUp(settings, level, cap, profile.wallet.gold, 5);
   const bulkMax = bulkLevelUp(settings, level, cap, profile.wallet.gold, cap - level);
   // What auto-equip would add: the best free gear per slot, compared with what's worn.
-  const combatBase = applyPassiveCombat(roleCombat(c.role), c.passive);
   const combat = applyGearCombat(combatBase, worn, sets);
   const targetSet = owned?.gearSet && sets[owned.gearSet] ? owned.gearSet : null;
   const best = bestLoadout(base, profile.gear, charId, sets, combatBase, targetSet);

@@ -1,11 +1,6 @@
 import {
-  applyGear,
-  applyGearCombat,
-  applyPassiveCombat,
-  ascensionBonus,
   COMBAT_LABEL,
   COMBAT_STATS,
-  constellationOf,
   formatGearRoll,
   GEAR_SLOT_INFO,
   gearSalvageValue,
@@ -14,16 +9,14 @@ import {
   mainStatValue,
   heroBuild,
   reforgeGold,
-  roleCombat,
   salvageStones,
-  scaleStats,
-  statPower,
   subQuality,
   subRolls,
   wornSets,
   type GearItem,
   type GearSlot,
   type OwnedCharacterDTO,
+  heroStats,
 } from '@gacha/shared';
 import { useState } from 'react';
 import { api } from '../api';
@@ -155,21 +148,12 @@ export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: bool
   );
 }
 
-/** A hero's stats and power with a given set of worn gear. */
-function heroWith(content: ReturnType<typeof useContent>, owned: OwnedCharacterDTO, items: GearItem[]) {
-  const c = content.charactersById[owned.id]!;
-  const base = scaleStats(c.base, owned.level, constellationOf(owned.copies), ascensionBonus(content.settings.progression, owned.ascension));
-  const stats = applyGear(base, items, content.gearSetsById);
-  const combat = applyGearCombat(applyPassiveCombat(roleCombat(c.role), c.passive), items, content.gearSetsById);
-  return { stats, combat, power: statPower(stats, combat) };
-}
-
 /** What wearing `item` would change for a hero: their worn gear with it swapped into its slot. */
 function compareOn(content: ReturnType<typeof useContent>, gear: GearItem[], owned: OwnedCharacterDTO, item: GearItem) {
   const worn = gear.filter((g) => g.equippedTo === owned.id);
   const current = worn.find((g) => g.slot === item.slot) ?? null;
-  const before = heroWith(content, owned, worn);
-  const after = heroWith(content, owned, [...worn.filter((g) => g.slot !== item.slot), item]);
+  const before = heroStats(content, owned, worn)!;
+  const after = heroStats(content, owned, [...worn.filter((g) => g.slot !== item.slot), item])!;
   return { current, before, after, gain: after.power - before.power };
 }
 

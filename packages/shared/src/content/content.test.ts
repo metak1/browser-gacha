@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildBattleSetup, indexContent, isStageUnlocked } from './index';
+import { buildBattleSetup, heroStats, indexContent, isStageUnlocked, resolveUnit } from './index';
+import { constellationOf, rollGear, seededRandom } from '../index';
 import { createDefaultContent } from './defaults';
 import { appliedThrough, CONTENT_UPGRADES, upgradeContent } from './upgrade';
 import { validateBundle } from './validate';
@@ -257,5 +258,23 @@ describe('content upgrade ledger', () => {
     const { bundle, ran } = upgradeContent(b, applied);
     expect(ran).toEqual(['v28-stamina-cap-200']);
     expect(bundle.settings.stamina.max).toBe(200);
+  });
+});
+
+describe('hero stats', () => {
+  it('match what a battle uses, passive stat bonuses and gear included', () => {
+    const content = indexContent(createDefaultContent());
+    // Every hero whose passive raises a stat, plus one without.
+    const heroes = content.bundle.characters.filter((c) => c.passive?.rules.some((r) => r.kind === 'stat'));
+    expect(heroes.length).toBeGreaterThan(0);
+    const rng = seededRandom(5);
+    const gear = [rollGear(content.bundle.gear[0]!, rng, content.bundle.gearSets), rollGear(content.bundle.gear[1]!, rng, content.bundle.gearSets)];
+    for (const c of [...heroes, content.bundle.characters[0]!]) {
+      const owned = { id: c.id, level: 37, copies: 3, ascension: 2 };
+      const mine = heroStats(content, owned, gear)!;
+      const battle = resolveUnit(content, 'character', c.id, 37, constellationOf(3), gear, { ascension: 2 });
+      expect(mine.stats).toEqual(battle.stats);
+      expect(mine.combat).toEqual(battle.combat);
+    }
   });
 });

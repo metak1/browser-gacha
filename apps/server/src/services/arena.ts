@@ -166,7 +166,7 @@ export class ArenaService {
 
   /** Resets daily tickets and pays out the weekly season if a new week has started. */
   private refreshPeriodic(userId: string) {
-    const { users, content, now } = this.ctx;
+    const { content, now } = this.ctx;
     const { settings } = content.current;
     const player = this.ensure(userId);
     const today = utcDay(now());
