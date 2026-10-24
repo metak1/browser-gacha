@@ -558,6 +558,7 @@
 .gear-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 6px; }
 
 /* Roles: filter chips, and the team's role mix under the team tabs. */
+.role-filters { flex-wrap: wrap; }
 .role-filters .chip { padding-inline: 8px; white-space: nowrap; }
 .team-roles { margin: -4px 0 10px; color: var(--muted); }
 

@@ -20,12 +20,14 @@
     "make-admin": "npm run make-admin -w @gacha/server --",
     "max-heroes": "npm run max-heroes -w @gacha/server --",
     "reset-password": "npm run reset-password -w @gacha/server --",
-    "format": "prettier --write \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\"",
-    "format:check": "prettier --check \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\""
+    "format": "prettier --write \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\" \"e2e/**/*.ts\"",
+    "format:check": "prettier --check \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\" \"e2e/**/*.ts\"",
+    "e2e": "npm run build && tsx e2e/smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "concurrently": "^10.0.6",
+    "playwright-core": "^1.64.1",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

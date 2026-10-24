@@ -49,3 +49,8 @@
 
 /* Not enough stamina for a tier: the refill offer gets its own row. */
 .tier-short { grid-column: 1 / -1; text-align: right; }
+
+/* Phones: the run status moves to the banner corner so the weekday row has room. */
+@media (max-width: 520px) {
+  .dungeon-status { position: absolute; bottom: 100%; right: 10px; }
+}
