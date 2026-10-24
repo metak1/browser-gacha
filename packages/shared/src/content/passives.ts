@@ -58,18 +58,35 @@ export const DEFAULT_PASSIVES: Record<string, Passive> = {
   'demon-lord': p('Infernal Majesty', vs('burn', 0.3), on('battleStart', [status('atkUp', 2, 'allAllies')])),
 };
 
-export const defaultPassive = (id: string): Passive | null =>
-  DEFAULT_PASSIVES[id] ? structuredClone(DEFAULT_PASSIVES[id]) : null;
+export const defaultPassive = (id: string): Passive | null => (DEFAULT_PASSIVES[id] ? structuredClone(DEFAULT_PASSIVES[id]) : null);
 
 // Action budgets for the third star, from `npm run balance -- --calibrate`: about what the
 // starter team needs in its quicker fights five levels above the recommended level.
 const ACTION_BUDGETS: Record<string, number> = {
-  '1-1': 20, '1-2': 20, '1-3': 20, '1-4': 35,
-  '2-1': 30, '2-2': 50, '2-3': 40, '2-4': 40,
-  '3-1': 50, '3-2': 70, '3-3': 65, '3-4': 65,
-  '4-1': 40, '4-2': 95, '4-3': 80, '4-4': 105,
-  '5-1': 70, '5-2': 165, '5-3': 135, '5-4': 115,
-  '6-1': 60, '6-2': 105, '6-3': 85, '6-4': 105,
+  '1-1': 20,
+  '1-2': 20,
+  '1-3': 20,
+  '1-4': 35,
+  '2-1': 30,
+  '2-2': 50,
+  '2-3': 40,
+  '2-4': 40,
+  '3-1': 50,
+  '3-2': 70,
+  '3-3': 65,
+  '3-4': 65,
+  '4-1': 40,
+  '4-2': 95,
+  '4-3': 80,
+  '4-4': 105,
+  '5-1': 70,
+  '5-2': 165,
+  '5-3': 135,
+  '5-4': 115,
+  '6-1': 60,
+  '6-2': 105,
+  '6-3': 85,
+  '6-4': 105,
 };
 
 /** Win; nobody falls; win within an action budget. */

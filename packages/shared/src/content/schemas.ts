@@ -1,6 +1,20 @@
 import { z } from 'zod';
 import { GEAR_SLOTS, GEAR_STATS } from '../gear';
-import { EFFECT_TARGETS, ELEMENT_IDS, PASSIVE_TRIGGERS, ROLE_IDS, STATUS_IDS, TARGETINGS, type Effect, type Passive, type PassiveTrigger, COMBAT_STATS, SCALE_STATS, type CombatStat, type ScaleStat } from '../types';
+import {
+  EFFECT_TARGETS,
+  ELEMENT_IDS,
+  PASSIVE_TRIGGERS,
+  ROLE_IDS,
+  STATUS_IDS,
+  TARGETINGS,
+  type Effect,
+  type Passive,
+  type PassiveTrigger,
+  COMBAT_STATS,
+  SCALE_STATS,
+  type CombatStat,
+  type ScaleStat,
+} from '../types';
 import {
   MISSION_KINDS,
   SCENE_THEMES,
@@ -148,11 +162,17 @@ export const chapterSchema: z.ZodType<ChapterDef> = z.object({
   id: int(1, 999),
   name,
   theme: z.enum(SCENE_THEMES as [string, ...string[]]) as z.ZodType<ChapterDef['theme']>,
-  starRewards: z.array(z.object({ stars: int(1, 999), reward })).max(6).default([]),
+  starRewards: z
+    .array(z.object({ stars: int(1, 999), reward }))
+    .max(6)
+    .default([]),
 });
 
 const encounterEnemies = z.array(z.object({ id, level: int(1, 999) }));
-const waves = z.array(encounterEnemies.min(1, 'a wave needs at least one enemy').max(5, 'at most 5 enemies per wave')).max(4, 'at most 4 extra waves').default([]);
+const waves = z
+  .array(encounterEnemies.min(1, 'a wave needs at least one enemy').max(5, 'at most 5 enemies per wave'))
+  .max(4, 'at most 4 extra waves')
+  .default([]);
 const materialDrops = z
   .array(z.object({ material: id, min: int(1, 999), max: int(1, 999), chance: z.number().min(0).max(1) }))
   .max(8)
@@ -163,12 +183,18 @@ export const stageSchema: z.ZodType<StageDef> = z.object({
   chapter: int(1, 999),
   index: int(0, 999),
   name,
-  enemies: z.array(z.object({ id, level: int(1, 999) })).min(1, 'a stage needs at least one enemy').max(5, 'at most 5 enemies'),
+  enemies: z
+    .array(z.object({ id, level: int(1, 999) }))
+    .min(1, 'a stage needs at least one enemy')
+    .max(5, 'at most 5 enemies'),
   recommendedLevel: int(1, 999),
   statMult: z.number().min(0.1).max(10).default(1),
   firstClearGems: int(0, 1_000_000),
   gold: int(0, 1_000_000),
-  drops: z.array(z.object({ gear: id, chance: z.number().min(0).max(1) })).max(8).default([]),
+  drops: z
+    .array(z.object({ gear: id, chance: z.number().min(0).max(1) }))
+    .max(8)
+    .default([]),
   materialDrops,
   objectives: z
     .array(
@@ -239,9 +265,7 @@ export const eventSchema: z.ZodType<EventDef> = z.object({
     )
     .min(1, 'an event needs at least one stage')
     .max(10),
-  shop: z
-    .array(z.object({ id, reward, character: id.nullable().default(null), cost: int(1, 10_000_000), limit: int(1, 9999) }))
-    .max(20),
+  shop: z.array(z.object({ id, reward, character: id.nullable().default(null), cost: int(1, 10_000_000), limit: int(1, 9999) })).max(20),
 }) as z.ZodType<EventDef>;
 
 const reward0 = (gems = 0, gold = 0, stardust = 0, mats: Record<string, number> = {}) => ({
@@ -378,7 +402,6 @@ export const bannerSchema: z.ZodType<BannerDef> = z.object({
   featured5: id.nullable(),
   featured4: z.array(id).max(6),
 });
-
 
 const ELEMENT_ESSENCE = ['flame', 'tide', 'gale', 'stone', 'volt', 'frost'].map((e) => `${e}-essence`);
 
@@ -525,12 +548,18 @@ export const settingsSchema: z.ZodType<GameSettings> = z.object({
       attemptsPerDay: int(0, 50),
       turnLimit: int(5, 300),
       attemptGold: int(0, 1_000_000),
-      bosses: z.array(z.object({ enemy: id, level: int(1, 999), hpPerMember: int(1, 100_000_000) })).min(1).max(12),
+      bosses: z
+        .array(z.object({ enemy: id, level: int(1, 999), hpPerMember: int(1, 100_000_000) }))
+        .min(1)
+        .max(12),
       tiers: z.array(z.object({ percent: int(1, 100), reward })).max(10),
     })
     .default(DEFAULT_GUILD),
   firstSummon: z.object({ free: z.boolean(), guarantee5: z.boolean() }).default(DEFAULT_FIRST_SUMMON),
-  activityChests: z.array(z.object({ points: int(1, 10_000), reward })).max(6).default(DEFAULT_ACTIVITY_CHESTS),
+  activityChests: z
+    .array(z.object({ points: int(1, 10_000), reward }))
+    .max(6)
+    .default(DEFAULT_ACTIVITY_CHESTS),
   tower: z
     .object({
       startLevel: int(1, 999),

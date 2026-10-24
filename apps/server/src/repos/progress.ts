@@ -32,19 +32,19 @@ export class ProgressRepo {
 
   /** Players by highest tower floor (ties: who got there first). */
   towerBoard(): { userId: string; floor: number }[] {
-    return this.db.all<{ user_id: string; floor: number }>(
-      `SELECT user_id, floor FROM (
+    return this.db
+      .all<{ user_id: string; floor: number }>(
+        `SELECT user_id, floor FROM (
          SELECT user_id, CAST(substr(stage_id, 7) AS INTEGER) AS floor, first_cleared_at,
                 ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY CAST(substr(stage_id, 7) AS INTEGER) DESC) AS n
          FROM stage_clears WHERE stage_id LIKE 'tower:%'
        ) WHERE n = 1 ORDER BY floor DESC, first_cleared_at ASC`,
-    ).map((r) => ({ userId: r.user_id, floor: r.floor }));
+      )
+      .map((r) => ({ userId: r.user_id, floor: r.floor }));
   }
 
   clearedStages(userId: string): string[] {
-    return this.db
-      .all<{ stage_id: string }>('SELECT stage_id FROM stage_clears WHERE user_id = ?', userId)
-      .map((r) => r.stage_id);
+    return this.db.all<{ stage_id: string }>('SELECT stage_id FROM stage_clears WHERE user_id = ?', userId).map((r) => r.stage_id);
   }
 
   /** Best stars per cleared stage. */
@@ -60,16 +60,10 @@ export class ProgressRepo {
   recordClear(userId: string, stageId: string, now: number, stars = 1): { firstClear: boolean; previousStars: number } {
     const prev = this.db.get<{ stars: number }>('SELECT stars FROM stage_clears WHERE user_id = ? AND stage_id = ?', userId, stageId);
     if (!prev) {
-      this.db.run(
-        'INSERT INTO stage_clears (user_id, stage_id, clears, first_cleared_at, stars) VALUES (?, ?, 1, ?, ?)',
-        userId, stageId, now, stars,
-      );
+      this.db.run('INSERT INTO stage_clears (user_id, stage_id, clears, first_cleared_at, stars) VALUES (?, ?, 1, ?, ?)', userId, stageId, now, stars);
       return { firstClear: true, previousStars: 0 };
     }
-    this.db.run(
-      'UPDATE stage_clears SET clears = clears + 1, stars = MAX(stars, ?) WHERE user_id = ? AND stage_id = ?',
-      stars, userId, stageId,
-    );
+    this.db.run('UPDATE stage_clears SET clears = clears + 1, stars = MAX(stars, ?) WHERE user_id = ? AND stage_id = ?', stars, userId, stageId);
     return { firstClear: false, previousStars: prev.stars };
   }
 
@@ -83,7 +77,10 @@ export class ProgressRepo {
   claimChest(userId: string, chapterId: number, stars: number, now: number): boolean {
     const { changes } = this.db.run(
       'INSERT OR IGNORE INTO chapter_chests (user_id, chapter_id, stars, claimed_at) VALUES (?, ?, ?, ?)',
-      userId, chapterId, stars, now,
+      userId,
+      chapterId,
+      stars,
+      now,
     );
     return changes === 1;
   }
@@ -91,7 +88,13 @@ export class ProgressRepo {
   createBattle(b: Omit<BattleRecord, 'status'>) {
     this.db.run(
       "INSERT INTO battles (id, user_id, stage_id, setup, status, created_at, mode, meta) VALUES (?, ?, ?, ?, 'active', ?, ?, ?)",
-      b.id, b.userId, b.stageId, JSON.stringify(b.setup), b.createdAt, b.mode, b.meta === undefined ? null : JSON.stringify(b.meta),
+      b.id,
+      b.userId,
+      b.stageId,
+      JSON.stringify(b.setup),
+      b.createdAt,
+      b.mode,
+      b.meta === undefined ? null : JSON.stringify(b.meta),
     );
   }
 
@@ -113,10 +116,7 @@ export class ProgressRepo {
 
   /** Moves an active battle to a final status. Returns false if it was already finished. */
   finishBattle(id: string, status: 'won' | 'lost', now: number): boolean {
-    const { changes } = this.db.run(
-      "UPDATE battles SET status = ?, finished_at = ? WHERE id = ? AND status = 'active'",
-      status, now, id,
-    );
+    const { changes } = this.db.run("UPDATE battles SET status = ?, finished_at = ? WHERE id = ? AND status = 'active'", status, now, id);
     return changes === 1;
   }
 }

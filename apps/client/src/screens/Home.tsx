@@ -1,4 +1,19 @@
-import { chapterOf, ELEMENTS, eventDaysLeft, FEATURE_INFO, FEATURES, firstSummonFree, isEventActive, isFeatureUnlocked, levelCap, levelUpCost, UI_ICONS, type ContentIndex, type ProfileDTO, type Reward } from '@gacha/shared';
+import {
+  chapterOf,
+  ELEMENTS,
+  eventDaysLeft,
+  FEATURE_INFO,
+  FEATURES,
+  firstSummonFree,
+  isEventActive,
+  isFeatureUnlocked,
+  levelCap,
+  levelUpCost,
+  UI_ICONS,
+  type ContentIndex,
+  type ProfileDTO,
+  type Reward,
+} from '@gacha/shared';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
@@ -141,7 +156,13 @@ function nextStep(content: ContentIndex, profile: ProfileDTO): Step | null {
   }
   const first = content.stages[0];
   if (first && !cleared.has(first.id)) {
-    return { icon: '⚔️', title: 'Start your adventure', text: 'Your first battle comes with a quick tour of how combat works.', to: `/battle/${first.id}`, cta: `Battle ${first.id}` };
+    return {
+      icon: '⚔️',
+      title: 'Start your adventure',
+      text: 'Your first battle comes with a quick tour of how combat works.',
+      to: `/battle/${first.id}`,
+      cta: `Battle ${first.id}`,
+    };
   }
   if (profile.missionsReady > 0) {
     const n = profile.missionsReady;
@@ -157,13 +178,26 @@ function nextStep(content: ContentIndex, profile: ProfileDTO): Step | null {
     .find((c) => c && c.level < levelCap(prog, c.ascension, maxLevel) && profile.wallet.gold >= levelUpCost(content.settings, c.level));
   if (levelable) {
     const name = content.charactersById[levelable.id]?.name ?? levelable.id;
-    return { icon: '⬆️', title: 'Power up', text: `You have the gold to level up ${name}. Stronger heroes clear tougher stages.`, to: '/roster', cta: 'Open roster' };
+    return {
+      icon: '⬆️',
+      title: 'Power up',
+      text: `You have the gold to level up ${name}. Stronger heroes clear tougher stages.`,
+      to: '/roster',
+      cta: 'Open roster',
+    };
   }
   for (const f of FEATURES) {
     if (isFeatureUnlocked(content.settings, f, cleared)) continue;
     const need = content.settings.unlocks[f];
     const info = FEATURE_INFO[f];
-    if (need) return { icon: info.icon, title: `Unlock the ${info.label}`, text: `Clear stage ${need} to open it. ${info.blurb}`, to: '/campaign', cta: 'To the campaign' };
+    if (need)
+      return {
+        icon: info.icon,
+        title: `Unlock the ${info.label}`,
+        text: `Clear stage ${need} to open it. ${info.blurb}`,
+        to: '/campaign',
+        cta: 'To the campaign',
+      };
   }
   return null;
 }
@@ -250,7 +284,9 @@ function EventCard() {
         <PixelEmoji emoji={ev.emoji} />
       </span>
       <div>
-        <small className="muted">Limited event · {days} day{days === 1 ? '' : 's'} left</small>
+        <small className="muted">
+          Limited event · {days} day{days === 1 ? '' : 's'} left
+        </small>
         <h3>{ev.name}</h3>
         <p className="muted small">{ev.description}</p>
       </div>

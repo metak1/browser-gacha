@@ -65,11 +65,20 @@ export class SocialService {
       code: friendCode(userId),
       mySupport: this.supportHero(userId),
       maxFriends: this.ctx.content.current.settings.social.maxFriends,
-      friends: social.friendIds(userId).filter((id) => this.ctx.users.findById(id)).map((id) => this.friend(userId, id, used)),
+      friends: social
+        .friendIds(userId)
+        .filter((id) => this.ctx.users.findById(id))
+        .map((id) => this.friend(userId, id, used)),
       requests: social
         .pending(userId)
         .filter((r) => this.ctx.users.findById(r.otherId))
-        .map((r) => ({ id: r.otherId, name: displayName(this.ctx, r.otherId), level: levelOf(this.ctx, r.otherId), code: friendCode(r.otherId), incoming: r.incoming })),
+        .map((r) => ({
+          id: r.otherId,
+          name: displayName(this.ctx, r.otherId),
+          level: levelOf(this.ctx, r.otherId),
+          code: friendCode(r.otherId),
+          incoming: r.incoming,
+        })),
     };
   }
 

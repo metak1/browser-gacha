@@ -74,18 +74,16 @@ export function BattleStage(props: Props) {
       </div>
 
       {cutin && (
-        <div
-          key={cutin.id}
-          className={`cutin ${cutin.side}`}
-          style={{ '--el': ELEMENTS[cutin.element].color } as CSSProperties}
-        >
+        <div key={cutin.id} className={`cutin ${cutin.side}`} style={{ '--el': ELEMENTS[cutin.element].color } as CSSProperties}>
           <div className="cutin-band">
             {cutin.sprite ? (
               <span className="cutin-emoji art">
                 <UnitArt sprite={cutin.sprite} emoji={cutin.emoji} height="10cqw" clip="attack2" flip={cutin.side === 'enemy'} speed={speed} />
               </span>
             ) : (
-              <span className="cutin-emoji"><PixelEmoji emoji={cutin.emoji} /></span>
+              <span className="cutin-emoji">
+                <PixelEmoji emoji={cutin.emoji} />
+              </span>
             )}
             <div className="cutin-text">
               <small>{cutin.actorName}</small>
@@ -104,7 +102,9 @@ export function BattleStage(props: Props) {
               <UnitArt sprite={ultimate.sprite} emoji={ultimate.emoji} height="24cqw" clip="attack3" flip={ultimate.side === 'enemy'} speed={speed} />
             </span>
           ) : (
-            <span className="ult-emoji"><PixelEmoji emoji={ultimate.emoji} /></span>
+            <span className="ult-emoji">
+              <PixelEmoji emoji={ultimate.emoji} />
+            </span>
           )}
           <div className="ult-text">
             <small>Ultimate · {ultimate.actorName}</small>

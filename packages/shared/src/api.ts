@@ -192,8 +192,7 @@ export interface BulkSalvageResponse {
 
 /** Instantly repeat a mastered stage (3★, or cleared on hard) or a cleared dungeon tier. */
 export type SweepRequest =
-  | { kind: 'stage'; stageId: string; hard?: boolean; count: number }
-  | { kind: 'dungeon'; dungeonId: string; tier: number; count: number };
+  { kind: 'stage'; stageId: string; hard?: boolean; count: number } | { kind: 'dungeon'; dungeonId: string; tier: number; count: number };
 
 export interface SweepResponse {
   runs: number;

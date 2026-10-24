@@ -32,7 +32,13 @@ function usePlayModes(): ModeItem[] {
   ];
   const ev = content.bundle.events.find((e) => isEventActive(e, now));
   if (ev) {
-    items.push({ to: '/events', icon: ev.emoji, label: ev.name, status: `${ev.currency.emoji} ${(profile.events[ev.id]?.currency ?? 0).toLocaleString()} ${ev.currency.name}`, badge: 'Event' });
+    items.push({
+      to: '/events',
+      icon: ev.emoji,
+      label: ev.name,
+      status: `${ev.currency.emoji} ${(profile.events[ev.id]?.currency ?? 0).toLocaleString()} ${ev.currency.name}`,
+      badge: 'Event',
+    });
   }
   const dl = lock('dungeons');
   const open = content.bundle.dungeons.filter((d) => isDungeonOpen(d, now));
@@ -63,7 +69,10 @@ function useBadges() {
   return {
     home: profile.dailyAvailable ? '!' : undefined,
     missions: profile.missionsReady > 0 ? String(profile.missionsReady) : undefined,
-    social: profile.notices.friendRequests + profile.notices.guildAttacksLeft > 0 ? String(profile.notices.friendRequests + profile.notices.guildAttacksLeft) : undefined,
+    social:
+      profile.notices.friendRequests + profile.notices.guildAttacksLeft > 0
+        ? String(profile.notices.friendRequests + profile.notices.guildAttacksLeft)
+        : undefined,
   };
 }
 

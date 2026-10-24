@@ -31,7 +31,9 @@ export function DungeonsEditor() {
         description: '',
         theme: 'meadow',
         days: [0],
-        tiers: [{ name: 'Tier I', recommendedLevel: 10, enemies: [{ id: enemy, level: 8 }], waves: [], gold: 400, materialDrops: [], gearRolls: null, stamina: 8 }],
+        tiers: [
+          { name: 'Tier I', recommendedLevel: 10, enemies: [{ id: enemy, level: 8 }], waves: [], gold: 400, materialDrops: [], gearRolls: null, stamina: 8 },
+        ],
         sets: [],
         mechanic: null,
       })}
@@ -43,7 +45,11 @@ export function DungeonsEditor() {
 function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
   const content = useContent();
   const set = <K extends keyof DungeonDef>(k: K, v: DungeonDef[K]) => onChange({ ...value, [k]: v });
-  const setTier = (i: number, patch: Partial<DungeonTier>) => set('tiers', value.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  const setTier = (i: number, patch: Partial<DungeonTier>) =>
+    set(
+      'tiers',
+      value.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)),
+    );
   const toggleDay = (d: number) => set('days', value.days.includes(d) ? value.days.filter((x) => x !== d) : [...value.days, d].sort());
 
   return (
@@ -109,7 +115,16 @@ function DungeonForm({ value, onChange, isNew }: FormProps<DungeonDef>) {
           <Section
             title={`Tier ${i + 1}: ${t.name}`}
             actions={
-              <button className="btn small danger" disabled={value.tiers.length <= 1} onClick={() => set('tiers', value.tiers.filter((_, j) => j !== i))}>
+              <button
+                className="btn small danger"
+                disabled={value.tiers.length <= 1}
+                onClick={() =>
+                  set(
+                    'tiers',
+                    value.tiers.filter((_, j) => j !== i),
+                  )
+                }
+              >
                 Remove tier
               </button>
             }

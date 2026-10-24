@@ -21,7 +21,10 @@ export class ContentRepo {
     this.db.run(
       `INSERT INTO content (kind, id, data, updated_at) VALUES (?, ?, ?, ?)
        ON CONFLICT (kind, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
-      kind, id, JSON.stringify(data), now,
+      kind,
+      id,
+      JSON.stringify(data),
+      now,
     );
   }
 
@@ -55,9 +58,6 @@ export class ContentRepo {
   }
 
   private setMeta(key: string, value: number) {
-    this.db.run(
-      'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
-      key, String(value),
-    );
+    this.db.run('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', key, String(value));
   }
 }

@@ -48,7 +48,10 @@ export class GachaService {
       // Players who start without heroes get their first team from their first summon: the rarest heroes first.
       if (!roster.getTeam(userId).length) {
         const team = [...new Map(results.map((r) => [r.id, r])).values()].sort((a, b) => b.rarity - a.rarity).slice(0, content.settings.maxTeamSize);
-        roster.setTeam(userId, team.map((r) => r.id));
+        roster.setTeam(
+          userId,
+          team.map((r) => r.id),
+        );
       }
 
       gacha.saveBannerState(userId, bannerId, state);

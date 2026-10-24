@@ -1,0 +1,9 @@
+# One line ending everywhere: LF in the repo and in working copies.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.db binary

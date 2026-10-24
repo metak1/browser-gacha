@@ -123,17 +123,7 @@ export function Check({ checked, onChange, label }: { checked: boolean; onChange
 }
 
 /** Toggle chips for picking several ids. */
-export function MultiPick({
-  values,
-  onChange,
-  options,
-  max,
-}: {
-  values: string[];
-  onChange: (v: string[]) => void;
-  options: Option<string>[];
-  max?: number;
-}) {
+export function MultiPick({ values, onChange, options, max }: { values: string[]; onChange: (v: string[]) => void; options: Option<string>[]; max?: number }) {
   return (
     <div className="f-chips">
       {options.map((o) => {

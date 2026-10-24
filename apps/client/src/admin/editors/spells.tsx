@@ -90,9 +90,7 @@ function SpellForm({ value, onChange, isNew }: FormProps<SkillDef>) {
           <br />
           {value.effects.length ? describeSkill(value) : <span className="muted">No effects yet.</span>}
         </p>
-        {!isNew && (
-          <p className="small muted">{usedBy.length ? `Used by: ${usedBy.join(', ')}` : 'Not used by any unit yet.'}</p>
-        )}
+        {!isNew && <p className="small muted">{usedBy.length ? `Used by: ${usedBy.join(', ')}` : 'Not used by any unit yet.'}</p>}
       </Section>
     </>
   );

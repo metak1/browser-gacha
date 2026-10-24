@@ -34,7 +34,18 @@ export function EventsEditor() {
         start: today,
         end: today,
         currency: { name: 'Event Token', emoji: '🎟️', icon: null },
-        stages: [{ name: 'Stage 1', recommendedLevel: 10, enemies: [{ id: enemy, level: 8 }], waves: [], currencyMin: 5, currencyMax: 10, gold: 500, firstClearGems: 100 }],
+        stages: [
+          {
+            name: 'Stage 1',
+            recommendedLevel: 10,
+            enemies: [{ id: enemy, level: 8 }],
+            waves: [],
+            currencyMin: 5,
+            currencyMax: 10,
+            gold: 500,
+            firstClearGems: 100,
+          },
+        ],
         shop: [],
       })}
       Form={EventForm}
@@ -45,8 +56,16 @@ export function EventsEditor() {
 function EventForm({ value, onChange, isNew }: FormProps<EventDef>) {
   const content = useContent();
   const set = <K extends keyof EventDef>(k: K, v: EventDef[K]) => onChange({ ...value, [k]: v });
-  const setStage = (i: number, patch: Partial<EventStage>) => set('stages', value.stages.map((s, j) => (j === i ? { ...s, ...patch } : s)));
-  const setItem = (i: number, patch: Partial<EventShopItem>) => set('shop', value.shop.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const setStage = (i: number, patch: Partial<EventStage>) =>
+    set(
+      'stages',
+      value.stages.map((s, j) => (j === i ? { ...s, ...patch } : s)),
+    );
+  const setItem = (i: number, patch: Partial<EventShopItem>) =>
+    set(
+      'shop',
+      value.shop.map((s, j) => (j === i ? { ...s, ...patch } : s)),
+    );
   const heroOptions: Option<string | null>[] = [
     { value: null, label: '— no hero —' },
     ...content.bundle.characters.map((c) => ({ value: c.id, label: `${c.emoji} ${c.name} ${'★'.repeat(c.rarity)}${c.limited ? ' (limited)' : ''}` })),
@@ -91,7 +110,16 @@ function EventForm({ value, onChange, isNew }: FormProps<EventDef>) {
           <Section
             title={`Stage ${i + 1}: ${s.name}`}
             actions={
-              <button className="btn small danger" disabled={value.stages.length <= 1} onClick={() => set('stages', value.stages.filter((_, j) => j !== i))}>
+              <button
+                className="btn small danger"
+                disabled={value.stages.length <= 1}
+                onClick={() =>
+                  set(
+                    'stages',
+                    value.stages.filter((_, j) => j !== i),
+                  )
+                }
+              >
                 Remove stage
               </button>
             }
@@ -127,7 +155,10 @@ function EventForm({ value, onChange, isNew }: FormProps<EventDef>) {
         disabled={value.stages.length >= 10}
         onClick={() => {
           const last = value.stages[value.stages.length - 1]!;
-          set('stages', [...value.stages, { ...structuredClone(last), name: `Stage ${value.stages.length + 1}`, recommendedLevel: last.recommendedLevel + 10 }]);
+          set('stages', [
+            ...value.stages,
+            { ...structuredClone(last), name: `Stage ${value.stages.length + 1}`, recommendedLevel: last.recommendedLevel + 10 },
+          ]);
         }}
       >
         + Add stage
@@ -139,7 +170,12 @@ function EventForm({ value, onChange, isNew }: FormProps<EventDef>) {
           <button
             className="btn small"
             disabled={value.shop.length >= 20}
-            onClick={() => set('shop', [...value.shop, { id: `item-${value.shop.length + 1}`, reward: { gems: 100, gold: 0, stardust: 0, materials: [] }, character: null, cost: 50, limit: 5 }])}
+            onClick={() =>
+              set('shop', [
+                ...value.shop,
+                { id: `item-${value.shop.length + 1}`, reward: { gems: 100, gold: 0, stardust: 0, materials: [] }, character: null, cost: 50, limit: 5 },
+              ])
+            }
           >
             + Add item
           </button>
@@ -162,7 +198,16 @@ function EventForm({ value, onChange, isNew }: FormProps<EventDef>) {
               </label>
               <Select<string | null> value={item.character} onChange={(character) => setItem(i, { character })} options={heroOptions} />
               <span className="effect-tools">
-                <button className="icon-mini danger" onClick={() => set('shop', value.shop.filter((_, j) => j !== i))} title="Remove">
+                <button
+                  className="icon-mini danger"
+                  onClick={() =>
+                    set(
+                      'shop',
+                      value.shop.filter((_, j) => j !== i),
+                    )
+                  }
+                  title="Remove"
+                >
                   ✕
                 </button>
               </span>

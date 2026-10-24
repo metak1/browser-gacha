@@ -57,7 +57,11 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
       <Section
         title="Login calendar"
         actions={
-          <button className="btn small" disabled={draft.loginCalendar.length >= 31} onClick={() => set('loginCalendar', [...draft.loginCalendar, blankReward()])}>
+          <button
+            className="btn small"
+            disabled={draft.loginCalendar.length >= 31}
+            onClick={() => set('loginCalendar', [...draft.loginCalendar, blankReward()])}
+          >
             + Add day
           </button>
         }
@@ -70,13 +74,26 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
               <button
                 className="icon-mini danger"
                 disabled={draft.loginCalendar.length <= 1}
-                onClick={() => set('loginCalendar', draft.loginCalendar.filter((_, j) => j !== i))}
+                onClick={() =>
+                  set(
+                    'loginCalendar',
+                    draft.loginCalendar.filter((_, j) => j !== i),
+                  )
+                }
                 title="Remove day"
               >
                 ✕
               </button>
             </div>
-            <RewardEditor value={r} onChange={(next) => set('loginCalendar', draft.loginCalendar.map((x, j) => (j === i ? next : x)))} />
+            <RewardEditor
+              value={r}
+              onChange={(next) =>
+                set(
+                  'loginCalendar',
+                  draft.loginCalendar.map((x, j) => (j === i ? next : x)),
+                )
+              }
+            />
           </div>
         ))}
       </Section>
@@ -94,8 +111,8 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
         }
       >
         <p className="small muted">
-          Claiming a daily mission adds its activity points (set on each mission). Chests open when the day's points reach their threshold, and reset at 00:00 UTC.
-          Points available today: {content.bundle.missions.filter((m) => m.active && m.repeat === 'daily').reduce((n, m) => n + m.points, 0)}.
+          Claiming a daily mission adds its activity points (set on each mission). Chests open when the day's points reach their threshold, and reset at 00:00
+          UTC. Points available today: {content.bundle.missions.filter((m) => m.active && m.repeat === 'daily').reduce((n, m) => n + m.points, 0)}.
         </p>
         {draft.activityChests.map((c, i) => (
           <div key={i} className="chest-edit">
@@ -104,16 +121,38 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
                 <b>Chest at</b>
                 <NumberInput
                   value={c.points}
-                  onChange={(points) => set('activityChests', draft.activityChests.map((x, j) => (j === i ? { ...x, points } : x)))}
+                  onChange={(points) =>
+                    set(
+                      'activityChests',
+                      draft.activityChests.map((x, j) => (j === i ? { ...x, points } : x)),
+                    )
+                  }
                   min={1}
                 />
                 points
               </label>
-              <button className="icon-mini danger" onClick={() => set('activityChests', draft.activityChests.filter((_, j) => j !== i))} title="Remove chest">
+              <button
+                className="icon-mini danger"
+                onClick={() =>
+                  set(
+                    'activityChests',
+                    draft.activityChests.filter((_, j) => j !== i),
+                  )
+                }
+                title="Remove chest"
+              >
                 ✕
               </button>
             </div>
-            <RewardEditor value={c.reward} onChange={(reward) => set('activityChests', draft.activityChests.map((x, j) => (j === i ? { ...x, reward } : x)))} />
+            <RewardEditor
+              value={c.reward}
+              onChange={(reward) =>
+                set(
+                  'activityChests',
+                  draft.activityChests.map((x, j) => (j === i ? { ...x, reward } : x)),
+                )
+              }
+            />
           </div>
         ))}
       </Section>
@@ -143,10 +182,19 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
             </label>
             <label className="inline">
               HP per member
-              <NumberInput value={b.hpPerMember} onChange={(hpPerMember) => setG({ bosses: g.bosses.map((x, j) => (j === i ? { ...x, hpPerMember } : x)) })} min={1} />
+              <NumberInput
+                value={b.hpPerMember}
+                onChange={(hpPerMember) => setG({ bosses: g.bosses.map((x, j) => (j === i ? { ...x, hpPerMember } : x)) })}
+                min={1}
+              />
             </label>
             <span className="effect-tools">
-              <button className="icon-mini danger" disabled={g.bosses.length <= 1} onClick={() => setG({ bosses: g.bosses.filter((_, j) => j !== i) })} title="Remove">
+              <button
+                className="icon-mini danger"
+                disabled={g.bosses.length <= 1}
+                onClick={() => setG({ bosses: g.bosses.filter((_, j) => j !== i) })}
+                title="Remove"
+              >
                 ✕
               </button>
             </span>
@@ -161,7 +209,12 @@ export function SocialSettings({ draft, set }: { draft: GameSettings; set: <K ex
             <div className="effect-row">
               <label className="inline">
                 at %
-                <NumberInput value={t.percent} onChange={(percent) => setG({ tiers: g.tiers.map((x, j) => (j === i ? { ...x, percent } : x)) })} min={1} max={100} />
+                <NumberInput
+                  value={t.percent}
+                  onChange={(percent) => setG({ tiers: g.tiers.map((x, j) => (j === i ? { ...x, percent } : x)) })}
+                  min={1}
+                  max={100}
+                />
               </label>
               <span className="effect-tools">
                 <button className="icon-mini danger" onClick={() => setG({ tiers: g.tiers.filter((_, j) => j !== i) })} title="Remove">

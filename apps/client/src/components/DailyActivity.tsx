@@ -24,7 +24,9 @@ const GO: Partial<Record<MissionKind, { to: string; feature?: Feature }>> = {
 };
 
 const rewardText = (r: Reward) =>
-  [r.gems && `💎 ${r.gems}`, r.gold && `🪙 ${r.gold}`, r.stardust && `✨ ${r.stardust}`, ...r.materials.map((m) => `${m.id} ×${m.count}`)].filter(Boolean).join(' · ');
+  [r.gems && `💎 ${r.gems}`, r.gold && `🪙 ${r.gold}`, r.stardust && `✨ ${r.stardust}`, ...r.materials.map((m) => `${m.id} ×${m.count}`)]
+    .filter(Boolean)
+    .join(' · ');
 
 function untilReset(now = Date.now()) {
   const next = new Date(now);
@@ -145,50 +147,50 @@ export function TodayPanel({ supplies, calendar }: { supplies?: ReactNode; calen
       <ActivityTrack />
       <div className="today-list">
         {shown.map((m) => {
-            const go = GO[m.kind];
-            const lockedBy = go?.feature && !isFeatureUnlocked(content.settings, go.feature, cleared) ? content.settings.unlocks[go.feature] : null;
-            const noGuild = m.kind === 'guildAttacks' && !profile.guildId;
-            return (
-              <div key={m.id} className={`today-task ${m.claimed ? 'claimed' : m.complete ? 'ready' : ''}`}>
-                <div className="today-task-body">
-                  <b>{m.name}</b>
-                  <div className="today-task-bar">
-                    <div style={{ width: `${(m.progress / m.count) * 100}%` }} />
-                  </div>
-                  <small className="muted">
-                    {m.progress}/{m.count} · {m.description}
-                  </small>
+          const go = GO[m.kind];
+          const lockedBy = go?.feature && !isFeatureUnlocked(content.settings, go.feature, cleared) ? content.settings.unlocks[go.feature] : null;
+          const noGuild = m.kind === 'guildAttacks' && !profile.guildId;
+          return (
+            <div key={m.id} className={`today-task ${m.claimed ? 'claimed' : m.complete ? 'ready' : ''}`}>
+              <div className="today-task-body">
+                <b>{m.name}</b>
+                <div className="today-task-bar">
+                  <div style={{ width: `${(m.progress / m.count) * 100}%` }} />
                 </div>
-                <span className="today-points" title="Activity points">
-                  +{m.points}
-                </span>
-                <span className="today-reward">
-                  <RewardList reward={m.reward} size={14} />
-                </span>
-                {m.claimed ? (
-                  <span className="today-done">✓</span>
-                ) : m.complete ? (
-                  <button className="btn small primary glow" disabled={busy === m.id} onClick={() => claim(m)}>
-                    Claim
-                  </button>
-                ) : m.kind === 'claimDaily' ? (
-                  <button className="btn small" disabled={!profile.dailyAvailable} onClick={() => mutate(api.claimDaily, 'Daily supplies claimed')}>
-                    Collect
-                  </button>
-                ) : lockedBy ? (
-                  <span className="today-locked" title={`Unlocks after stage ${lockedBy}`}>
-                    🔒 {lockedBy}
-                  </span>
-                ) : go ? (
-                  <Link className="btn small" to={go.to} onClick={() => sfx.click()}>
-                    {noGuild ? 'Join' : 'Go'}
-                  </Link>
-                ) : (
-                  <span />
-                )}
+                <small className="muted">
+                  {m.progress}/{m.count} · {m.description}
+                </small>
               </div>
-            );
-          })}
+              <span className="today-points" title="Activity points">
+                +{m.points}
+              </span>
+              <span className="today-reward">
+                <RewardList reward={m.reward} size={14} />
+              </span>
+              {m.claimed ? (
+                <span className="today-done">✓</span>
+              ) : m.complete ? (
+                <button className="btn small primary glow" disabled={busy === m.id} onClick={() => claim(m)}>
+                  Claim
+                </button>
+              ) : m.kind === 'claimDaily' ? (
+                <button className="btn small" disabled={!profile.dailyAvailable} onClick={() => mutate(api.claimDaily, 'Daily supplies claimed')}>
+                  Collect
+                </button>
+              ) : lockedBy ? (
+                <span className="today-locked" title={`Unlocks after stage ${lockedBy}`}>
+                  🔒 {lockedBy}
+                </span>
+              ) : go ? (
+                <Link className="btn small" to={go.to} onClick={() => sfx.click()}>
+                  {noGuild ? 'Join' : 'Go'}
+                </Link>
+              ) : (
+                <span />
+              )}
+            </div>
+          );
+        })}
         {done.length > 0 && (
           <button className="today-fold" onClick={() => setShowDone(!showDone)}>
             {showDone ? '▲ Hide finished' : `✓ ${done.length} finished · show`}

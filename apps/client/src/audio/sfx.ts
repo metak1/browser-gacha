@@ -48,7 +48,21 @@ function tone({ freq, to, type = 'sine', duration = 0.15, volume = 0.2, delay = 
   osc.stop(t + duration + 0.02);
 }
 
-function noise({ duration = 0.15, volume = 0.2, freq = 1200, q = 1, delay = 0, sweepTo }: { duration?: number; volume?: number; freq?: number; q?: number; delay?: number; sweepTo?: number }) {
+function noise({
+  duration = 0.15,
+  volume = 0.2,
+  freq = 1200,
+  q = 1,
+  delay = 0,
+  sweepTo,
+}: {
+  duration?: number;
+  volume?: number;
+  freq?: number;
+  q?: number;
+  delay?: number;
+  sweepTo?: number;
+}) {
   const a = audio();
   if (!a) return;
   const t = a.ac.currentTime + delay;

@@ -13,7 +13,10 @@ export function FriendPicker({ value, onChange }: { value: string | null; onChan
   const content = useContent();
   const [friends, setFriends] = useState<FriendDTO[] | null>(null);
   useEffect(() => {
-    api.social.get().then((s) => setFriends(s.friends), () => setFriends([]));
+    api.social.get().then(
+      (s) => setFriends(s.friends),
+      () => setFriends([]),
+    );
   }, []);
   if (friends === null) return null;
   const ready = friends.filter((f) => f.support && !f.usedToday);
@@ -34,7 +37,12 @@ export function FriendPicker({ value, onChange }: { value: string | null; onChan
         {ready.map((f) => {
           const c = content.charactersById[f.support!.charId];
           return (
-            <button key={f.id} className={`chip friend-option ${value === f.id ? 'active' : ''}`} onClick={() => onChange(f.id)} title={`${f.name}'s ${c?.name ?? ''}`}>
+            <button
+              key={f.id}
+              className={`chip friend-option ${value === f.id ? 'active' : ''}`}
+              onClick={() => onChange(f.id)}
+              title={`${f.name}'s ${c?.name ?? ''}`}
+            >
               {c && <UnitArt sprite={c.sprite} emoji={c.emoji} height="22px" />} Lv{f.support!.level} · {f.name}
             </button>
           );

@@ -132,7 +132,13 @@ function progression() {
   });
   const essenceDungeons = content.bundle.dungeons.filter((d) => !d.tiers.some((t) => t.gearRolls));
 
-  const now = { cost: s.stamina.campaignCost, xpPer: s.playerLevel.xpPerStamina, regenMin: s.stamina.regenMinutes, max: s.stamina.max, dungeonCost: null as number | null };
+  const now = {
+    cost: s.stamina.campaignCost,
+    xpPer: s.playerLevel.xpPerStamina,
+    regenMin: s.stamina.regenMinutes,
+    max: s.stamina.max,
+    dungeonCost: null as number | null,
+  };
   const variants = [
     { ...now, name: 'old: ⚡6, 10 XP/⚡, 3 free dg runs', cost: 6, xpPer: 10, dungeonCost: 0 },
     { ...now, name: `now: ⚡${now.cost} everything, ${now.xpPer} XP/⚡` },
@@ -227,7 +233,15 @@ function progression() {
         if (v.dungeonCost === 0 && dungeonsOpen) {
           const runs = 3 * (day % 7 === 0 ? essenceDungeons.length : 1);
           for (let i = 0; i < runs; i++) {
-            const src = bestFor(sources().filter((x) => x.dungeon), want()) ?? bestFor(sources().filter((x) => x.dungeon), 'essence');
+            const src =
+              bestFor(
+                sources().filter((x) => x.dungeon),
+                want(),
+              ) ??
+              bestFor(
+                sources().filter((x) => x.dungeon),
+                'essence',
+              );
             if (src) gain(src, p.xpDungeon);
             spend();
           }

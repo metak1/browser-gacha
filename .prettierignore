@@ -1,0 +1,7 @@
+node_modules
+dist
+apps/server/data
+packages/shared/src/assets.generated.ts
+# Stylesheets keep their compact one-line rules.
+*.css
+*.md

@@ -82,7 +82,12 @@ describe('boss mechanics', () => {
     const atk = getUnit(state, uid)!.atk;
     const boss = getUnit(state, uid)!;
     boss.hp = Math.floor(boss.maxHp * 0.31);
-    play(state, events, () => ({ kind: 'basic', target: livingUnits(state, 'enemy').find((u) => u.statuses.some((x) => x.id === 'taunt'))?.uid ?? uid }), () => mech(events, 'enrage').length > 0);
+    play(
+      state,
+      events,
+      () => ({ kind: 'basic', target: livingUnits(state, 'enemy').find((u) => u.statuses.some((x) => x.id === 'taunt'))?.uid ?? uid }),
+      () => mech(events, 'enrage').length > 0,
+    );
     expect(mech(events, 'enrage')).toHaveLength(1);
     expect(getUnit(state, uid)!.atk).toBe(Math.round(atk * 1.3));
   });
@@ -93,7 +98,12 @@ describe('boss mechanics', () => {
     const uid = bossUid(state);
     const boss = getUnit(state, uid)!;
     boss.hp = Math.floor(boss.maxHp * 0.61);
-    play(state, events, () => ({ kind: 'basic', target: livingUnits(state, 'enemy').find((u) => u.statuses.some((x) => x.id === 'taunt'))?.uid ?? uid }), () => mech(events, 'adds').length > 0);
+    play(
+      state,
+      events,
+      () => ({ kind: 'basic', target: livingUnits(state, 'enemy').find((u) => u.statuses.some((x) => x.id === 'taunt'))?.uid ?? uid }),
+      () => mech(events, 'adds').length > 0,
+    );
     expect(mech(events, 'adds')).toHaveLength(1);
     const spawn = events.find((e) => e.type === 'spawn' && e.reason === 'summon' && e.source === uid);
     if (spawn?.type !== 'spawn') throw new Error('no adds spawned');
@@ -105,7 +115,12 @@ describe('boss mechanics', () => {
     for (const stageId of ['1-4', '2-4', '3-4', '4-4', '5-4', '6-4']) {
       const stage = content.stagesById[stageId]!;
       for (let seed = 1; seed <= 5; seed++) {
-        const setup = buildBattleSetup(content, seed, REFERENCE_TEAM.map((id) => ({ id, level: stage.recommendedLevel + 5, constellation: 0 })), stage);
+        const setup = buildBattleSetup(
+          content,
+          seed,
+          REFERENCE_TEAM.map((id) => ({ id, level: stage.recommendedLevel + 5, constellation: 0 })),
+          stage,
+        );
         const played = autoBattle(setup);
         const replay = replayBattle(setup, played.actions);
         expect(replay.error).toBeUndefined();

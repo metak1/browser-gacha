@@ -149,13 +149,7 @@ function HeroesTab() {
           {Array.from({ length: content.settings.maxTeamSize }, (_, i) => {
             const id = profile.team[i];
             return id ? (
-              <CharacterCard
-                key={id}
-                charId={id}
-                badge={`Lv ${owned.get(id)?.level ?? 1}`}
-                selected={id === selected}
-                onClick={() => setSelected(id)}
-              />
+              <CharacterCard key={id} charId={id} badge={`Lv ${owned.get(id)?.level ?? 1}`} selected={id === selected} onClick={() => setSelected(id)} />
             ) : (
               <div key={`empty-${i}`} className="slot-empty">
                 Empty slot
@@ -181,7 +175,12 @@ function HeroesTab() {
                 ✦
               </button>
               {ELEMENT_IDS.map((e) => (
-                <button key={e} className={`chip ${element === e ? 'active' : ''}`} onClick={() => setElement(element === e ? 'all' : e)} title={ELEMENTS[e].label}>
+                <button
+                  key={e}
+                  className={`chip ${element === e ? 'active' : ''}`}
+                  onClick={() => setElement(element === e ? 'all' : e)}
+                  title={ELEMENTS[e].label}
+                >
                   {ELEMENTS[e].icon}
                 </button>
               ))}
@@ -191,7 +190,12 @@ function HeroesTab() {
                 All roles
               </button>
               {ROLE_IDS.map((r) => (
-                <button key={r} className={`chip ${role === r ? 'active' : ''}`} onClick={() => setRole(role === r ? 'all' : r)} title={ROLE_INFO[r].description}>
+                <button
+                  key={r}
+                  className={`chip ${role === r ? 'active' : ''}`}
+                  onClick={() => setRole(role === r ? 'all' : r)}
+                  title={ROLE_INFO[r].description}
+                >
                   {ROLE_INFO[r].icon} {ROLE_INFO[r].label}
                 </button>
               ))}
@@ -343,13 +347,9 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
   const step = nextAscension(prog, rank);
   const essence = essenceFor(content, c.element);
   const ascendCost = step
-    ? [
-        ...(step.essence && essence ? [{ id: essence.id, count: step.essence }] : []),
-        ...(step.crystals ? [{ id: prog.crystal, count: step.crystals }] : []),
-      ]
+    ? [...(step.essence && essence ? [{ id: essence.id, count: step.essence }] : []), ...(step.crystals ? [{ id: prog.crystal, count: step.crystals }] : [])]
     : [];
-  const canAscend =
-    Boolean(step) && profile.wallet.gold >= (step?.gold ?? 0) && ascendCost.every((m) => (profile.materials[m.id] ?? 0) >= m.count);
+  const canAscend = Boolean(step) && profile.wallet.gold >= (step?.gold ?? 0) && ascendCost.every((m) => (profile.materials[m.id] ?? 0) >= m.count);
 
   function toggleTeam() {
     if (inTeam) {
@@ -434,11 +434,7 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
               </tbody>
             </table>
             <div className="detail-actions">
-              <button
-                className="btn primary"
-                disabled={atCap || profile.wallet.gold < cost}
-                onClick={() => mutate(() => api.levelUp(charId))}
-              >
+              <button className="btn primary" disabled={atCap || profile.wallet.gold < cost} onClick={() => mutate(() => api.levelUp(charId))}>
                 {level >= settings.maxLevel ? 'Max level' : atCap ? 'Level cap reached' : `Level up · 🪙 ${cost}`}
               </button>
               {!atCap && (
@@ -474,7 +470,11 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
                   <button className={`btn ${canAscend ? 'primary glow' : ''}`} disabled={!canAscend} onClick={ascend}>
                     ✦ Ascend
                   </button>
-                  {!canAscend && essence && <p className="small muted">{essence.name} drops from {c.element} enemies, or buy it in Roster → Materials.</p>}
+                  {!canAscend && essence && (
+                    <p className="small muted">
+                      {essence.name} drops from {c.element} enemies, or buy it in Roster → Materials.
+                    </p>
+                  )}
                 </>
               ) : (
                 <div className="ascend-head">
@@ -490,11 +490,7 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
                 {owned && (
                   <label className="small" title="Auto-equip fills every slot it can with this set first, then takes the strongest gear for the rest.">
                     Aim for{' '}
-                    <select
-                      className="sort-select"
-                      value={targetSet ?? ''}
-                      onChange={(e) => void mutate(() => api.setGearSet(charId, e.target.value || null))}
-                    >
+                    <select className="sort-select" value={targetSet ?? ''} onChange={(e) => void mutate(() => api.setGearSet(charId, e.target.value || null))}>
                       <option value="">Strongest</option>
                       {content.bundle.gearSets.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -590,19 +586,7 @@ function CharacterDetail({ charId, owned }: { charId: string; owned?: OwnedChara
 }
 
 /** A skill with its level, current/next-level text, and an upgrade button. */
-function SkillCard({
-  label,
-  skill,
-  charId,
-  slot,
-  level,
-}: {
-  label: string;
-  skill: Skill;
-  charId?: string;
-  slot?: 'skill' | 'ultimate';
-  level?: number;
-}) {
+function SkillCard({ label, skill, charId, slot, level }: { label: string; skill: Skill; charId?: string; slot?: 'skill' | 'ultimate'; level?: number }) {
   const { mutate } = useProfile();
   const content = useContent();
   const prog = content.settings.progression;
@@ -612,9 +596,7 @@ function SkillCard({
   const nextCost = slot && level !== undefined ? skillLevelCost(prog, lv) : null;
   const nextSkill = nextCost ? levelSkill(skill, lv + 1, prog.skillLevelBonus) : null;
   const { profile } = useProfile();
-  const affordable = nextCost
-    ? profile.wallet.gold >= nextCost.gold && (profile.materials[prog.tome] ?? 0) >= nextCost.tomes
-    : false;
+  const affordable = nextCost ? profile.wallet.gold >= nextCost.gold && (profile.materials[prog.tome] ?? 0) >= nextCost.tomes : false;
 
   return (
     <div className="skill-info">
@@ -844,7 +826,12 @@ function GearTab() {
               </option>
             ))}
           </select>
-          <select className="sort-select" value={rarity} onChange={(e) => setRarity(e.target.value === 'all' ? 'all' : (Number(e.target.value) as Rarity))} aria-label="Rarity">
+          <select
+            className="sort-select"
+            value={rarity}
+            onChange={(e) => setRarity(e.target.value === 'all' ? 'all' : (Number(e.target.value) as Rarity))}
+            aria-label="Rarity"
+          >
             <option value="all">Any rarity</option>
             {([5, 4, 3] as const).map((r) => (
               <option key={r} value={r}>
@@ -883,7 +870,9 @@ function GearTab() {
             })}
           </div>
         ) : (
-          <p className="muted center">{profile.gear.length ? 'No gear matches these filters.' : 'No gear yet. Win campaign stages to find weapons, armor and charms.'}</p>
+          <p className="muted center">
+            {profile.gear.length ? 'No gear matches these filters.' : 'No gear yet. Win campaign stages to find weapons, armor and charms.'}
+          </p>
         )}
       </section>
       <aside className="panel detail">

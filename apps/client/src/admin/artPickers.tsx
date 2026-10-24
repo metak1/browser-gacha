@@ -47,7 +47,12 @@ export function IconField({ label, value, onChange, hint }: { label: string; val
 }
 
 function IconBrowser({ value, onPick, onClose }: { value: number | null; onPick: (v: number) => void; onClose: () => void }) {
-  const initial = value ? Math.max(0, ICON_SECTIONS.findIndex((s) => value >= s.from && value <= s.to)) : 2;
+  const initial = value
+    ? Math.max(
+        0,
+        ICON_SECTIONS.findIndex((s) => value >= s.from && value <= s.to),
+      )
+    : 2;
   const [section, setSection] = useState(initial);
   const [jump, setJump] = useState('');
   const s = ICON_SECTIONS[section]!;

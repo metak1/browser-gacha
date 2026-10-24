@@ -75,10 +75,7 @@ function makeUnit(spec: UnitSpec, side: Side, index: number): BattleUnit {
 export function startBattle(setup: BattleSetup): { state: BattleState; events: BattleEvent[] } {
   if (!setup.allies.length || !setup.enemies.length) throw new Error('Both sides need at least one unit');
   const state: BattleState = {
-    units: [
-      ...setup.allies.map((u, i) => makeUnit(u, 'ally', i)),
-      ...setup.enemies.map((u, i) => makeUnit(u, 'enemy', i)),
-    ],
+    units: [...setup.allies.map((u, i) => makeUnit(u, 'ally', i)), ...setup.enemies.map((u, i) => makeUnit(u, 'enemy', i))],
     rng: setup.seed | 0,
     turns: 0,
     actorUid: null,
@@ -171,9 +168,7 @@ export function validateAction(state: BattleState, action: BattleAction): string
 
 /** Predicts the next `count` turns from the current action values. */
 export function predictTurnOrder(state: BattleState, count: number): string[] {
-  const sim = state.units
-    .filter(isAlive)
-    .map((u) => ({ uid: u.uid, av: u.uid === state.actorUid ? 0 : u.av, step: AV_BASE / effectiveStat(u, 'spd') }));
+  const sim = state.units.filter(isAlive).map((u) => ({ uid: u.uid, av: u.uid === state.actorUid ? 0 : u.av, step: AV_BASE / effectiveStat(u, 'spd') }));
   const order: string[] = [];
   if (!sim.length) return order;
   while (order.length < count) {
@@ -197,9 +192,7 @@ export function act(state: BattleState, action: BattleAction): BattleEvent[] {
   const skill = skillFor(actor, action.kind)!;
   const target = skill.targeting === 'none' ? null : getUnit(state, action.target!)!;
 
-  const events: BattleEvent[] = [
-    { type: 'action', actor: actor.uid, kind: action.kind, skill: skill.name, target: target?.uid ?? null },
-  ];
+  const events: BattleEvent[] = [{ type: 'action', actor: actor.uid, kind: action.kind, skill: skill.name, target: target?.uid ?? null }];
   // Spend energy up front so hits taken during the ultimate don't refill it mid-cast.
   if (action.kind === 'ultimate') actor.energy = 0;
   for (const effect of skill.effects) {
@@ -336,17 +329,17 @@ function summon(state: BattleState, actor: BattleUnit, effect: Effect & { kind: 
   const room = MAX_SIDE - livingUnits(state, actor.side).length;
   const count = Math.min(effect.count, room);
   if (count <= 0) return;
-  spawnUnits(state, Array.from({ length: count }, () => structuredClone(spec)), actor.side, events, 'summon', actor.uid);
+  spawnUnits(
+    state,
+    Array.from({ length: count }, () => structuredClone(spec)),
+    actor.side,
+    events,
+    'summon',
+    actor.uid,
+  );
 }
 
-function applyEffect(
-  state: BattleState,
-  actor: BattleUnit,
-  target: BattleUnit | null,
-  effect: Effect,
-  events: BattleEvent[],
-  fromPassive = false,
-) {
+function applyEffect(state: BattleState, actor: BattleUnit, target: BattleUnit | null, effect: Effect, events: BattleEvent[], fromPassive = false) {
   if (effect.kind === 'summon') {
     if (isAlive(actor)) summon(state, actor, effect, events);
     return;
@@ -370,7 +363,13 @@ function applyEffect(
           const variance = 0.95 + rand(state) * 0.1;
           const bonus = passiveDamageBonus(actor, t);
           const raw =
-            scaleBase(actor, effect.scale) * (effect.mult / hits) * (1 - def / (def + DEF_CONSTANT)) * elem * (crit ? 1 + actor.combat.critDmg : 1) * variance * bonus;
+            scaleBase(actor, effect.scale) *
+            (effect.mult / hits) *
+            (1 - def / (def + DEF_CONSTANT)) *
+            elem *
+            (crit ? 1 + actor.combat.critDmg : 1) *
+            variance *
+            bonus;
           const amount = Math.max(1, Math.round(raw));
           dealt += amount;
           dealDamage(state, actor.uid, t, amount, crit, advantage, events, undefined, fromPassive);
@@ -541,7 +540,14 @@ function bossDamaged(state: BattleState, boss: BattleUnit, dealt: number, events
     const count = Math.min(adds.count, MAX_SIDE - livingUnits(state, boss.side).length);
     if (!spec || count <= 0 || state.outcome !== 'ongoing') continue;
     events.push({ type: 'mechanic', unit: boss.uid, kind: 'adds', name: spec.name });
-    spawnUnits(state, Array.from({ length: count }, () => structuredClone(spec)), boss.side, events, 'summon', boss.uid);
+    spawnUnits(
+      state,
+      Array.from({ length: count }, () => structuredClone(spec)),
+      boss.side,
+      events,
+      'summon',
+      boss.uid,
+    );
   }
 }
 

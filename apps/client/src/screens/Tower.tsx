@@ -137,9 +137,7 @@ function Tower() {
           </section>
 
           <section className="panel">
-            <h3>
-              Leaderboard {board?.myRank && <small className="muted">· you're #{board.myRank}</small>}
-            </h3>
+            <h3>Leaderboard {board?.myRank && <small className="muted">· you're #{board.myRank}</small>}</h3>
             {!board ? (
               <p className="small muted">Loading…</p>
             ) : !board.leaders.length ? (

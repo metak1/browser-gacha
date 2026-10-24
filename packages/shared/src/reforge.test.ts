@@ -66,7 +66,11 @@ describe('random main stats', () => {
 
   it('still honours a fixed main stat on a template', async () => {
     const { rollGear } = await import('./gear');
-    const item = rollGear({ id: 'x', name: 'X', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: 'critDmg', mainBase: 0.2, icon: null, set: null }, seededRandom(1), []);
+    const item = rollGear(
+      { id: 'x', name: 'X', emoji: '⚔️', slot: 'weapon', rarity: 4, mainStat: 'critDmg', mainBase: 0.2, icon: null, set: null },
+      seededRandom(1),
+      [],
+    );
     expect(item.main).toEqual({ stat: 'critDmg', value: 0.2 });
   });
 
@@ -74,8 +78,14 @@ describe('random main stats', () => {
     const { createDefaultContent } = await import('./content/defaults');
     const { upgradeContent } = await import('./content/upgrade');
     const b = createDefaultContent();
-    Object.assign(b.gear.find((g) => g.id === 'runed-saber')!, { mainStat: 'atk', mainBase: 28 });
-    Object.assign(b.gear.find((g) => g.id === 'knight-mail')!, { mainStat: 'hp', mainBase: 250 }); // an admin edit
+    Object.assign(
+      b.gear.find((g) => g.id === 'runed-saber')!,
+      { mainStat: 'atk', mainBase: 28 },
+    );
+    Object.assign(
+      b.gear.find((g) => g.id === 'knight-mail')!,
+      { mainStat: 'hp', mainBase: 250 },
+    ); // an admin edit
     const { bundle } = upgradeContent(b, 15);
     expect(bundle.gear.find((g) => g.id === 'runed-saber')!.mainStat).toBeNull();
     expect(bundle.gear.find((g) => g.id === 'knight-mail')).toMatchObject({ mainStat: 'hp', mainBase: 250 });

@@ -46,71 +46,93 @@ function ChapterForm({ value, onChange, isNew }: FormProps<ChapterDef>) {
   const set = <K extends keyof ChapterDef>(k: K, v: ChapterDef[K]) => onChange({ ...value, [k]: v });
   const maxStars = content.stages.filter((s) => s.chapter === value.id).reduce((n, s) => n + Math.max(1, s.objectives.length), 0);
   const setChest = (i: number, patch: Partial<ChapterDef['starRewards'][number]>) =>
-    set('starRewards', value.starRewards.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+    set(
+      'starRewards',
+      value.starRewards.map((c, j) => (j === i ? { ...c, ...patch } : c)),
+    );
   return (
     <>
-    <Section title="Chapter">
-      <FormGrid>
-        <Field label="Number" hint="Chapters play in number order. Can't be changed after creation.">
-          <NumberInput value={value.id} onChange={(v) => set('id', v)} min={1} disabled={!isNew} />
-        </Field>
-        <Field label="Name">
-          <TextInput value={value.name} onChange={(v) => set('name', v)} />
-        </Field>
-        <Field label="Scenery">
-          <Select value={value.theme} onChange={(v) => set('theme', v)} options={options(SCENE_THEMES)} />
-        </Field>
-      </FormGrid>
-      <div className="scene-preview">
-        <Scene theme={value.theme} />
-      </div>
-    </Section>
-    <Section
-      title="Star chests"
-      actions={
-        <>
-          {!value.starRewards.length && (
-            <button className="btn small" onClick={() => set('starRewards', defaultStarRewards(value.id).filter((c) => c.stars <= maxStars))}>
-              Use defaults
-            </button>
-          )}
-          <button
-            className="btn small"
-            disabled={value.starRewards.length >= 6}
-            onClick={() =>
-              set('starRewards', [
-                ...value.starRewards,
-                { stars: Math.min(maxStars || 1, (value.starRewards[value.starRewards.length - 1]?.stars ?? 0) + 3), reward: { gems: 100, gold: 0, stardust: 0, materials: [] } },
-              ])
-            }
-          >
-            + Add chest
-          </button>
-        </>
-      }
-    >
-      <p className="small muted">
-        Players open a chest once their best stars across this chapter's stages reach its threshold. This chapter has {maxStars} stars
-        available.
-      </p>
-      {value.starRewards.map((c, i) => (
-        <div key={i} className="chest-edit">
-          <div className="effect-row">
-            <label className="inline">
-              Needs ★
-              <NumberInput value={c.stars} onChange={(stars) => setChest(i, { stars })} min={1} max={999} />
-            </label>
-            {c.stars > maxStars && <span className="warn-text small">More than the {maxStars} available</span>}
-            <span className="effect-tools">
-              <button className="icon-mini danger" onClick={() => set('starRewards', value.starRewards.filter((_, j) => j !== i))} title="Remove">
-                ✕
-              </button>
-            </span>
-          </div>
-          <RewardEditor value={c.reward} onChange={(reward) => setChest(i, { reward })} />
+      <Section title="Chapter">
+        <FormGrid>
+          <Field label="Number" hint="Chapters play in number order. Can't be changed after creation.">
+            <NumberInput value={value.id} onChange={(v) => set('id', v)} min={1} disabled={!isNew} />
+          </Field>
+          <Field label="Name">
+            <TextInput value={value.name} onChange={(v) => set('name', v)} />
+          </Field>
+          <Field label="Scenery">
+            <Select value={value.theme} onChange={(v) => set('theme', v)} options={options(SCENE_THEMES)} />
+          </Field>
+        </FormGrid>
+        <div className="scene-preview">
+          <Scene theme={value.theme} />
         </div>
-      ))}
-    </Section>
+      </Section>
+      <Section
+        title="Star chests"
+        actions={
+          <>
+            {!value.starRewards.length && (
+              <button
+                className="btn small"
+                onClick={() =>
+                  set(
+                    'starRewards',
+                    defaultStarRewards(value.id).filter((c) => c.stars <= maxStars),
+                  )
+                }
+              >
+                Use defaults
+              </button>
+            )}
+            <button
+              className="btn small"
+              disabled={value.starRewards.length >= 6}
+              onClick={() =>
+                set('starRewards', [
+                  ...value.starRewards,
+                  {
+                    stars: Math.min(maxStars || 1, (value.starRewards[value.starRewards.length - 1]?.stars ?? 0) + 3),
+                    reward: { gems: 100, gold: 0, stardust: 0, materials: [] },
+                  },
+                ])
+              }
+            >
+              + Add chest
+            </button>
+          </>
+        }
+      >
+        <p className="small muted">
+          Players open a chest once their best stars across this chapter's stages reach its threshold. This chapter has {maxStars} stars available.
+        </p>
+        {value.starRewards.map((c, i) => (
+          <div key={i} className="chest-edit">
+            <div className="effect-row">
+              <label className="inline">
+                Needs ★
+                <NumberInput value={c.stars} onChange={(stars) => setChest(i, { stars })} min={1} max={999} />
+              </label>
+              {c.stars > maxStars && <span className="warn-text small">More than the {maxStars} available</span>}
+              <span className="effect-tools">
+                <button
+                  className="icon-mini danger"
+                  onClick={() =>
+                    set(
+                      'starRewards',
+                      value.starRewards.filter((_, j) => j !== i),
+                    )
+                  }
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </span>
+            </div>
+            <RewardEditor value={c.reward} onChange={(reward) => setChest(i, { reward })} />
+          </div>
+        ))}
+      </Section>
     </>
   );
 }
@@ -142,7 +164,12 @@ function ObjectivesEditor({ value, onChange }: { value: StageObjective[]; onChan
           {o.kind === 'maxActions' && (
             <label className="inline">
               at most
-              <NumberInput value={o.value} onChange={(v) => onChange(value.map((x, j) => (j === i ? { kind: 'maxActions', value: v } : x)))} min={1} max={999} />
+              <NumberInput
+                value={o.value}
+                onChange={(v) => onChange(value.map((x, j) => (j === i ? { kind: 'maxActions', value: v } : x)))}
+                min={1}
+                max={999}
+              />
               actions
             </label>
           )}
@@ -209,16 +236,25 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
     label: `${e.emoji} ${e.name}${e.boss ? ' (boss)' : ''}`,
   }));
   const setEnemy = (i: number, patch: Partial<StageDef['enemies'][number]>) =>
-    set('enemies', value.enemies.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+    set(
+      'enemies',
+      value.enemies.map((e, j) => (j === i ? { ...e, ...patch } : e)),
+    );
   const gearOptions: Option<string>[] = content.bundle.gear.map((g) => ({
     value: g.id,
     label: `${g.emoji} ${g.name} ${'★'.repeat(g.rarity)}`,
   }));
   const materialOptions: Option<string>[] = content.bundle.materials.map((m) => ({ value: m.id, label: `${m.emoji} ${m.name}` }));
   const setMatDrop = (i: number, patch: Partial<StageDef['materialDrops'][number]>) =>
-    set('materialDrops', value.materialDrops.map((d, j) => (j === i ? { ...d, ...patch } : d)));
+    set(
+      'materialDrops',
+      value.materialDrops.map((d, j) => (j === i ? { ...d, ...patch } : d)),
+    );
   const setDrop = (i: number, patch: Partial<StageDef['drops'][number]>) =>
-    set('drops', value.drops.map((d, j) => (j === i ? { ...d, ...patch } : d)));
+    set(
+      'drops',
+      value.drops.map((d, j) => (j === i ? { ...d, ...patch } : d)),
+    );
 
   return (
     <>
@@ -245,7 +281,9 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
           <button
             className="btn small"
             disabled={value.enemies.length >= 5}
-            onClick={() => set('enemies', [...value.enemies, { ...(value.enemies[value.enemies.length - 1] ?? { id: enemyOptions[0]?.value ?? '', level: 1 }) }])}
+            onClick={() =>
+              set('enemies', [...value.enemies, { ...(value.enemies[value.enemies.length - 1] ?? { id: enemyOptions[0]?.value ?? '', level: 1 }) }])
+            }
           >
             + Add enemy
           </button>
@@ -263,7 +301,12 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
               <button
                 className="icon-mini danger"
                 disabled={value.enemies.length <= 1}
-                onClick={() => set('enemies', value.enemies.filter((_, j) => j !== i))}
+                onClick={() =>
+                  set(
+                    'enemies',
+                    value.enemies.filter((_, j) => j !== i),
+                  )
+                }
                 title="Remove"
               >
                 ✕
@@ -296,15 +339,22 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
               <NumberInput value={Math.round(d.chance * 100)} onChange={(p) => setDrop(i, { chance: Math.max(0, Math.min(100, p)) / 100 })} min={0} max={100} />
             </label>
             <span className="effect-tools">
-              <button className="icon-mini danger" onClick={() => set('drops', value.drops.filter((_, j) => j !== i))} title="Remove">
+              <button
+                className="icon-mini danger"
+                onClick={() =>
+                  set(
+                    'drops',
+                    value.drops.filter((_, j) => j !== i),
+                  )
+                }
+                title="Remove"
+              >
                 ✕
               </button>
             </span>
           </div>
         ))}
-        <p className="small muted">
-          {value.drops.length ? 'Each entry rolls separately on every victory.' : 'No drops. Add gear templates in the Gear tab.'}
-        </p>
+        <p className="small muted">{value.drops.length ? 'Each entry rolls separately on every victory.' : 'No drops. Add gear templates in the Gear tab.'}</p>
       </Section>
 
       <Section
@@ -333,10 +383,24 @@ function StageForm({ value, onChange, isNew }: FormProps<StageDef>) {
             </label>
             <label className="inline">
               chance %
-              <NumberInput value={Math.round(d.chance * 100)} onChange={(p) => setMatDrop(i, { chance: Math.max(0, Math.min(100, p)) / 100 })} min={0} max={100} />
+              <NumberInput
+                value={Math.round(d.chance * 100)}
+                onChange={(p) => setMatDrop(i, { chance: Math.max(0, Math.min(100, p)) / 100 })}
+                min={0}
+                max={100}
+              />
             </label>
             <span className="effect-tools">
-              <button className="icon-mini danger" onClick={() => set('materialDrops', value.materialDrops.filter((_, j) => j !== i))} title="Remove">
+              <button
+                className="icon-mini danger"
+                onClick={() =>
+                  set(
+                    'materialDrops',
+                    value.materialDrops.filter((_, j) => j !== i),
+                  )
+                }
+                title="Remove"
+              >
                 ✕
               </button>
             </span>
@@ -397,9 +461,7 @@ function Simulator({ value }: { value: StageDef }) {
           values={team}
           onChange={setTeam}
           max={content.settings.maxTeamSize}
-          options={[...content.bundle.characters]
-            .sort((a, b) => b.rarity - a.rarity)
-            .map((c) => ({ value: c.id, label: `${c.emoji} ${c.name}` }))}
+          options={[...content.bundle.characters].sort((a, b) => b.rarity - a.rarity).map((c) => ({ value: c.id, label: `${c.emoji} ${c.name}` }))}
         />
       </Field>
       <div className="sim-row">
@@ -416,8 +478,8 @@ function Simulator({ value }: { value: StageDef }) {
         </button>
         {result && (
           <span className={`sim-result ${pct >= 80 ? 'good' : pct >= 40 ? 'mid' : 'bad'}`}>
-            {pct}% win rate · {result.wins}/{result.runs} · ~{result.averageTurns} turns · {Math.round(result.perfectRate * 100)}% all stars ·
-            ~{result.averageWinActions} actions per win
+            {pct}% win rate · {result.wins}/{result.runs} · ~{result.averageTurns} turns · {Math.round(result.perfectRate * 100)}% all stars · ~
+            {result.averageWinActions} actions per win
           </span>
         )}
       </div>

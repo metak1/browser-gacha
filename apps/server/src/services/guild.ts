@@ -26,7 +26,9 @@ export class GuildService {
 
   list(query: string): GuildSummaryDTO[] {
     const max = this.settings().maxMembers;
-    return this.ctx.guilds.search(query, 30).map((g) => ({ id: g.id, name: g.name, description: g.description, members: g.members, maxMembers: max, open: g.open }));
+    return this.ctx.guilds
+      .search(query, 30)
+      .map((g) => ({ id: g.id, name: g.name, description: g.description, members: g.members, maxMembers: max, open: g.open }));
   }
 
   create(userId: string, name: string, description: string): string {
@@ -113,7 +115,15 @@ export class GuildService {
       memberCount: members.length,
       maxMembers: this.settings().maxMembers,
       role: m.role,
-      boss: { enemy: boss.enemy, level: boss.level, week, pool, damage: Math.min(total, pool), attemptsLeft: this.attemptsLeft(userId), attemptsPerDay: this.settings().attemptsPerDay },
+      boss: {
+        enemy: boss.enemy,
+        level: boss.level,
+        week,
+        pool,
+        damage: Math.min(total, pool),
+        attemptsLeft: this.attemptsLeft(userId),
+        attemptsPerDay: this.settings().attemptsPerDay,
+      },
       chests: this.settings().tiers.map((t) => ({
         percent: t.percent,
         reward: t.reward,

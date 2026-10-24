@@ -122,7 +122,11 @@ export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: bool
       <small className="muted">Loot · tap an item to inspect it</small>
       <div className="drop-row">
         {live.map((g, i) => (
-          <div key={g.id} className={`${animate ? 'drop' : ''} ${sold.includes(g.id) ? 'sold' : ''}`} style={animate ? { animationDelay: `${0.35 + i * 0.15}s` } : undefined}>
+          <div
+            key={g.id}
+            className={`${animate ? 'drop' : ''} ${sold.includes(g.id) ? 'sold' : ''}`}
+            style={animate ? { animationDelay: `${0.35 + i * 0.15}s` } : undefined}
+          >
             <GearChip
               item={g}
               selected={g.id === open}
@@ -132,7 +136,9 @@ export function LootGear({ drops, animate }: { drops: GearItem[]; animate?: bool
           </div>
         ))}
       </div>
-      {inspected && <LootInspect item={inspected} busy={busy} price={price(value([inspected]))} onSell={() => void sell([inspected])} onKeep={() => setOpen(null)} />}
+      {inspected && (
+        <LootInspect item={inspected} busy={busy} price={price(value([inspected]))} onSell={() => void sell([inspected])} onKeep={() => setOpen(null)} />
+      )}
       {sellable.length > 1 && !inspected && (
         <button
           className="btn small danger loot-sell-all"
@@ -262,7 +268,9 @@ function LootInspect({ item, busy, price, onSell, onKeep }: { item: GearItem; bu
           <button
             className={`btn small ${cmp.gain > 0 ? 'primary' : ''}`}
             disabled={busy}
-            onClick={() => void mutate(async () => (await api.gear.equip(item.id, hero.id)).profile, `Equipped on ${heroDef.name}`).then((ok) => ok && sfx.click())}
+            onClick={() =>
+              void mutate(async () => (await api.gear.equip(item.id, hero.id)).profile, `Equipped on ${heroDef.name}`).then((ok) => ok && sfx.click())
+            }
           >
             Equip on {heroDef.name}
           </button>
@@ -359,7 +367,9 @@ export function GearDetail({
           <div className={`r${item.rarity}-text small`}>
             {'★'.repeat(item.rarity)} · {GEAR_SLOT_INFO[item.slot].icon} {GEAR_SLOT_INFO[item.slot].label}
           </div>
-          <div className="small muted">{wearer ? `Worn by ${wearer.emoji} ${wearer.name}` : 'Not equipped'} · score {gearScore(item)}</div>
+          <div className="small muted">
+            {wearer ? `Worn by ${wearer.emoji} ${wearer.name}` : 'Not equipped'} · score {gearScore(item)}
+          </div>
         </div>
       </div>
       <ItemSet item={item} />
@@ -386,14 +396,15 @@ export function GearDetail({
             Unequip
           </button>
         )}
-        <button
-          className="btn small"
-          disabled={busy || maxed || profile.wallet.gold < cost}
-          onClick={() => run(() => api.gear.upgrade(item.id), sfx.buff)}
-        >
+        <button className="btn small" disabled={busy || maxed || profile.wallet.gold < cost} onClick={() => run(() => api.gear.upgrade(item.id), sfx.buff)}>
           {maxed ? 'Max level' : `Upgrade · 🪙 ${cost}`}
         </button>
-        <button className="btn small" disabled={busy} onClick={() => run(() => api.gear.lock(item.id, !item.locked))} title="Locked gear can't be salvaged or sold">
+        <button
+          className="btn small"
+          disabled={busy}
+          onClick={() => run(() => api.gear.lock(item.id, !item.locked))}
+          title="Locked gear can't be salvaged or sold"
+        >
           {item.locked ? '🔓 Unlock' : '🔒 Lock'}
         </button>
         <button
@@ -419,7 +430,12 @@ function ItemSet({ item }: { item: GearItem }) {
   const { profile } = useProfile();
   const set = item.set ? content.gearSetsById[item.set] : undefined;
   if (!set) return null;
-  const worn = item.equippedTo ? wornSets(profile.gear.filter((g) => g.equippedTo === item.equippedTo), content.gearSetsById).find((w) => w.set.id === set.id) : undefined;
+  const worn = item.equippedTo
+    ? wornSets(
+        profile.gear.filter((g) => g.equippedTo === item.equippedTo),
+        content.gearSetsById,
+      ).find((w) => w.set.id === set.id)
+    : undefined;
   return (
     <div className="gear-set-info">
       <b>
@@ -499,7 +515,12 @@ function Forge({
           <div key={i} className="forge-row">
             <div className="forge-stat">
               <span>
-                {formatGearRoll(s)} {build?.subs.includes(s.stat) && <span className="fits" title="On this hero's recommended build">✓</span>}
+                {formatGearRoll(s)}{' '}
+                {build?.subs.includes(s.stat) && (
+                  <span className="fits" title="On this hero's recommended build">
+                    ✓
+                  </span>
+                )}
               </span>
               <span className="forge-quality" title={`${Math.round(q * 100)}% of the best value for ${rolls} roll${rolls === 1 ? '' : 's'}`}>
                 <span style={{ width: `${q * 100}%` }} className={q >= 0.999 ? 'perfect' : ''} />

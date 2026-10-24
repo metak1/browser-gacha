@@ -75,9 +75,7 @@ export function describeEvent(e: BattleEvent, state: BattleState): string | null
     case 'damage': {
       if (e.status === 'burn') return `${name(e.target)} burns for ${e.amount}.`;
       if (e.status === 'poison') return `${name(e.target)} takes ${e.amount} poison damage.`;
-      const notes = [e.crit && 'critical', e.advantage === 'strong' && 'super effective', e.advantage === 'weak' && 'resisted']
-        .filter(Boolean)
-        .join(', ');
+      const notes = [e.crit && 'critical', e.advantage === 'strong' && 'super effective', e.advantage === 'weak' && 'resisted'].filter(Boolean).join(', ');
       return `${name(e.target)} takes ${e.amount} damage${notes ? ` (${notes})` : ''}.`;
     }
     case 'heal':

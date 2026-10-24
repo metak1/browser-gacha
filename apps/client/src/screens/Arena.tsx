@@ -12,7 +12,6 @@ import { useProfile } from '../state/profile';
 import { useToast } from '../state/toast';
 import './arena.css';
 
-
 export function ArenaScreen() {
   const { unlocked } = useFeature('arena');
   return unlocked ? <ArenaHub /> : <LockedFeature feature="arena" />;
@@ -87,7 +86,9 @@ function ArenaHub() {
         <div className="arena-tier">
           <span className="arena-tier-icon">{tier.icon}</span>
           <div>
-            <small>{tier.name} tier · season {status.week}</small>
+            <small>
+              {tier.name} tier · season {status.week}
+            </small>
             <div className="arena-rating">{status.rating}</div>
             <div className="arena-progress">
               <div style={{ width: `${Math.min(100, progress * 100)}%` }} />
@@ -120,8 +121,11 @@ function ArenaHub() {
 
       {status.seasonReward && (
         <section className="panel season-banner">
-          🏆 Last week you finished in <b>{status.seasonReward.icon} {status.seasonReward.tier}</b> and earned{' '}
-          <RewardList reward={status.seasonReward.reward} />. Your rating was reset to {status.seasonReward.ratingAfterReset}.
+          🏆 Last week you finished in{' '}
+          <b>
+            {status.seasonReward.icon} {status.seasonReward.tier}
+          </b>{' '}
+          and earned <RewardList reward={status.seasonReward.reward} />. Your rating was reset to {status.seasonReward.ratingAfterReset}.
         </section>
       )}
 
@@ -168,8 +172,7 @@ function ArenaHub() {
           ))}
           {status.tickets <= 0 && <p className="small warn-text">Out of tickets. They refresh at 00:00 UTC.</p>}
           <p className="small muted">
-            Win: +{content.settings.arenaWinGold} 🪙 +{content.settings.arenaWinGems} 💎. Your attack team is your main team from the
-            Roster.
+            Win: +{content.settings.arenaWinGold} 🪙 +{content.settings.arenaWinGems} 💎. Your attack team is your main team from the Roster.
           </p>
         </section>
 

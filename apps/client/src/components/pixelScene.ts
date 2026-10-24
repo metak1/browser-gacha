@@ -188,7 +188,12 @@ function windmill(c: Ctx, x: number, base: number) {
   const hx = x;
   const hy = base - 50;
   for (let t = 3; t < 26; t++) {
-    for (const [dx, dy] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
+    for (const [dx, dy] of [
+      [1, 1],
+      [-1, -1],
+      [1, -1],
+      [-1, 1],
+    ] as const) {
       px(c, hx + dx * t * 0.8, hy + dy * t * 0.8, '#5a3a22');
       if (t > 8 && t % 2 === 0) px(c, hx + dx * t * 0.8 + dy * 2, hy + dy * t * 0.8 - dx * 2, '#f0e6d0', 2, 2);
     }
@@ -215,7 +220,8 @@ function tent(c: Ctx, x: number, base: number, w: number, h: number, color: stri
     for (let k = -half; k < half; k++) px(c, x + k, base - h + i, Math.floor((k + w) / 4) % 2 ? color : stripe);
   }
   // Open flap.
-  for (let i = 0; i < Math.round(h * 0.55); i++) px(c, x - Math.round(i * 0.35), base - Math.round(h * 0.55) + i, '#2a1a14', Math.max(1, Math.round(i * 0.7)), 1);
+  for (let i = 0; i < Math.round(h * 0.55); i++)
+    px(c, x - Math.round(i * 0.35), base - Math.round(h * 0.55) + i, '#2a1a14', Math.max(1, Math.round(i * 0.7)), 1);
   px(c, x, base - h - 5, '#3a2a22', 1, 5);
   if (flag) {
     px(c, x + 1, base - h - 5, flag, 5, 2);
@@ -324,10 +330,21 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     px(c, 234, 62, castle, 26, 40);
     px(c, 246, 40, castle, 8, 24);
     px(c, 264, 56, castle, 9, 46);
-    for (const [x, y, w] of [[222, 50, 10], [246, 40, 8], [264, 56, 9]] as const) {
+    for (const [x, y, w] of [
+      [222, 50, 10],
+      [246, 40, 8],
+      [264, 56, 9],
+    ] as const) {
       for (let k = 0; k < w / 2 + 2; k++) px(c, x - 1 + k, y - k, castle, w + 2 - k * 2, 1);
     }
-    for (const [x, y] of [[226, 66], [250, 52], [267, 70], [240, 78], [252, 78]] as const) px(c, x, y, '#ffe9a8', 2, 3);
+    for (const [x, y] of [
+      [226, 66],
+      [250, 52],
+      [267, 70],
+      [240, 78],
+      [252, 78],
+    ] as const)
+      px(c, x, y, '#ffe9a8', 2, 3);
     const mid = ridge(rng, 101, 6, 0.6);
     fillRidge(c, mid, '#5c7fae', '#7e9ccc', GROUND + 4);
     for (let i = 0; i < 16; i++) pine(c, Math.round(rng() * SCENE_W), 102 + Math.round(rng() * 2), 10 + Math.floor(rng() * 8), '#2a4a6e', '#33587f', '#ffffff');
@@ -380,7 +397,13 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     px(c, 202, 72, spire, 12, 32);
     px(c, 220, 14, '#9fd0ff', 2, 2);
     haze(c, 221, 15, 8, 6, '#9fd0ff', 0.5);
-    for (const [x, y] of [[218, 50], [232, 74], [206, 80], [220, 84]] as const) px(c, x, y, '#9fd0ff', 2, 2);
+    for (const [x, y] of [
+      [218, 50],
+      [232, 74],
+      [206, 80],
+      [220, 84],
+    ] as const)
+      px(c, x, y, '#9fd0ff', 2, 2);
     // A frozen lightning bolt with a glow.
     let lx = 120;
     for (let y = 8; y < 64; y++) {
@@ -458,7 +481,14 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     crenels(c, 218, 34, 36, stone);
     stoneWall(c, 231, 14, 10, 20, stone, mortar, light);
     coneRoof(c, 229, 14, 14, 14, '#3a5cc8', '#2a449a', '#ff4a4a');
-    for (const [wx, wy] of [[224, 44], [244, 44], [234, 24], [224, 58], [244, 58]] as const) px(c, wx, wy, '#2a2a38', 2, 4);
+    for (const [wx, wy] of [
+      [224, 44],
+      [244, 44],
+      [234, 24],
+      [224, 58],
+      [244, 58],
+    ] as const)
+      px(c, wx, wy, '#2a2a38', 2, 4);
     banner(c, 210, 64, 6, 14, '#c8463a', '#ffd24a');
     banner(c, 262, 64, 6, 14, '#c8463a', '#ffd24a');
     banner(c, 233, 40, 6, 12, '#3a5cc8', '#ffffff');
@@ -470,7 +500,13 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     torch(c, 224, 80);
     torch(c, 248, 80);
     // The hill in front of the walls' feet.
-    fillRidge(c, hill.map((t, x) => (x > 170 && x < 306 ? Math.max(t, 92) : t)), '#5a9e56', '#7cbc6a', GROUND + 4);
+    fillRidge(
+      c,
+      hill.map((t, x) => (x > 170 && x < 306 ? Math.max(t, 92) : t)),
+      '#5a9e56',
+      '#7cbc6a',
+      GROUND + 4,
+    );
     for (let i = 0; i < 10; i++) roundTree(c, Math.round(rng() * 160), 101 + Math.round(rng() * 3), 4 + Math.floor(rng() * 3), '#2f7a3e', '#4f9e52');
     // Grass, with a cobbled road across the field.
     px(c, 0, GROUND, '#6dbb5f', SCENE_W, 2);
@@ -537,7 +573,12 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     }
     haze(c, 160, 92, 180, 10, '#5a8a78', 0.35);
     // Giant old trunks with roots.
-    for (const [tx, w] of [[26, 14], [118, 10], [214, 16], [296, 12]] as const) {
+    for (const [tx, w] of [
+      [26, 14],
+      [118, 10],
+      [214, 16],
+      [296, 12],
+    ] as const) {
       px(c, tx, 0, '#22180f', w, GROUND + 2);
       px(c, tx + w - 3, 0, '#2e2216', 2, GROUND + 2);
       for (let y = 6; y < GROUND; y += 9) px(c, tx + 2 + ((y / 9) % 3), y, '#160f0a', 2, 4);
@@ -628,7 +669,11 @@ const DRAW: Record<SceneTheme, (c: Ctx, rng: Rng) => void> = {
     tent(c, 128, 101, 24, 15, '#3a5cc8', '#efe0c8');
     tent(c, 206, 101, 40, 24, '#8a3a8a', '#e8c860', '#e8c860');
     tent(c, 284, 101, 26, 16, '#3a8a4a', '#efe0c8');
-    for (const [bx, color] of [[92, '#c8463a'], [166, '#3a5cc8'], [252, '#8a3a8a']] as const) {
+    for (const [bx, color] of [
+      [92, '#c8463a'],
+      [166, '#3a5cc8'],
+      [252, '#8a3a8a'],
+    ] as const) {
       px(c, bx, 50, '#3a2a22', 1, 52);
       banner(c, bx + 1, 52, 7, 18, color, '#e8c860');
     }
@@ -656,7 +701,19 @@ export function sceneImage(theme: SceneTheme): string | null {
   canvas.height = SCENE_H;
   const c = canvas.getContext('2d');
   if (!c) return null;
-  const seeds: Record<SceneTheme, number> = { meadow: 11, ember: 23, frost: 37, cosmos: 51, storm: 63, deep: 77, kingdom: 89, village: 97, forest: 103, ruins: 113, camp: 127 };
+  const seeds: Record<SceneTheme, number> = {
+    meadow: 11,
+    ember: 23,
+    frost: 37,
+    cosmos: 51,
+    storm: 63,
+    deep: 77,
+    kingdom: 89,
+    village: 97,
+    forest: 103,
+    ruins: 113,
+    camp: 127,
+  };
   DRAW[theme](c, seededRandom(seeds[theme]));
   const url = canvas.toDataURL('image/png');
   cache.set(theme, url);

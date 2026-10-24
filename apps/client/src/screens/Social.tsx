@@ -145,29 +145,29 @@ function Friends() {
             const c = f.support ? content.charactersById[f.support.charId] : undefined;
             return (
               <div key={f.id} className={`friend-entry ${open === f.id ? 'open' : ''}`}>
-              <div className="friend-row">
-                <span className="friend-art">{c ? <UnitArt sprite={c.sprite} emoji={c.emoji} height="40px" /> : '❔'}</span>
-                <button className="friend-info" onClick={() => setOpen(open === f.id ? null : f.id)} title="Show support hero">
-                  <b>{f.name}</b>
-                  {f.title && <span className="title-tag">{f.title}</span>}
-                  <small className="muted">
-                    Lv {f.level}
-                    {c && f.support && ` · lends ${c.name} Lv ${f.support.level}`}
-                    {f.usedToday && ' · helped today'}
-                  </small>
-                  {f.support && <small className="friend-more">{open === f.id ? '▲ hide' : '▼ stats & gear'}</small>}
-                </button>
-                <button
-                  className="icon-mini danger"
-                  title="Remove friend"
-                  onClick={() => {
-                    if (window.confirm(`Remove ${f.name} from your friends?`)) void run(() => api.social.remove(f.id));
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-              {open === f.id && f.support && <SupportCard hero={f.support} />}
+                <div className="friend-row">
+                  <span className="friend-art">{c ? <UnitArt sprite={c.sprite} emoji={c.emoji} height="40px" /> : '❔'}</span>
+                  <button className="friend-info" onClick={() => setOpen(open === f.id ? null : f.id)} title="Show support hero">
+                    <b>{f.name}</b>
+                    {f.title && <span className="title-tag">{f.title}</span>}
+                    <small className="muted">
+                      Lv {f.level}
+                      {c && f.support && ` · lends ${c.name} Lv ${f.support.level}`}
+                      {f.usedToday && ' · helped today'}
+                    </small>
+                    {f.support && <small className="friend-more">{open === f.id ? '▲ hide' : '▼ stats & gear'}</small>}
+                  </button>
+                  <button
+                    className="icon-mini danger"
+                    title="Remove friend"
+                    onClick={() => {
+                      if (window.confirm(`Remove ${f.name} from your friends?`)) void run(() => api.social.remove(f.id));
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {open === f.id && f.support && <SupportCard hero={f.support} />}
               </div>
             );
           })}
@@ -202,7 +202,8 @@ function SupportCard({ hero }: { hero: SupportHeroDTO }) {
             {hero.constellation > 0 && ` · C${hero.constellation}`}
           </div>
           <div className="small muted">
-            <AscensionPips rank={hero.ascension} max={maxAscension(content.settings.progression)} size="sm" /> Skill Lv {hero.skillLevel} · Ult Lv {hero.ultLevel}
+            <AscensionPips rank={hero.ascension} max={maxAscension(content.settings.progression)} size="sm" /> Skill Lv {hero.skillLevel} · Ult Lv{' '}
+            {hero.ultLevel}
           </div>
         </div>
       </div>
@@ -214,11 +215,7 @@ function SupportCard({ hero }: { hero: SupportHeroDTO }) {
           </span>
         ))}
       </div>
-      {c.passive && (
-        <div className="small muted">
-          ✦ {c.passive.name}
-        </div>
-      )}
+      {c.passive && <div className="small muted">✦ {c.passive.name}</div>}
       <div className="support-gear">
         {hero.gear.length ? hero.gear.map((g) => <GearChip key={g.id} item={g} />) : <small className="muted">No gear equipped</small>}
       </div>
@@ -272,10 +269,17 @@ function GuildFinder({ onJoined }: { onJoined: (g: GuildDTO | null) => void }) {
         {list.map((g) => (
           <div key={g.id} className="request-row">
             <span>
-              <b>{g.name}</b> <small className="muted">{g.members}/{g.maxMembers}</small>
+              <b>{g.name}</b>{' '}
+              <small className="muted">
+                {g.members}/{g.maxMembers}
+              </small>
               {g.description && <small className="muted guild-desc">{g.description}</small>}
             </span>
-            <button className="btn small primary" disabled={!g.open || g.members >= g.maxMembers} onClick={() => void act(() => api.guild.join(g.id), `Welcome to ${g.name}!`)}>
+            <button
+              className="btn small primary"
+              disabled={!g.open || g.members >= g.maxMembers}
+              onClick={() => void act(() => api.guild.join(g.id), `Welcome to ${g.name}!`)}
+            >
               {g.open ? (g.members >= g.maxMembers ? 'Full' : 'Join') : 'Closed'}
             </button>
           </div>
@@ -379,20 +383,20 @@ function GuildHome({ guild, onChange }: { guild: GuildDTO; onChange: (g: GuildDT
           <small className="muted">Attack at least once this week to share the chests. Each attack lasts {content.settings.guild.turnLimit} turns.</small>
         </div>
         <div className="guild-attack">
-        <TeamSwitcher />
-        <button
-          className="btn primary big"
-          disabled={guild.boss.attemptsLeft <= 0}
-          onClick={() => {
-            sfx.click();
-            navigate(`/guild-battle/${guild.boss.enemy}`);
-          }}
-        >
-          ⚔️ Attack
-          <small>
-            {guild.boss.attemptsLeft}/{guild.boss.attemptsPerDay} left today
-          </small>
-        </button>
+          <TeamSwitcher />
+          <button
+            className="btn primary big"
+            disabled={guild.boss.attemptsLeft <= 0}
+            onClick={() => {
+              sfx.click();
+              navigate(`/guild-battle/${guild.boss.enemy}`);
+            }}
+          >
+            ⚔️ Attack
+            <small>
+              {guild.boss.attemptsLeft}/{guild.boss.attemptsPerDay} left today
+            </small>
+          </button>
         </div>
       </section>
 

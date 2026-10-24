@@ -229,7 +229,12 @@ describe('art upgrade', () => {
       const doc = JSON.parse(row.data) as Record<string, unknown>;
       delete doc.icon;
       delete doc.sprite;
-      if (row.kind === 'stages' && row.id === '2-1') doc.enemies = [{ id: 'imp', level: 7 }, { id: 'wolf', level: 7 }, { id: 'imp', level: 7 }];
+      if (row.kind === 'stages' && row.id === '2-1')
+        doc.enemies = [
+          { id: 'imp', level: 7 },
+          { id: 'wolf', level: 7 },
+          { id: 'imp', level: 7 },
+        ];
       if (row.kind === 'stages' && row.id === '2-2') doc.enemies = [{ id: 'golem', level: 30 }]; // customised by an admin
       raw.prepare('UPDATE content SET data = ? WHERE kind = ? AND id = ?').run(JSON.stringify(doc), row.kind, row.id);
     }
@@ -257,7 +262,7 @@ describe('art upgrade', () => {
 });
 
 describe('gear dungeons', () => {
-  it('drop only gear from the dungeon\'s two sets at random, in fights and sweeps, and the loot can be sold', async () => {
+  it("drop only gear from the dungeon's two sets at random, in fights and sweeps, and the loot can be sold", async () => {
     const { call, profile } = await guest();
     const ctx = (app.services.player as unknown as { ctx: ServiceContext }).ctx;
     for (const id of profile.team) ctx.roster.setLevel(profile.user.id, id, 40);
@@ -314,8 +319,18 @@ describe('roster tools and the tower', () => {
     const ctx = ctxOf();
     const [a, b] = profile.team as [string, string];
     const weapon = (id: string, atk: number) => ({
-      id, templateId: 'runed-saber', slot: 'weapon' as const, rarity: 4 as const, level: 0, mainBase: atk,
-      main: { stat: 'atk' as const, value: atk }, subs: [], forge: 0, equippedTo: null, set: null, locked: false,
+      id,
+      templateId: 'runed-saber',
+      slot: 'weapon' as const,
+      rarity: 4 as const,
+      level: 0,
+      mainBase: atk,
+      main: { stat: 'atk' as const, value: atk },
+      subs: [],
+      forge: 0,
+      equippedTo: null,
+      set: null,
+      locked: false,
     });
     ctx.gear.insert(profile.user.id, weapon('weak', 10), clock);
     ctx.gear.insert(profile.user.id, weapon('strong', 60), clock);
@@ -330,13 +345,22 @@ describe('roster tools and the tower', () => {
     expect(gear.find((g) => g.id === 'weak')!.equippedTo).toBeNull();
   });
 
-  it('auto-equip completes the hero\'s target set before taking stronger pieces of other sets', async () => {
+  it("auto-equip completes the hero's target set before taking stronger pieces of other sets", async () => {
     const { call, profile } = await guest();
     const ctx = ctxOf();
     const hero = profile.team[0]!;
     const piece = (id: string, slot: GearSlot, set: string, atk: number) => ({
-      id, templateId: 'runed-saber', slot, rarity: 4 as const, level: 0, mainBase: atk,
-      main: { stat: 'atk' as const, value: atk }, subs: [], equippedTo: null, set, locked: false,
+      id,
+      templateId: 'runed-saber',
+      slot,
+      rarity: 4 as const,
+      level: 0,
+      mainBase: atk,
+      main: { stat: 'atk' as const, value: atk },
+      subs: [],
+      equippedTo: null,
+      set,
+      locked: false,
     });
     for (const slot of ['weapon', 'armor', 'charm', 'boots'] as const) {
       ctx.gear.insert(profile.user.id, piece(`gale-${slot}`, slot, 'gale', 5), clock);
@@ -365,10 +389,23 @@ describe('roster tools and the tower', () => {
     const ctx = ctxOf();
     const ids = ['00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2'];
     for (const id of ids) {
-      ctx.gear.insert(profile.user.id, {
-        id, templateId: 'runed-saber', slot: 'weapon', rarity: 3, level: 0, mainBase: 10,
-        main: { stat: 'atk', value: 10 }, subs: [], equippedTo: null, set: null, locked: false,
-      }, clock);
+      ctx.gear.insert(
+        profile.user.id,
+        {
+          id,
+          templateId: 'runed-saber',
+          slot: 'weapon',
+          rarity: 3,
+          level: 0,
+          mainBase: 10,
+          main: { stat: 'atk', value: 10 },
+          subs: [],
+          equippedTo: null,
+          set: null,
+          locked: false,
+        },
+        clock,
+      );
     }
     const lock = await call<GearActionResponse>('POST', `/gear/${ids[0]}/lock`, { locked: true });
     expect(lock.body.item!.locked).toBe(true);
@@ -388,10 +425,23 @@ describe('roster tools and the tower', () => {
     const { call, profile } = await guest();
     const ctx = ctxOf();
     const r = createDefaultContent().settings.reforge;
-    ctx.gear.insert(profile.user.id, {
-      id: BLADE, templateId: 'starforged-edge', slot: 'weapon', rarity: 5, level: 0, mainBase: 40,
-      main: { stat: 'atk', value: 40 }, subs: [{ stat: 'hp', value: 100, rolls: 1 }], equippedTo: null, set: null, locked: false,
-    }, clock);
+    ctx.gear.insert(
+      profile.user.id,
+      {
+        id: BLADE,
+        templateId: 'starforged-edge',
+        slot: 'weapon',
+        rarity: 5,
+        level: 0,
+        mainBase: 40,
+        main: { stat: 'atk', value: 40 },
+        subs: [{ stat: 'hp', value: 100, rolls: 1 }],
+        equippedTo: null,
+        set: null,
+        locked: false,
+      },
+      clock,
+    );
 
     // Gold is checked first, then stones.
     expect((await call<{ error: string }>('POST', `/gear/${BLADE}/reforge`, { sub: 0 })).body).toMatchObject({ error: 'insufficient_funds' });

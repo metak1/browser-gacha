@@ -53,15 +53,29 @@ export class GearRepo {
     this.db.run(
       `INSERT INTO gear (id, user_id, template_id, slot, rarity, level, main_base, main, subs, equipped_to, set_id, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      item.id, userId, item.templateId, item.slot, item.rarity, item.level, item.mainBase,
-      JSON.stringify(item.main), JSON.stringify(item.subs), item.equippedTo, item.set, now,
+      item.id,
+      userId,
+      item.templateId,
+      item.slot,
+      item.rarity,
+      item.level,
+      item.mainBase,
+      JSON.stringify(item.main),
+      JSON.stringify(item.subs),
+      item.equippedTo,
+      item.set,
+      now,
     );
   }
 
   saveRolls(userId: string, item: GearItem) {
     this.db.run(
       'UPDATE gear SET level = ?, main = ?, subs = ? WHERE user_id = ? AND id = ?',
-      item.level, JSON.stringify(item.main), JSON.stringify(item.subs), userId, item.id,
+      item.level,
+      JSON.stringify(item.main),
+      JSON.stringify(item.subs),
+      userId,
+      item.id,
     );
   }
 

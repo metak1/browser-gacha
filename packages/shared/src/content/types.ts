@@ -549,7 +549,20 @@ export interface ContentBundle {
   events: EventDef[];
 }
 
-export const CONTENT_KINDS = ['skills', 'characters', 'enemies', 'chapters', 'stages', 'banners', 'missions', 'gear', 'gearSets', 'materials', 'dungeons', 'events'] as const;
+export const CONTENT_KINDS = [
+  'skills',
+  'characters',
+  'enemies',
+  'chapters',
+  'stages',
+  'banners',
+  'missions',
+  'gear',
+  'gearSets',
+  'materials',
+  'dungeons',
+  'events',
+] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
 export interface ContentDocs {

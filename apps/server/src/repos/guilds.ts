@@ -22,7 +22,14 @@ export class GuildRepo {
   constructor(private readonly db: Database) {}
 
   create(g: GuildRow) {
-    this.db.run('INSERT INTO guilds (id, name, description, open, created_at) VALUES (?, ?, ?, ?, ?)', g.id, g.name, g.description, g.open ? 1 : 0, g.createdAt);
+    this.db.run(
+      'INSERT INTO guilds (id, name, description, open, created_at) VALUES (?, ?, ?, ?, ?)',
+      g.id,
+      g.name,
+      g.description,
+      g.open ? 1 : 0,
+      g.createdAt,
+    );
   }
 
   get(id: string): GuildRow | undefined {
@@ -51,7 +58,9 @@ export class GuildRepo {
         `SELECT g.*, (SELECT count(*) FROM guild_members m WHERE m.guild_id = g.id) AS members
          FROM guilds g WHERE ? = '' OR instr(lower(g.name), lower(?)) > 0
          ORDER BY members DESC, g.created_at LIMIT ?`,
-        q, q, limit,
+        q,
+        q,
+        limit,
       )
       .map((r) => ({ ...toGuild(r), members: r.members }));
   }
@@ -63,7 +72,10 @@ export class GuildRepo {
 
   members(guildId: string): { userId: string; role: 'leader' | 'member'; joinedAt: number }[] {
     return this.db
-      .all<{ user_id: string; role: 'leader' | 'member'; joined_at: number }>('SELECT user_id, role, joined_at FROM guild_members WHERE guild_id = ? ORDER BY joined_at', guildId)
+      .all<{ user_id: string; role: 'leader' | 'member'; joined_at: number }>(
+        'SELECT user_id, role, joined_at FROM guild_members WHERE guild_id = ? ORDER BY joined_at',
+        guildId,
+      )
       .map((r) => ({ userId: r.user_id, role: r.role, joinedAt: r.joined_at }));
   }
 
@@ -83,7 +95,11 @@ export class GuildRepo {
 
   damage(guildId: string, week: string): { userId: string; damage: number; attacks: number }[] {
     return this.db
-      .all<{ user_id: string; damage: number; attacks: number }>('SELECT user_id, damage, attacks FROM guild_damage WHERE guild_id = ? AND week = ?', guildId, week)
+      .all<{ user_id: string; damage: number; attacks: number }>(
+        'SELECT user_id, damage, attacks FROM guild_damage WHERE guild_id = ? AND week = ?',
+        guildId,
+        week,
+      )
       .map((r) => ({ userId: r.user_id, damage: r.damage, attacks: r.attacks }));
   }
 
@@ -91,7 +107,10 @@ export class GuildRepo {
     this.db.run(
       `INSERT INTO guild_damage (guild_id, week, user_id, damage, attacks) VALUES (?, ?, ?, ?, 1)
        ON CONFLICT (guild_id, week, user_id) DO UPDATE SET damage = damage + excluded.damage, attacks = attacks + 1`,
-      guildId, week, userId, damage,
+      guildId,
+      week,
+      userId,
+      damage,
     );
   }
 
@@ -103,7 +122,8 @@ export class GuildRepo {
     this.db.run(
       `INSERT INTO guild_attempts (user_id, day, count) VALUES (?, ?, 1)
        ON CONFLICT (user_id, day) DO UPDATE SET count = count + 1`,
-      userId, day,
+      userId,
+      day,
     );
   }
 

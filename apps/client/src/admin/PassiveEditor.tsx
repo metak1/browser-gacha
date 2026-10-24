@@ -99,7 +99,11 @@ export function PassiveEditor({ passive, onChange }: { passive: Passive | null; 
             <Select value={r.kind} onChange={(k) => setRule(i, defaultRule(k))} options={options(PASSIVE_RULE_KINDS, (k) => RULE_LABEL[k])} />
             {r.kind === 'stat' && (
               <>
-                <Select value={r.stat} onChange={(stat) => setRule(i, { ...r, stat })} options={options(['hp', 'atk', 'def', 'spd'] as const, (s) => s.toUpperCase())} />
+                <Select
+                  value={r.stat}
+                  onChange={(stat) => setRule(i, { ...r, stat })}
+                  options={options(['hp', 'atk', 'def', 'spd'] as const, (s) => s.toUpperCase())}
+                />
                 <label className="inline">
                   +%
                   <Pct value={r.amount} onChange={(amount) => setRule(i, { ...r, amount })} />

@@ -78,8 +78,16 @@ describe('content API', () => {
     let res = await call<ContentBundle>('PUT', '/admin/content/skills/meteor', spell);
     expect(res.status).toBe(200);
     const unit = {
-      id: 'astra', name: 'Astra', rarity: 5, element: 'volt', role: 'striker', emoji: '🌟', limited: true,
-      base: { hp: 1100, atk: 150, def: 60, spd: 110 }, basic: 'ignis-basic', skill: 'meteor',
+      id: 'astra',
+      name: 'Astra',
+      rarity: 5,
+      element: 'volt',
+      role: 'striker',
+      emoji: '🌟',
+      limited: true,
+      base: { hp: 1100, atk: 150, def: 60, spd: 110 },
+      basic: 'ignis-basic',
+      skill: 'meteor',
     };
     res = await call<ContentBundle>('PUT', '/admin/content/characters/astra', unit);
     expect(res.status).toBe(200);
@@ -164,9 +172,11 @@ describe('admin tools', () => {
     const list = await call<{ id: string }[]>('GET', `/admin/players?q=${target.profile.user.id.slice(0, 8)}`);
     expect(list.body.map((p) => p.id)).toContain(target.profile.user.id);
 
-    const granted = await call<{ wallet: { gems: number }; characters: number }>(
-      'POST', `/admin/players/${target.profile.user.id}/grant`, { gems: 1000, allCharacters: true, level: 10 },
-    );
+    const granted = await call<{ wallet: { gems: number }; characters: number }>('POST', `/admin/players/${target.profile.user.id}/grant`, {
+      gems: 1000,
+      allCharacters: true,
+      level: 10,
+    });
     expect(granted.body.wallet.gems).toBe(target.profile.wallet.gems + 1000);
     expect(granted.body.characters).toBe(createDefaultContent().characters.length);
 
@@ -177,7 +187,10 @@ describe('admin tools', () => {
   it('simulates a stage with live content', async () => {
     const { call } = await adminUser();
     const res = await call<SimulateResponse>('POST', '/admin/simulate', {
-      stageId: '1-1', team: ['pebble', 'torch'], level: 5, runs: 20,
+      stageId: '1-1',
+      team: ['pebble', 'torch'],
+      level: 5,
+      runs: 20,
     });
     expect(res.body.runs).toBe(20);
     expect(res.body.winRate).toBeGreaterThan(0.5);

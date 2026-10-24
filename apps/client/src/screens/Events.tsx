@@ -25,7 +25,9 @@ export function EventsScreen() {
         <h1>Events</h1>
         <span className="muted">Limited-time stages, currencies and rewards</span>
       </div>
-      {!active.length && <p className="center muted">No event is running right now.{upcoming.length ? ` Next: ${upcoming[0]!.name} on ${upcoming[0]!.start}.` : ''}</p>}
+      {!active.length && (
+        <p className="center muted">No event is running right now.{upcoming.length ? ` Next: ${upcoming[0]!.name} on ${upcoming[0]!.start}.` : ''}</p>
+      )}
       {active.map((e) => (
         <EventView key={e.id} event={e} now={now} />
       ))}
@@ -134,9 +136,7 @@ function EventView({ event, now }: { event: EventDef; now: number }) {
                       <b>{hero.name}</b> <span className={`r${hero.rarity}-text`}>{'★'.repeat(hero.rarity)}</span>
                     </div>
                   )}
-                  <div className="small muted">
-                    {left > 0 ? `${left} left` : 'Sold out'}
-                  </div>
+                  <div className="small muted">{left > 0 ? `${left} left` : 'Sold out'}</div>
                   <button
                     className={`btn small ${afford && left > 0 ? 'primary' : ''}`}
                     disabled={!afford || left <= 0}

@@ -210,15 +210,22 @@ function BattleRunner({
     source.kind === 'tower'
       ? towerFloor(content, source.floor).theme
       : source.kind === 'arena'
-      ? 'kingdom'
-      : source.kind === 'guild'
-      ? 'cosmos'
-      : source.kind === 'dungeon'
-        ? source.dungeon.theme
-        : source.kind === 'event'
-          ? source.event.theme
-          : (chapterOf(content, source.stage.id)?.theme ?? 'meadow');
-  const exitTo = { arena: '/arena', dungeon: dungeonsPath(source.kind === 'dungeon' ? source.dungeon : undefined), event: '/events', guild: '/social?tab=guild', campaign: '/campaign', tower: '/tower' }[source.kind];
+        ? 'kingdom'
+        : source.kind === 'guild'
+          ? 'cosmos'
+          : source.kind === 'dungeon'
+            ? source.dungeon.theme
+            : source.kind === 'event'
+              ? source.event.theme
+              : (chapterOf(content, source.stage.id)?.theme ?? 'meadow');
+  const exitTo = {
+    arena: '/arena',
+    dungeon: dungeonsPath(source.kind === 'dungeon' ? source.dungeon : undefined),
+    event: '/events',
+    guild: '/social?tab=guild',
+    campaign: '/campaign',
+    tower: '/tower',
+  }[source.kind];
 
   useEffect(() => {
     if (started.current) return;
@@ -295,30 +302,33 @@ function BattleRunner({
     api.completeBattle(battle.battleId, b.director.actions).then(
       (res) => {
         // Let the victory/defeat banner play before the results card.
-        setTimeout(() => {
-          setProfile(res.profile);
-          setResult(res);
-          if (res.rewards.gold) sfx.coins();
-          // Repeat mode: queue the next auto run while it's affordable.
-          const settings = content.settings;
-          const affordable =
-            source.kind === 'campaign'
-              ? res.profile.stamina.current >= staminaCost(settings.stamina, source.hard)
-              : source.kind === 'event'
-                ? res.profile.stamina.current >= staminaCost(settings.stamina, false)
-                : source.kind === 'dungeon'
-                  ? res.profile.stamina.current >= (source.dungeon.tiers[source.tier]?.stamina ?? 0)
-                  : source.kind === 'tower';
-          // The tower costs nothing, but a cleared floor can't be fought again: it can only go on, not repeat.
-          if (res.outcome !== 'victory' || !affordable) return;
-          // Continue mode: on to the next stage (or floor) after any win, manual or auto.
-          if (advanceRef.current && onAdvance && (source.kind === 'campaign' || source.kind === 'tower')) {
-            const step = nextBattle(content, source, res.profile.clearedStages);
-            if (step) setQueued({ kind: 'advance', in: 3, ...step });
-          } else if (repeatRef.current && autoRef.current && onRetry && source.kind !== 'tower') {
-            setQueued({ kind: 'repeat', in: 3 });
-          }
-        }, Math.max(0, 1500 - (Date.now() - shownAt)));
+        setTimeout(
+          () => {
+            setProfile(res.profile);
+            setResult(res);
+            if (res.rewards.gold) sfx.coins();
+            // Repeat mode: queue the next auto run while it's affordable.
+            const settings = content.settings;
+            const affordable =
+              source.kind === 'campaign'
+                ? res.profile.stamina.current >= staminaCost(settings.stamina, source.hard)
+                : source.kind === 'event'
+                  ? res.profile.stamina.current >= staminaCost(settings.stamina, false)
+                  : source.kind === 'dungeon'
+                    ? res.profile.stamina.current >= (source.dungeon.tiers[source.tier]?.stamina ?? 0)
+                    : source.kind === 'tower';
+            // The tower costs nothing, but a cleared floor can't be fought again: it can only go on, not repeat.
+            if (res.outcome !== 'victory' || !affordable) return;
+            // Continue mode: on to the next stage (or floor) after any win, manual or auto.
+            if (advanceRef.current && onAdvance && (source.kind === 'campaign' || source.kind === 'tower')) {
+              const step = nextBattle(content, source, res.profile.clearedStages);
+              if (step) setQueued({ kind: 'advance', in: 3, ...step });
+            } else if (repeatRef.current && autoRef.current && onRetry && source.kind !== 'tower') {
+              setQueued({ kind: 'repeat', in: 3 });
+            }
+          },
+          Math.max(0, 1500 - (Date.now() - shownAt)),
+        );
       },
       (err) => setError(errorMessage(err)),
     );
@@ -340,9 +350,7 @@ function BattleRunner({
   const actor = currentActor(state);
   const playerTurn = Boolean(actor && actor.side === 'ally' && !b.auto && !b.busy && state.outcome === 'ongoing');
   const activeSkill = actor && playerTurn ? skillFor(actor, mode) : null;
-  const targetIds = new Set(
-    actor && activeSkill && activeSkill.targeting !== 'none' ? validTargets(state, actor, activeSkill).map((u) => u.uid) : [],
-  );
+  const targetIds = new Set(actor && activeSkill && activeSkill.targeting !== 'none' ? validTargets(state, actor, activeSkill).map((u) => u.uid) : []);
   const select = (uid: string) => {
     if (targetIds.has(uid)) void b.director.perform({ kind: mode, target: uid });
   };
@@ -681,7 +689,9 @@ function ResultModal({
           </div>
         ) : (
           <p className="muted">
-            {source.kind === 'arena' ? 'Strengthen your team and try another opponent.' : 'Level up and gear your heroes in the Roster, or try a different lineup.'}
+            {source.kind === 'arena'
+              ? 'Strengthen your team and try another opponent.'
+              : 'Level up and gear your heroes in the Roster, or try a different lineup.'}
           </p>
         )}
 
@@ -764,7 +774,10 @@ function XpBar({ xp }: { xp: NonNullable<CompleteBattleResponse['xp']> }) {
     <div className={`xp-result ${xp.levelsGained ? 'up' : ''}`}>
       {xp.levelsGained > 0 && (
         <div className="level-up">
-          ⬆ Level {xp.level}! <small>+{xp.reward.gems} 💎 · +{xp.reward.stamina} ⚡</small>
+          ⬆ Level {xp.level}!{' '}
+          <small>
+            +{xp.reward.gems} 💎 · +{xp.reward.stamina} ⚡
+          </small>
         </div>
       )}
       <div className="xp-line">

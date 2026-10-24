@@ -64,8 +64,7 @@ function BannerForm({ value, onChange, isNew }: FormProps<BannerDef>) {
       </Section>
       <Section title="Rate-up">
         <p className="small muted">
-          Each ★5 / ★4 has a 50% chance to be a featured unit; losing the 50/50 guarantees one next time. Limited units
-          can only be obtained as a featured pick.
+          Each ★5 / ★4 has a 50% chance to be a featured unit; losing the 50/50 guarantees one next time. Limited units can only be obtained as a featured pick.
         </p>
         <FormGrid>
           <Field label="Featured ★5">

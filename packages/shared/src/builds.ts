@@ -96,8 +96,7 @@ export function mainScaling(content: ContentIndex, c: Pick<CharacterDef, 'skill'
   return best;
 }
 
-export const recommendedBuild = (role: Role, scaling: ScaleStat = 'atk'): StatBuild =>
-  scaling === 'atk' ? ROLE_BUILDS[role] : SCALING_BUILDS[scaling](role);
+export const recommendedBuild = (role: Role, scaling: ScaleStat = 'atk'): StatBuild => (scaling === 'atk' ? ROLE_BUILDS[role] : SCALING_BUILDS[scaling](role));
 
 /** A hero's build from their role and what their spells scale with. */
 export const heroBuild = (content: ContentIndex, c: CharacterDef): StatBuild => recommendedBuild(c.role, mainScaling(content, c));

@@ -69,7 +69,12 @@ const codeBody = z.object({ code: z.string().trim().min(4).max(20) });
 const titleBody = z.object({ title: z.string().max(60).nullable() });
 const supportBody = z.object({ charId: z.string().max(40) });
 const guildCreateBody = z.object({
-  name: z.string().trim().min(3, 'Guild names need at least 3 characters').max(24).regex(/^[\p{L}\p{N} _'-]+$/u, "Letters, numbers, spaces and _ - ' only"),
+  name: z
+    .string()
+    .trim()
+    .min(3, 'Guild names need at least 3 characters')
+    .max(24)
+    .regex(/^[\p{L}\p{N} _'-]+$/u, "Letters, numbers, spaces and _ - ' only"),
   description: z.string().trim().max(200).default(''),
 });
 const guildUpdateBody = z.object({ description: z.string().trim().max(200), open: z.boolean() });
@@ -80,9 +85,7 @@ const dungeonParams = z.object({ dungeonId: z.string().max(40) });
 const dungeonBody = z.object({ tier: z.number().int().min(0).max(10) });
 const battleParams = z.object({ battleId: z.string().uuid() });
 const completeBattleBody = z.object({
-  actions: z
-    .array(z.object({ kind: z.enum(['basic', 'skill', 'ultimate']), target: z.string().max(8).optional() }))
-    .max(1000),
+  actions: z.array(z.object({ kind: z.enum(['basic', 'skill', 'ultimate']), target: z.string().max(8).optional() })).max(1000),
 });
 
 /** Strict limits on credential endpoints to slow down password guessing. */
@@ -442,9 +445,7 @@ export async function apiRoutes(app: FastifyInstance, opts: { config: AppConfig 
     arena.refresh(requireUser(request)),
   );
 
-  app.put('/arena/defense', async (request): Promise<ArenaStatusDTO> =>
-    arena.setDefense(requireUser(request), teamBody.parse(request.body).team),
-  );
+  app.put('/arena/defense', async (request): Promise<ArenaStatusDTO> => arena.setDefense(requireUser(request), teamBody.parse(request.body).team));
 
   app.get('/arena/leaderboard', async (request): Promise<ArenaLeaderboardEntryDTO[]> => arena.leaderboard(requireUser(request)));
 

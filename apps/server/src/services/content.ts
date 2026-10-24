@@ -66,9 +66,7 @@ export class ContentService {
 
   saveSettings(settings: unknown): ContentBundle {
     const parsed = settingsSchema.parse(settings);
-    return this.commit({ ...this.index.bundle, settings: parsed }, () =>
-      this.repo.upsert(SETTINGS_KIND, SETTINGS_ID, parsed, this.now()),
-    );
+    return this.commit({ ...this.index.bundle, settings: parsed }, () => this.repo.upsert(SETTINGS_KIND, SETTINGS_ID, parsed, this.now()));
   }
 
   /** Replaces all content (import, or reset to defaults). */

@@ -33,9 +33,7 @@ export function CampaignScreen() {
   const current = content.stages.find((s) => !isDone(s.id) && isOpen(s.id));
   const [selected, setSelected] = useState<string>(current?.id ?? content.stages[0]?.id ?? '');
   const levels = new Map(profile.roster.map((c) => [c.id, c.level]));
-  const teamLevel = profile.team.length
-    ? Math.round(profile.team.reduce((sum, id) => sum + (levels.get(id) ?? 1), 0) / profile.team.length)
-    : 0;
+  const teamLevel = profile.team.length ? Math.round(profile.team.reduce((sum, id) => sum + (levels.get(id) ?? 1), 0) / profile.team.length) : 0;
 
   return (
     <div className="campaign">
@@ -55,8 +53,8 @@ export function CampaignScreen() {
       </div>
       {hard && (
         <p className="hard-note small">
-          Hard mode: enemies are {content.settings.hardMode.levelBonus} levels higher and much stronger, with ×{content.settings.hardMode.rewardMult}{' '}
-          gold and materials and better gear drops. A chapter opens on hard once you've cleared it on normal.
+          Hard mode: enemies are {content.settings.hardMode.levelBonus} levels higher and much stronger, with ×{content.settings.hardMode.rewardMult} gold and
+          materials and better gear drops. A chapter opens on hard once you've cleared it on normal.
         </p>
       )}
       {content.chapters.map((chapter) => {
@@ -79,7 +77,9 @@ export function CampaignScreen() {
               </div>
               {chapterOpen && !hard && (
                 <div className="chapter-stars">
-                  <span className="stars md"><span className="on">★</span></span>
+                  <span className="stars md">
+                    <span className="on">★</span>
+                  </span>
                   {total.earned}/{total.max}
                 </div>
               )}
@@ -102,7 +102,15 @@ export function CampaignScreen() {
                     }}
                     title={`${stage.id} ${stage.name}`}
                   >
-                    <span className="node-icon">{!unlocked ? '🔒' : boss ? content.enemiesById[stage.enemies.find((e) => content.enemiesById[e.id]?.boss)!.id]!.emoji : done ? '★' : i + 1}</span>
+                    <span className="node-icon">
+                      {!unlocked
+                        ? '🔒'
+                        : boss
+                          ? content.enemiesById[stage.enemies.find((e) => content.enemiesById[e.id]?.boss)!.id]!.emoji
+                          : done
+                            ? '★'
+                            : i + 1}
+                    </span>
                     <span className="node-label">{stage.id}</span>
                     {done && !hard && (
                       <span className="node-stars">
@@ -212,7 +220,13 @@ function StageDetail({
     if (!def) return null;
     return (
       <span key={key} className={`enemy-chip ${def.boss ? 'boss' : ''}`} title={def.name}>
-        {!unlocked ? '❔' : def.sprite ? <UnitArt sprite={def.sprite} emoji={def.emoji} height={def.boss ? '44px' : '34px'} flip /> : <PixelEmoji emoji={def.emoji} />}
+        {!unlocked ? (
+          '❔'
+        ) : def.sprite ? (
+          <UnitArt sprite={def.sprite} emoji={def.emoji} height={def.boss ? '44px' : '34px'} flip />
+        ) : (
+          <PixelEmoji emoji={def.emoji} />
+        )}
         <small>{unlocked ? def.name : '???'}</small>
       </span>
     );
@@ -241,8 +255,7 @@ function StageDetail({
       </div>
       <div className="stage-side">
         <div className="small muted">
-          Enemy Lv {stage.enemies[0]!.level + bonus} ·{' '}
-          <span className={tough && unlocked ? 'warn' : ''}>Recommended Lv {recommended}</span>
+          Enemy Lv {stage.enemies[0]!.level + bonus} · <span className={tough && unlocked ? 'warn' : ''}>Recommended Lv {recommended}</span>
         </div>
         {tough && unlocked && !done && (
           <div className={`underlevel ${recommended - teamLevel >= 5 ? 'severe' : ''}`}>
@@ -275,7 +288,11 @@ function StageDetail({
         {unlocked && !canPay && <StaminaShort need={cost} />}
         {unlocked && <FriendPicker value={friend} onChange={setFriend} />}
         {mastered && unlocked && (
-          <SweepButtons target={{ kind: 'stage', stageId: stage.id, hard }} maxRuns={cost > 0 ? Math.floor(stamina.current / cost) : 99} costLabel={`⚡${cost}`} />
+          <SweepButtons
+            target={{ kind: 'stage', stageId: stage.id, hard }}
+            maxRuns={cost > 0 ? Math.floor(stamina.current / cost) : 99}
+            costLabel={`⚡${cost}`}
+          />
         )}
         {!mastered && done && !hard && <small className="muted">Earn all stars to unlock ⏩ Sweep</small>}
       </div>

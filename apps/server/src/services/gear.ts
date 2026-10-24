@@ -173,7 +173,6 @@ export class GearService {
     });
   }
 
-
   /** Rolls a stage's drop table. Call inside the victory transaction. */
   /** Gear of this rarity or lower is salvaged on drop (0 = keep everything). */
   private autoSalvage(userId: string): number {

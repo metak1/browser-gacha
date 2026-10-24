@@ -64,7 +64,11 @@ export function MechanicsEditor({ value, onChange }: { value: EnemyMechanics | n
 
       <FormGrid>
         <Field label="Calls adds" hint="Summons minions (weaker copies) at HP thresholds, once each.">
-          <Check checked={Boolean(m.adds)} onChange={(on) => set({ adds: on ? { at: [0.5], unit: content.bundle.enemies[0]?.id ?? '', count: 1 } : null })} label="Enabled" />
+          <Check
+            checked={Boolean(m.adds)}
+            onChange={(on) => set({ adds: on ? { at: [0.5], unit: content.bundle.enemies[0]?.id ?? '', count: 1 } : null })}
+            label="Enabled"
+          />
         </Field>
         {m.adds && (
           <>
@@ -85,14 +89,21 @@ export function MechanicsEditor({ value, onChange }: { value: EnemyMechanics | n
                       max={99}
                     />
                     {m.adds!.at.length > 1 && (
-                      <button className="icon-mini danger" onClick={() => set({ adds: { ...m.adds!, at: m.adds!.at.filter((_, j) => j !== i) } })} title="Remove">
+                      <button
+                        className="icon-mini danger"
+                        onClick={() => set({ adds: { ...m.adds!, at: m.adds!.at.filter((_, j) => j !== i) } })}
+                        title="Remove"
+                      >
                         ✕
                       </button>
                     )}
                   </span>
                 ))}
                 {m.adds.at.length < 5 && (
-                  <button className="btn small" onClick={() => set({ adds: { ...m.adds!, at: [...m.adds!.at, Math.max(0.1, Math.min(...m.adds!.at) - 0.2)] } })}>
+                  <button
+                    className="btn small"
+                    onClick={() => set({ adds: { ...m.adds!, at: [...m.adds!.at, Math.max(0.1, Math.min(...m.adds!.at) - 0.2)] } })}
+                  >
                     +
                   </button>
                 )}

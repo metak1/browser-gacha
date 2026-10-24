@@ -1,10 +1,4 @@
-import {
-  ELEMENTS,
-  firstSummonFree,
-  newBannerState,
-  type PullHistoryEntryDTO,
-  type SummonResultDTO,
-} from '@gacha/shared';
+import { ELEMENTS, firstSummonFree, newBannerState, type PullHistoryEntryDTO, type SummonResultDTO } from '@gacha/shared';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { api, errorMessage } from '../api';
 import { sfx } from '../audio/sfx';
@@ -93,9 +87,7 @@ export function SummonScreen() {
             ★4 pity <b>{bs.pity4}</b> / {settings.gacha.hardPity4}
           </span>
           {banner.featured5 && (
-            <span className={bs.guaranteed5 ? 'guaranteed' : 'muted'}>
-              {bs.guaranteed5 ? 'Next ★5 is guaranteed rate-up' : '50/50 active'}
-            </span>
+            <span className={bs.guaranteed5 ? 'guaranteed' : 'muted'}>{bs.guaranteed5 ? 'Next ★5 is guaranteed rate-up' : '50/50 active'}</span>
           )}
         </div>
         <div className="pity-bar">
@@ -124,15 +116,14 @@ export function SummonScreen() {
         <summary>Rates &amp; details</summary>
         <ul>
           <li>
-            <b className="r5-text">★5</b> base rate {(settings.gacha.base5 * 100).toFixed(1)}%, rising sharply from pull {settings.gacha.softPity5}, guaranteed by
-            pull {settings.gacha.hardPity5}.
+            <b className="r5-text">★5</b> base rate {(settings.gacha.base5 * 100).toFixed(1)}%, rising sharply from pull {settings.gacha.softPity5}, guaranteed
+            by pull {settings.gacha.hardPity5}.
           </li>
           <li>
-            <b className="r4-text">★4</b> base rate {(settings.gacha.base4 * 100).toFixed(1)}%. At least one ★4 or higher every {settings.gacha.hardPity4} pulls.
+            <b className="r4-text">★4</b> base rate {(settings.gacha.base4 * 100).toFixed(1)}%. At least one ★4 or higher every {settings.gacha.hardPity4}{' '}
+            pulls.
           </li>
-          {banner.featured5 && (
-            <li>Each ★5 has a 50% chance to be the rate-up hero. If it isn't, the next ★5 is guaranteed to be.</li>
-          )}
+          {banner.featured5 && <li>Each ★5 has a 50% chance to be the rate-up hero. If it isn't, the next ★5 is guaranteed to be.</li>}
           <li>Pity is tracked per banner and saved on the server.</li>
           <li>Duplicates raise a hero's constellation (C1–C6, +6% stats each) and give stardust.</li>
         </ul>
@@ -212,10 +203,7 @@ function SummonReveal({ results, onClose }: { results: SummonResultDTO[]; onClos
       return () => clearTimeout(t);
     }
     if (phase === 'revealing') {
-      const t =
-        shown >= results.length
-          ? setTimeout(() => setPhase('done'), 450)
-          : setTimeout(() => setShown((s) => s + 1), shown === 0 ? 150 : 170);
+      const t = shown >= results.length ? setTimeout(() => setPhase('done'), 450) : setTimeout(() => setShown((s) => s + 1), shown === 0 ? 150 : 170);
       return () => clearTimeout(t);
     }
   }, [phase, shown, best, results.length]);
@@ -261,10 +249,7 @@ function SummonReveal({ results, onClose }: { results: SummonResultDTO[]; onClos
                 <span>✦</span>
               </div>
               <div className="flip-front">
-                <CharacterCard
-                  charId={r.id}
-                  badge={r.isNew ? 'NEW' : `C${r.constellation}${r.stardust ? ` · +${r.stardust}✨` : ''}`}
-                />
+                <CharacterCard charId={r.id} badge={r.isNew ? 'NEW' : `C${r.constellation}${r.stardust ? ` · +${r.stardust}✨` : ''}`} />
               </div>
             </div>
           </div>

@@ -28,7 +28,14 @@ const STORAGE_KEY = 'starlit-settings';
 // Settings are a per-device convenience; storage may be unavailable (private mode).
 function read(): { muted: boolean; speed: BattleSpeed; repeat: boolean; advance: boolean; music: boolean; largeText: boolean } {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as { muted?: unknown; speed?: unknown; repeat?: unknown; advance?: unknown; music?: unknown; largeText?: unknown };
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as {
+      muted?: unknown;
+      speed?: unknown;
+      repeat?: unknown;
+      advance?: unknown;
+      music?: unknown;
+      largeText?: unknown;
+    };
     return {
       muted: raw.muted === true,
       speed: raw.speed === 3 ? 3 : raw.speed === 2 ? 2 : 1,
@@ -73,7 +80,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [muted, speed, repeat, advance, music, largeText]);
 
   return (
-    <SettingsContext.Provider value={{ muted, setMuted, speed, setSpeed, repeat, setRepeat, advance, setAdvance, music, setMusic, largeText, setLargeText }}>{children}</SettingsContext.Provider>
+    <SettingsContext.Provider value={{ muted, setMuted, speed, setSpeed, repeat, setRepeat, advance, setAdvance, music, setMusic, largeText, setLargeText }}>
+      {children}
+    </SettingsContext.Provider>
   );
 }
 

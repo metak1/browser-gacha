@@ -160,7 +160,7 @@ export class BattleService {
     const cleared = progress.clearedStages(userId);
     if (!isStageUnlocked(content, stageId, cleared)) throw badRequest('stage_locked', 'Clear the previous stage first');
     if (hard && !isHardUnlocked(content, stageId, cleared)) {
-      throw badRequest('stage_locked', content.settings.hardMode.enabled ? "Clear the chapter, then the previous hard stage" : 'Hard mode is off');
+      throw badRequest('stage_locked', content.settings.hardMode.enabled ? 'Clear the chapter, then the previous hard stage' : 'Hard mode is off');
     }
     const cost = staminaCost(content.settings.stamina, hard);
     const meta: CampaignMeta = { ...(hard ? { hard: true } : {}), stamina: cost };
@@ -445,7 +445,15 @@ export class BattleService {
     const settings = content.settings;
     const wanted = Math.max(1, Math.min(settings.maxSweep, Math.floor(req.count)));
     const cleared = new Set(progress.clearedStages(userId));
-    const total: SweepResult = { runs: 0, rewards: { gems: 0, gold: 0 }, drops: [], inventoryFull: false, salvaged: { count: 0, gold: 0, stones: 0 }, materials: [], xp: null };
+    const total: SweepResult = {
+      runs: 0,
+      rewards: { gems: 0, gold: 0 },
+      drops: [],
+      inventoryFull: false,
+      salvaged: { count: 0, gold: 0, stones: 0 },
+      materials: [],
+      xp: null,
+    };
     const p = settings.playerLevel;
     const add = (p: Payout) => {
       total.runs++;

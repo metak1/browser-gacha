@@ -96,11 +96,17 @@ export function TeamTabs() {
             key={t.slot}
             className={`team-tab ${t.slot === profile.activeTeam ? 'active' : ''} ${t.members.length ? '' : 'empty'}`}
             onClick={() => (t.slot === profile.activeTeam ? setEditing(t.name) : void mutate(() => api.activateTeam(t.slot), `Team: ${t.name}`))}
-            title={t.slot === profile.activeTeam ? 'Click to rename' : t.members.length ? `Switch to ${t.name}` : 'New team (starts as a copy of the current one)'}
+            title={
+              t.slot === profile.activeTeam ? 'Click to rename' : t.members.length ? `Switch to ${t.name}` : 'New team (starts as a copy of the current one)'
+            }
           >
             <span className="team-tab-name">{t.name}</span>
             <small>{t.members.length ? elementsOf(t.members, content) : '+ new'}</small>
-            {t.slot === profile.activeTeam && <span className="team-tab-edit" aria-hidden>✏️</span>}
+            {t.slot === profile.activeTeam && (
+              <span className="team-tab-edit" aria-hidden>
+                ✏️
+              </span>
+            )}
           </button>
         ),
       )}

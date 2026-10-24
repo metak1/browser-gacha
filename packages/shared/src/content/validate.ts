@@ -98,7 +98,8 @@ export function validateBundle(bundle: ContentBundle): string[] {
   for (const g of b.gear) {
     if (!g.mainStat) continue;
     if (BOOTS_ONLY_MAIN.includes(g.mainStat) && g.slot !== 'boots') err(`gear/${g.id}`, `${g.mainStat.toUpperCase()} as a main stat is only allowed on boots`);
-    else if (!MAIN_POOLS[g.slot].includes(g.mainStat)) err(`gear/${g.id}`, `${g.slot} can't have ${g.mainStat} as a main stat (allowed: ${MAIN_POOLS[g.slot].join(', ')})`);
+    else if (!MAIN_POOLS[g.slot].includes(g.mainStat))
+      err(`gear/${g.id}`, `${g.slot} can't have ${g.mainStat} as a main stat (allowed: ${MAIN_POOLS[g.slot].join(', ')})`);
   }
 
   for (const e of b.enemies) {

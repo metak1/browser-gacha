@@ -108,22 +108,22 @@ function CharacterForm(props: FormProps<CharacterDef>) {
   const set = <K extends keyof CharacterDef>(k: K, v: CharacterDef[K]) => onChange({ ...value, [k]: v });
   return (
     <>
-    <UnitForm
-      {...props}
-      kind="character"
-      extraFields={
-        <>
-          <Field label="Rarity">
-            <Select value={value.rarity} onChange={(v) => set('rarity', v)} options={rarityOptions} />
-          </Field>
-          <Field label="Banner pool" hint="Limited units only drop as a banner's featured ★5/★4.">
-            <Check checked={value.limited} onChange={(v) => set('limited', v)} label="Limited" />
-          </Field>
-        </>
-      }
-      roleDefaults={() => characterBase(value.role, value.rarity)}
-    />
-    <LoreEditor title={value.title} lore={value.lore} onTitle={(t) => set('title', t)} onLore={(l) => set('lore', l)} />
+      <UnitForm
+        {...props}
+        kind="character"
+        extraFields={
+          <>
+            <Field label="Rarity">
+              <Select value={value.rarity} onChange={(v) => set('rarity', v)} options={rarityOptions} />
+            </Field>
+            <Field label="Banner pool" hint="Limited units only drop as a banner's featured ★5/★4.">
+              <Check checked={value.limited} onChange={(v) => set('limited', v)} label="Limited" />
+            </Field>
+          </>
+        }
+        roleDefaults={() => characterBase(value.role, value.rarity)}
+      />
+      <LoreEditor title={value.title} lore={value.lore} onTitle={(t) => set('title', t)} onLore={(l) => set('lore', l)} />
     </>
   );
 }
@@ -138,7 +138,9 @@ function LoreEditor({ title, lore, onTitle, onLore }: { title: string; lore: Lor
         <button
           className="btn small"
           disabled={lore.length >= 12}
-          onClick={() => onLore([...lore, { title: 'New chapter', text: '', unlockRank: lore.length ? Math.min(20, lore[lore.length - 1]!.unlockRank + 1) : 0 }])}
+          onClick={() =>
+            onLore([...lore, { title: 'New chapter', text: '', unlockRank: lore.length ? Math.min(20, lore[lore.length - 1]!.unlockRank + 1) : 0 }])
+          }
         >
           + Add entry
         </button>
@@ -274,13 +276,12 @@ function UnitForm<T extends UnitDef>({ value, onChange, isNew, kind, extraFields
             <Select value={value.basic} onChange={(v) => set('basic', v)} options={skillOptions} />
           </Field>
           <Field label="Skill" hint={skill ? `${describeSkill(skill)} Cooldown ${skill.cooldown}.` : 'Optional.'}>
-            <Select<string | null>
-              value={value.skill}
-              onChange={(v) => set('skill', v)}
-              options={[{ value: null, label: '— none —' }, ...skillOptions]}
-            />
+            <Select<string | null> value={value.skill} onChange={(v) => set('skill', v)} options={[{ value: null, label: '— none —' }, ...skillOptions]} />
           </Field>
-          <Field label="Ultimate" hint={ultimate ? `${describeSkill(ultimate)} Fires when energy is full.` : 'Optional. Energy fills by acting and taking hits.'}>
+          <Field
+            label="Ultimate"
+            hint={ultimate ? `${describeSkill(ultimate)} Fires when energy is full.` : 'Optional. Energy fills by acting and taking hits.'}
+          >
             <Select<string | null>
               value={value.ultimate}
               onChange={(v) => set('ultimate', v)}

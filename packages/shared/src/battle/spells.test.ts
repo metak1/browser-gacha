@@ -13,7 +13,12 @@ const content = indexContent(createDefaultContent());
 
 /** Stage 1-1 with everyone very tanky, so nobody falls by accident. */
 function setup(): BattleSetup {
-  const s = buildBattleSetup(content, 3, REFERENCE_TEAM.map((id) => ({ id, level: 10, constellation: 0 })), content.stagesById['1-1']!);
+  const s = buildBattleSetup(
+    content,
+    3,
+    REFERENCE_TEAM.map((id) => ({ id, level: 10, constellation: 0 })),
+    content.stagesById['1-1']!,
+  );
   for (const u of [...s.allies, ...s.enemies]) u.stats = { ...u.stats, hp: 100_000 };
   return s;
 }
@@ -164,7 +169,15 @@ describe('new effects', () => {
     const s = setup();
     for (const a of s.allies) {
       a.stats = { ...a.stats, hp: 3000 };
-      a.skill = skill('Hex Volley', 'enemy', 2, { kind: 'damage', to: 'target', mult: 1.5, hits: 3, pierce: 0.3, lifesteal: 0.2 }, status('poison', 2), status('silence', 1), delay(0.2));
+      a.skill = skill(
+        'Hex Volley',
+        'enemy',
+        2,
+        { kind: 'damage', to: 'target', mult: 1.5, hits: 3, pierce: 0.3, lifesteal: 0.2 },
+        status('poison', 2),
+        status('silence', 1),
+        delay(0.2),
+      );
       a.ultimate = skill('Renewal', 'none', 0, cleanse('allAllies'), status('regen', 2, 'allAllies'), revive(0.5, 'allAllies'), dispel('allEnemies'));
     }
     for (const e of s.enemies) e.stats = { ...e.stats, hp: 4000 };

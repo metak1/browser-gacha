@@ -38,7 +38,9 @@ export class SocialRepo {
     this.db.run(
       `INSERT INTO friends (user_id, friend_id, status, created_at) VALUES (?, ?, 'accepted', ?)
        ON CONFLICT (user_id, friend_id) DO UPDATE SET status = 'accepted'`,
-      userId, fromId, now,
+      userId,
+      fromId,
+      now,
     );
   }
 

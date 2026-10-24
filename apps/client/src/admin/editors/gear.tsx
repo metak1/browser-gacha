@@ -54,8 +54,7 @@ function GearForm({ value, onChange, isNew }: FormProps<GearDef>) {
     <>
       <Section title="Gear template">
         <p className="small muted">
-          Drops roll random bonus stats on top of this. Editing a template only changes future drops; items players already
-          own keep their numbers.
+          Drops roll random bonus stats on top of this. Editing a template only changes future drops; items players already own keep their numbers.
         </p>
         <FormGrid>
           <Field label="ID" hint="Can't be changed after creation.">
@@ -69,7 +68,11 @@ function GearForm({ value, onChange, isNew }: FormProps<GearDef>) {
           </Field>
           <IconField label="Icon" value={value.icon} onChange={(v) => set('icon', v)} />
           <Field label="Slot">
-            <Select value={value.slot} onChange={(v) => set('slot', v)} options={options(GEAR_SLOTS, (s) => `${GEAR_SLOT_INFO[s].icon} ${GEAR_SLOT_INFO[s].label}`)} />
+            <Select
+              value={value.slot}
+              onChange={(v) => set('slot', v)}
+              options={options(GEAR_SLOTS, (s) => `${GEAR_SLOT_INFO[s].icon} ${GEAR_SLOT_INFO[s].label}`)}
+            />
           </Field>
           <Field label="Rarity" hint="Higher rarity drops with more bonus stats (★3: 1, ★4: 2, ★5: 3).">
             <Select value={value.rarity} onChange={(v) => set('rarity', v)} options={rarityOptions} />
@@ -161,14 +164,17 @@ function GearSetForm({ value, onChange, isNew }: FormProps<GearSetDef>) {
   const content = useContent();
   const set = <K extends keyof GearSetDef>(k: K, v: GearSetDef[K]) => onChange({ ...value, [k]: v });
   const setBonus = (i: number, patch: Partial<GearSetDef['bonuses'][number]>) =>
-    set('bonuses', value.bonuses.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+    set(
+      'bonuses',
+      value.bonuses.map((b, j) => (j === i ? { ...b, ...patch } : b)),
+    );
   const fixedOn = content.bundle.gear.filter((g) => g.set === value.id).map((g) => g.name);
   return (
     <>
       <Section title="Gear set">
         <p className="small muted">
-          Every gear drop belongs to a set: a random one, unless its template fixes one. A hero wearing enough pieces of a set
-          earns its bonuses, and the bonuses stack (4 pieces also earn the 2-piece bonus).
+          Every gear drop belongs to a set: a random one, unless its template fixes one. A hero wearing enough pieces of a set earns its bonuses, and the
+          bonuses stack (4 pieces also earn the 2-piece bonus).
         </p>
         <FormGrid>
           <Field label="ID" hint="Can't be changed after creation.">
@@ -212,7 +218,16 @@ function GearSetForm({ value, onChange, isNew }: FormProps<GearSetDef>) {
                 />
               </label>
               <span className="effect-tools">
-                <button className="icon-mini danger" onClick={() => set('bonuses', value.bonuses.filter((_, j) => j !== i))} title="Remove">
+                <button
+                  className="icon-mini danger"
+                  onClick={() =>
+                    set(
+                      'bonuses',
+                      value.bonuses.filter((_, j) => j !== i),
+                    )
+                  }
+                  title="Remove"
+                >
                   ✕
                 </button>
               </span>

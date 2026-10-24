@@ -190,9 +190,7 @@ export class ArenaService {
 
   private makeOffers(player: ArenaPlayer): ArenaOffer[] {
     const { arena, users, random, roster, content } = this.ctx;
-    const pool = arena
-      .nearby(player.userId, player.rating, 10)
-      .filter((p) => this.gear.teamMembers(p.userId, p.defense).length > 0);
+    const pool = arena.nearby(player.userId, player.rating, 10).filter((p) => this.gear.teamMembers(p.userId, p.defense).length > 0);
     const offers: ArenaOffer[] = [];
     while (offers.length < Math.min(2, OFFER_COUNT) && pool.length) {
       const [p] = pool.splice(Math.floor(random() * pool.length), 1);

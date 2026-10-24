@@ -37,10 +37,7 @@ export class UserRepo {
   constructor(private readonly db: Database) {}
 
   create(id: string, wallet: WalletDTO, now: number) {
-    this.db.run(
-      'INSERT INTO users (id, gems, gold, stardust, created_at) VALUES (?, ?, ?, ?, ?)',
-      id, wallet.gems, wallet.gold, wallet.stardust, now,
-    );
+    this.db.run('INSERT INTO users (id, gems, gold, stardust, created_at) VALUES (?, ?, ?, ?, ?)', id, wallet.gems, wallet.gold, wallet.stardust, now);
   }
 
   findById(id: string): User | undefined {
@@ -61,7 +58,10 @@ export class UserRepo {
   adjustWallet(id: string, delta: Partial<WalletDTO>) {
     this.db.run(
       'UPDATE users SET gems = gems + ?, gold = gold + ?, stardust = stardust + ? WHERE id = ?',
-      delta.gems ?? 0, delta.gold ?? 0, delta.stardust ?? 0, id,
+      delta.gems ?? 0,
+      delta.gold ?? 0,
+      delta.stardust ?? 0,
+      id,
     );
   }
 
@@ -83,7 +83,10 @@ export class UserRepo {
           `SELECT * FROM users
            WHERE instr(lower(coalesce(username, '')), lower(?)) > 0 OR substr(id, 1, length(?)) = ?
            ORDER BY created_at DESC LIMIT ?`,
-          q, q, q, limit,
+          q,
+          q,
+          q,
+          limit,
         )
       : this.db.all<UserRow>('SELECT * FROM users ORDER BY created_at DESC LIMIT ?', limit);
     return rows.map(toUser);

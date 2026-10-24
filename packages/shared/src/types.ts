@@ -2,23 +2,25 @@ export type ElementId = 'flame' | 'tide' | 'gale' | 'stone' | 'volt' | 'frost';
 export type Rarity = 3 | 4 | 5;
 export type Role = 'striker' | 'guardian' | 'healer' | 'support';
 export type StatusId =
-  | 'burn'
-  | 'stun'
-  | 'atkUp'
-  | 'defUp'
-  | 'defDown'
-  | 'spdUp'
-  | 'taunt'
-  | 'poison'
-  | 'regen'
-  | 'atkDown'
-  | 'spdDown'
-  | 'silence'
-  | 'immunity';
+  'burn' | 'stun' | 'atkUp' | 'defUp' | 'defDown' | 'spdUp' | 'taunt' | 'poison' | 'regen' | 'atkDown' | 'spdDown' | 'silence' | 'immunity';
 
 export const ELEMENT_IDS: ElementId[] = ['flame', 'tide', 'gale', 'stone', 'volt', 'frost'];
 export const ROLE_IDS: Role[] = ['striker', 'guardian', 'healer', 'support'];
-export const STATUS_IDS: StatusId[] = ['burn', 'stun', 'atkUp', 'defUp', 'defDown', 'spdUp', 'taunt', 'poison', 'regen', 'atkDown', 'spdDown', 'silence', 'immunity'];
+export const STATUS_IDS: StatusId[] = [
+  'burn',
+  'stun',
+  'atkUp',
+  'defUp',
+  'defDown',
+  'spdUp',
+  'taunt',
+  'poison',
+  'regen',
+  'atkDown',
+  'spdDown',
+  'silence',
+  'immunity',
+];
 
 export interface Stats {
   hp: number;

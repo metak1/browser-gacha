@@ -122,11 +122,7 @@ export function EntityEditor<T extends { id: string | number; name?: string }>(p
         <div className="ed-items">
           {isNew && <div className="ed-item active new">✳️ New {singular}</div>}
           {filtered.map((item) => (
-            <button
-              key={item.id}
-              className={`ed-item ${item.id === selectedId && !isNew ? 'active' : ''}`}
-              onClick={() => select(item.id)}
-            >
+            <button key={item.id} className={`ed-item ${item.id === selectedId && !isNew ? 'active' : ''}`} onClick={() => select(item.id)}>
               {label(item)}
             </button>
           ))}

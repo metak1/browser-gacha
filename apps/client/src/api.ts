@@ -70,8 +70,7 @@ export const api = {
   tower: () => request<TowerDTO>('GET', '/tower'),
   startTower: (floor: number) => request<StartBattleResponse>('POST', '/tower/battles', { floor }),
   ascend: (charId: string) => request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/ascend`),
-  skillUp: (charId: string, slot: 'skill' | 'ultimate') =>
-    request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/skill-up`, { slot }),
+  skillUp: (charId: string, slot: 'skill' | 'ultimate') => request<ProfileDTO>('POST', `/roster/${encodeURIComponent(charId)}/skill-up`, { slot }),
   buy: (material: string, quantity: number) => request<ProfileDTO>('POST', '/shop/buy', { material, quantity }),
 
   summon: (bannerId: string, count: 1 | 10) => request<SummonResponse>('POST', '/gacha/summon', { bannerId, count }),
@@ -82,8 +81,7 @@ export const api = {
     request<StartBattleResponse>('POST', '/battles', { stageId, ...(hard ? { hard } : {}), ...(friendId ? { friendId } : {}) }),
   startEvent: (eventId: string, stage: number, friendId?: string) =>
     request<StartBattleResponse>('POST', `/events/${enc(eventId)}/stages/${stage}/battles`, friendId ? { friendId } : {}),
-  buyEvent: (eventId: string, itemId: string, count: number) =>
-    request<ProfileDTO>('POST', `/events/${enc(eventId)}/shop/${enc(itemId)}/buy`, { count }),
+  buyEvent: (eventId: string, itemId: string, count: number) => request<ProfileDTO>('POST', `/events/${enc(eventId)}/shop/${enc(itemId)}/buy`, { count }),
   setTitle: (title: string | null) => request<ProfileDTO>('PUT', '/me/title', { title }),
   setSupport: (charId: string) => request<ProfileDTO>('PUT', '/me/support', { charId }),
   social: {
@@ -103,8 +101,7 @@ export const api = {
     attack: () => request<StartBattleResponse>('POST', '/guild/battles'),
   },
   startDungeon: (dungeonId: string, tier: number) => request<StartBattleResponse>('POST', `/dungeons/${encodeURIComponent(dungeonId)}/battles`, { tier }),
-  completeBattle: (battleId: string, actions: BattleAction[]) =>
-    request<CompleteBattleResponse>('POST', `/battles/${battleId}/complete`, { actions }),
+  completeBattle: (battleId: string, actions: BattleAction[]) => request<CompleteBattleResponse>('POST', `/battles/${battleId}/complete`, { actions }),
 
   gear: {
     equip: (id: string, charId: string | null) => request<GearActionResponse>('POST', `/gear/${enc(id)}/equip`, { charId }),
@@ -133,10 +130,8 @@ export const api = {
   claimActivity: (points: number) => request<ProfileDTO>('POST', `/activity/${points}/claim`),
 
   admin: {
-    save: <K extends ContentKind>(kind: K, doc: ContentDocs[K]) =>
-      request<ContentBundle>('PUT', `/admin/content/${kind}/${enc(String(doc.id))}`, doc),
-    remove: (kind: ContentKind, id: string | number) =>
-      request<ContentBundle>('DELETE', `/admin/content/${kind}/${enc(String(id))}`),
+    save: <K extends ContentKind>(kind: K, doc: ContentDocs[K]) => request<ContentBundle>('PUT', `/admin/content/${kind}/${enc(String(doc.id))}`, doc),
+    remove: (kind: ContentKind, id: string | number) => request<ContentBundle>('DELETE', `/admin/content/${kind}/${enc(String(id))}`),
     saveSettings: (settings: GameSettings) => request<ContentBundle>('PUT', '/admin/content/settings', settings),
     importBundle: (bundle: unknown) => request<ContentBundle>('POST', '/admin/content/import', bundle),
     reset: () => request<ContentBundle>('POST', '/admin/content/reset'),

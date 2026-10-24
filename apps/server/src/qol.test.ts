@@ -36,7 +36,7 @@ describe('stamina', () => {
     expect((await call<ProfileDTO>('GET', '/me')).body.stamina.current).toBe(190);
 
     // Lose on purpose: level-1 heroes against the 1-4 boss.
-    ctx.db.run("UPDATE characters SET level = 1 WHERE user_id = ?", profile.user.id);
+    ctx.db.run('UPDATE characters SET level = 1 WHERE user_id = ?', profile.user.id);
     for (const id of ['1-1', '1-2', '1-3']) ctx.progress.recordClear(profile.user.id, id, clock);
     const hard = await call<StartBattleResponse>('POST', '/battles', { stageId: '1-4' });
     const played = autoBattle(hard.body.setup);

@@ -187,7 +187,11 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
     for (const s of b.stages) {
       // Content saved before objectives existed parses with just "win".
       if (s.objectives.length === 1 && s.objectives[0]!.kind === 'win') {
-        s.objectives = defaultObjectives(s.id, s.enemies.length, s.enemies.some((e) => bosses.has(e.id)));
+        s.objectives = defaultObjectives(
+          s.id,
+          s.enemies.length,
+          s.enemies.some((e) => bosses.has(e.id)),
+        );
         changed = true;
       }
     }
@@ -252,7 +256,8 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
     const missionIds = new Set(b.missions.map((m) => m.id));
     for (const m of d.missions) {
       if (missionIds.has(m.id)) continue;
-      const fresh = m.kind === 'dungeonRuns' || m.kind === 'hardClears' || (m.kind === 'clearStage' && b.stages.some((x) => x.id === m.target) && added.size > 0);
+      const fresh =
+        m.kind === 'dungeonRuns' || m.kind === 'hardClears' || (m.kind === 'clearStage' && b.stages.some((x) => x.id === m.target) && added.size > 0);
       if (fresh && m.reward.materials.every((x) => materialIds.has(x.id))) {
         b.missions.push(m);
         changed = true;
@@ -380,7 +385,9 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
       const materialIds = new Set(b.materials.map((m) => m.id));
       const ev = structuredClone(d.events[0]!);
       ev.stages = ev.stages.filter((st) => [...st.enemies, ...st.waves.flat()].every((e) => enemyIds.has(e.id)));
-      ev.shop = ev.shop.filter((i) => i.reward.materials.every((m) => materialIds.has(m.id)) && (!i.character || b.characters.some((c) => c.id === i.character)));
+      ev.shop = ev.shop.filter(
+        (i) => i.reward.materials.every((m) => materialIds.has(m.id)) && (!i.character || b.characters.some((c) => c.id === i.character)),
+      );
       if (ev.stages.length) {
         b.events.push(ev);
         changed = true;
@@ -678,7 +685,10 @@ export function upgradeContent(bundle: ContentBundle, fromVersion: number): { bu
   if (fromVersion < 29) {
     // v29: medieval landscapes. The Armory moves to the war camp and the Bastion to the ruins,
     // if they're still on their old themes.
-    for (const [id, from, to] of [['armory', 'ember', 'camp'], ['bastion', 'frost', 'ruins']] as const) {
+    for (const [id, from, to] of [
+      ['armory', 'ember', 'camp'],
+      ['bastion', 'frost', 'ruins'],
+    ] as const) {
       const dg = b.dungeons.find((d) => d.id === id);
       if (dg?.theme === from) {
         dg.theme = to;
@@ -727,36 +737,433 @@ function armoryShape(dg: { mechanic?: unknown; tiers: object[] }): string {
 function canonical(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
   if (v && typeof v === 'object') {
-    const entries = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b));
+    const entries = Object.entries(v as Record<string, unknown>)
+      .filter(([, x]) => x !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b));
     return `{${entries.map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`).join(',')}}`;
   }
   return JSON.stringify(v);
 }
 
 /** The default Armory as of v21 (one dungeon, every set). */
-const V21_ARMORY = {"id":"armory","name":"The Armory","emoji":"⚒️","theme":"ember","days":[0,1,2,3,4,5,6],"description":"Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.","sets":[],"tiers":[{"name":"Tier I","recommendedLevel":15,"enemies":[{"id":"orc","level":17},{"id":"black-knight","level":17},{"id":"orc","level":17}],"waves":[],"gold":150,"materialDrops":[],"gearRolls":{"count":2,"r3":6,"r4":4,"r5":0}},{"name":"Tier II","recommendedLevel":30,"enemies":[{"id":"minotaur","level":34},{"id":"black-knight","level":34},{"id":"orc-rider","level":34}],"waves":[[{"id":"orc","level":34},{"id":"orc","level":34},{"id":"orc","level":34}]],"gold":300,"materialDrops":[],"gearRolls":{"count":2,"r3":2,"r4":6.5,"r5":1.5}},{"name":"Tier III","recommendedLevel":45,"enemies":[{"id":"storm-knight","level":50},{"id":"magma-golem","level":50},{"id":"storm-knight","level":50}],"waves":[[{"id":"minotaur","level":50},{"id":"black-knight","level":50},{"id":"minotaur","level":50}]],"gold":500,"materialDrops":[],"gearRolls":{"count":3,"r3":0,"r4":6,"r5":4}},{"name":"Tier IV","recommendedLevel":55,"enemies":[{"id":"black-knight","level":60},{"id":"magma-golem","level":60},{"id":"black-knight","level":60}],"waves":[[{"id":"orc","level":60},{"id":"warlord","level":60},{"id":"orc","level":60}]],"gold":800,"materialDrops":[],"gearRolls":{"count":3,"r3":0,"r4":3,"r5":7}}]};
+const V21_ARMORY = {
+  id: 'armory',
+  name: 'The Armory',
+  emoji: '⚒️',
+  theme: 'ember',
+  days: [0, 1, 2, 3, 4, 5, 6],
+  description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.',
+  sets: [],
+  tiers: [
+    {
+      name: 'Tier I',
+      recommendedLevel: 15,
+      enemies: [
+        { id: 'orc', level: 17 },
+        { id: 'black-knight', level: 17 },
+        { id: 'orc', level: 17 },
+      ],
+      waves: [],
+      gold: 150,
+      materialDrops: [],
+      gearRolls: { count: 2, r3: 6, r4: 4, r5: 0 },
+    },
+    {
+      name: 'Tier II',
+      recommendedLevel: 30,
+      enemies: [
+        { id: 'minotaur', level: 34 },
+        { id: 'black-knight', level: 34 },
+        { id: 'orc-rider', level: 34 },
+      ],
+      waves: [
+        [
+          { id: 'orc', level: 34 },
+          { id: 'orc', level: 34 },
+          { id: 'orc', level: 34 },
+        ],
+      ],
+      gold: 300,
+      materialDrops: [],
+      gearRolls: { count: 2, r3: 2, r4: 6.5, r5: 1.5 },
+    },
+    {
+      name: 'Tier III',
+      recommendedLevel: 45,
+      enemies: [
+        { id: 'storm-knight', level: 50 },
+        { id: 'magma-golem', level: 50 },
+        { id: 'storm-knight', level: 50 },
+      ],
+      waves: [
+        [
+          { id: 'minotaur', level: 50 },
+          { id: 'black-knight', level: 50 },
+          { id: 'minotaur', level: 50 },
+        ],
+      ],
+      gold: 500,
+      materialDrops: [],
+      gearRolls: { count: 3, r3: 0, r4: 6, r5: 4 },
+    },
+    {
+      name: 'Tier IV',
+      recommendedLevel: 55,
+      enemies: [
+        { id: 'black-knight', level: 60 },
+        { id: 'magma-golem', level: 60 },
+        { id: 'black-knight', level: 60 },
+      ],
+      waves: [
+        [
+          { id: 'orc', level: 60 },
+          { id: 'warlord', level: 60 },
+          { id: 'orc', level: 60 },
+        ],
+      ],
+      gold: 800,
+      materialDrops: [],
+      gearRolls: { count: 3, r3: 0, r4: 3, r5: 7 },
+    },
+  ],
+};
 
 /** Fixed main stats of the default gear templates before v16. */
-const OLD_V15_MAINS: Record<string, { mainStat: string; mainBase: number }> = {"bronze-blade":{"mainStat":"atk","mainBase":18},"runed-saber":{"mainStat":"atk","mainBase":28},"starforged-edge":{"mainStat":"atk","mainBase":42},"leather-vest":{"mainStat":"hp","mainBase":120},"knight-mail":{"mainStat":"hp","mainBase":190},"aegis-of-dawn":{"mainStat":"hp","mainBase":280},"lucky-clover":{"mainStat":"spd","mainBase":3},"moon-pendant":{"mainStat":"atkPct","mainBase":0.06},"warding-amulet":{"mainStat":"defPct","mainBase":0.08},"swift-feather":{"mainStat":"spd","mainBase":6},"heart-locket":{"mainStat":"hpPct","mainBase":0.1},"ranger-boots":{"mainStat":"spd","mainBase":4},"iron-greaves":{"mainStat":"defPct","mainBase":0.08},"pilgrim-treads":{"mainStat":"hpPct","mainBase":0.07},"warlord-sabatons":{"mainStat":"atkPct","mainBase":0.09}};
+const OLD_V15_MAINS: Record<string, { mainStat: string; mainBase: number }> = {
+  'bronze-blade': { mainStat: 'atk', mainBase: 18 },
+  'runed-saber': { mainStat: 'atk', mainBase: 28 },
+  'starforged-edge': { mainStat: 'atk', mainBase: 42 },
+  'leather-vest': { mainStat: 'hp', mainBase: 120 },
+  'knight-mail': { mainStat: 'hp', mainBase: 190 },
+  'aegis-of-dawn': { mainStat: 'hp', mainBase: 280 },
+  'lucky-clover': { mainStat: 'spd', mainBase: 3 },
+  'moon-pendant': { mainStat: 'atkPct', mainBase: 0.06 },
+  'warding-amulet': { mainStat: 'defPct', mainBase: 0.08 },
+  'swift-feather': { mainStat: 'spd', mainBase: 6 },
+  'heart-locket': { mainStat: 'hpPct', mainBase: 0.1 },
+  'ranger-boots': { mainStat: 'spd', mainBase: 4 },
+  'iron-greaves': { mainStat: 'defPct', mainBase: 0.08 },
+  'pilgrim-treads': { mainStat: 'hpPct', mainBase: 0.07 },
+  'warlord-sabatons': { mainStat: 'atkPct', mainBase: 0.09 },
+};
 
 const OLD_SPD_CHARM_NAMES: Record<string, string> = { 'lucky-clover': 'Lucky Clover', 'swift-feather': 'Swift Feather' };
 
 /** Default stage drop tables before v15 (no boots). */
-const OLD_V14_DROPS: Record<string, unknown> = {"1-1":[{"gear":"bronze-blade","chance":0.35},{"gear":"leather-vest","chance":0.35},{"gear":"lucky-clover","chance":0.25}],"1-2":[{"gear":"bronze-blade","chance":0.35},{"gear":"leather-vest","chance":0.35},{"gear":"lucky-clover","chance":0.25}],"1-3":[{"gear":"bronze-blade","chance":0.35},{"gear":"leather-vest","chance":0.35},{"gear":"lucky-clover","chance":0.25}],"1-4":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"moon-pendant","chance":0.2}],"2-1":[{"gear":"runed-saber","chance":0.25},{"gear":"knight-mail","chance":0.25},{"gear":"lucky-clover","chance":0.3},{"gear":"moon-pendant","chance":0.15}],"2-2":[{"gear":"runed-saber","chance":0.25},{"gear":"knight-mail","chance":0.25},{"gear":"lucky-clover","chance":0.3},{"gear":"moon-pendant","chance":0.15}],"2-3":[{"gear":"runed-saber","chance":0.25},{"gear":"knight-mail","chance":0.25},{"gear":"lucky-clover","chance":0.3},{"gear":"moon-pendant","chance":0.15}],"2-4":[{"gear":"starforged-edge","chance":0.12},{"gear":"aegis-of-dawn","chance":0.12},{"gear":"runed-saber","chance":0.4},{"gear":"warding-amulet","chance":0.3}],"3-1":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"swift-feather","chance":0.06}],"3-2":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"swift-feather","chance":0.06}],"3-3":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"swift-feather","chance":0.06}],"3-4":[{"gear":"starforged-edge","chance":0.25},{"gear":"aegis-of-dawn","chance":0.25},{"gear":"swift-feather","chance":0.2},{"gear":"heart-locket","chance":0.2}],"4-1":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"4-2":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"4-3":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"4-4":[{"gear":"starforged-edge","chance":0.3},{"gear":"aegis-of-dawn","chance":0.3},{"gear":"swift-feather","chance":0.25},{"gear":"heart-locket","chance":0.25}],"5-1":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"5-2":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"5-3":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"5-4":[{"gear":"starforged-edge","chance":0.3},{"gear":"aegis-of-dawn","chance":0.3},{"gear":"swift-feather","chance":0.25},{"gear":"heart-locket","chance":0.25}],"6-1":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"6-2":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"6-3":[{"gear":"runed-saber","chance":0.3},{"gear":"knight-mail","chance":0.3},{"gear":"warding-amulet","chance":0.25},{"gear":"moon-pendant","chance":0.2},{"gear":"swift-feather","chance":0.08},{"gear":"starforged-edge","chance":0.06}],"6-4":[{"gear":"starforged-edge","chance":0.3},{"gear":"aegis-of-dawn","chance":0.3},{"gear":"swift-feather","chance":0.25},{"gear":"heart-locket","chance":0.25}]};
+const OLD_V14_DROPS: Record<string, unknown> = {
+  '1-1': [
+    { gear: 'bronze-blade', chance: 0.35 },
+    { gear: 'leather-vest', chance: 0.35 },
+    { gear: 'lucky-clover', chance: 0.25 },
+  ],
+  '1-2': [
+    { gear: 'bronze-blade', chance: 0.35 },
+    { gear: 'leather-vest', chance: 0.35 },
+    { gear: 'lucky-clover', chance: 0.25 },
+  ],
+  '1-3': [
+    { gear: 'bronze-blade', chance: 0.35 },
+    { gear: 'leather-vest', chance: 0.35 },
+    { gear: 'lucky-clover', chance: 0.25 },
+  ],
+  '1-4': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'moon-pendant', chance: 0.2 },
+  ],
+  '2-1': [
+    { gear: 'runed-saber', chance: 0.25 },
+    { gear: 'knight-mail', chance: 0.25 },
+    { gear: 'lucky-clover', chance: 0.3 },
+    { gear: 'moon-pendant', chance: 0.15 },
+  ],
+  '2-2': [
+    { gear: 'runed-saber', chance: 0.25 },
+    { gear: 'knight-mail', chance: 0.25 },
+    { gear: 'lucky-clover', chance: 0.3 },
+    { gear: 'moon-pendant', chance: 0.15 },
+  ],
+  '2-3': [
+    { gear: 'runed-saber', chance: 0.25 },
+    { gear: 'knight-mail', chance: 0.25 },
+    { gear: 'lucky-clover', chance: 0.3 },
+    { gear: 'moon-pendant', chance: 0.15 },
+  ],
+  '2-4': [
+    { gear: 'starforged-edge', chance: 0.12 },
+    { gear: 'aegis-of-dawn', chance: 0.12 },
+    { gear: 'runed-saber', chance: 0.4 },
+    { gear: 'warding-amulet', chance: 0.3 },
+  ],
+  '3-1': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'swift-feather', chance: 0.06 },
+  ],
+  '3-2': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'swift-feather', chance: 0.06 },
+  ],
+  '3-3': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'swift-feather', chance: 0.06 },
+  ],
+  '3-4': [
+    { gear: 'starforged-edge', chance: 0.25 },
+    { gear: 'aegis-of-dawn', chance: 0.25 },
+    { gear: 'swift-feather', chance: 0.2 },
+    { gear: 'heart-locket', chance: 0.2 },
+  ],
+  '4-1': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '4-2': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '4-3': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '4-4': [
+    { gear: 'starforged-edge', chance: 0.3 },
+    { gear: 'aegis-of-dawn', chance: 0.3 },
+    { gear: 'swift-feather', chance: 0.25 },
+    { gear: 'heart-locket', chance: 0.25 },
+  ],
+  '5-1': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '5-2': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '5-3': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '5-4': [
+    { gear: 'starforged-edge', chance: 0.3 },
+    { gear: 'aegis-of-dawn', chance: 0.3 },
+    { gear: 'swift-feather', chance: 0.25 },
+    { gear: 'heart-locket', chance: 0.25 },
+  ],
+  '6-1': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '6-2': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '6-3': [
+    { gear: 'runed-saber', chance: 0.3 },
+    { gear: 'knight-mail', chance: 0.3 },
+    { gear: 'warding-amulet', chance: 0.25 },
+    { gear: 'moon-pendant', chance: 0.2 },
+    { gear: 'swift-feather', chance: 0.08 },
+    { gear: 'starforged-edge', chance: 0.06 },
+  ],
+  '6-4': [
+    { gear: 'starforged-edge', chance: 0.3 },
+    { gear: 'aegis-of-dawn', chance: 0.3 },
+    { gear: 'swift-feather', chance: 0.25 },
+    { gear: 'heart-locket', chance: 0.25 },
+  ],
+};
 
 /** Default definitions (before v14) of the spells that moved to DEF/HP/SPD scaling. */
-const OLD_V13_SPELLS: Record<string, { name: string; targeting: string; cooldown: number; effects: unknown }> = {"gaia-skill":{"name":"Earthen Bulwark","targeting":"none","cooldown":4,"effects":[{"kind":"shield","to":"allAllies","mult":2.2},{"kind":"status","to":"self","status":"taunt","turns":2}]},"gaia-ult":{"name":"World Pillar","targeting":"none","cooldown":0,"effects":[{"kind":"shield","to":"allAllies","mult":3},{"kind":"status","to":"allAllies","status":"defUp","turns":3},{"kind":"status","to":"self","status":"taunt","turns":2}]},"pebble-ult":{"name":"Mountain Stance","targeting":"none","cooldown":0,"effects":[{"kind":"shield","to":"self","mult":2},{"kind":"status","to":"self","status":"defUp","turns":3},{"kind":"status","to":"self","status":"taunt","turns":2}]},"drip-skill":{"name":"Shell Up","targeting":"none","cooldown":3,"effects":[{"kind":"shield","to":"self","mult":1.8},{"kind":"status","to":"self","status":"taunt","turns":2}]},"drip-ult":{"name":"Iron Shell","targeting":"none","cooldown":0,"effects":[{"kind":"shield","to":"self","mult":2.5},{"kind":"status","to":"self","status":"taunt","turns":2}]},"bramble-skill":{"name":"Prickly Guard","targeting":"none","cooldown":3,"effects":[{"kind":"status","to":"self","status":"taunt","turns":2},{"kind":"status","to":"self","status":"defUp","turns":2},{"kind":"shield","to":"self","mult":1.5}]},"bramble-ult":{"name":"Thorn Fortress","targeting":"none","cooldown":0,"effects":[{"kind":"shield","to":"self","mult":2.5},{"kind":"status","to":"self","status":"taunt","turns":3},{"kind":"status","to":"self","status":"defUp","turns":3}]},"roland-skill":{"name":"Shield Wall","targeting":"none","cooldown":4,"effects":[{"kind":"status","to":"self","status":"taunt","turns":2},{"kind":"status","to":"self","status":"defUp","turns":2}]},"varek-skill":{"name":"Bulwark of Faith","targeting":"none","cooldown":4,"effects":[{"kind":"shield","to":"allAllies","mult":1.2},{"kind":"status","to":"self","status":"taunt","turns":2}]},"mossy-skill":{"name":"Moss Wrap","targeting":"none","cooldown":3,"effects":[{"kind":"heal","to":"allAllies","mult":1}]},"celeste-skill":{"name":"Prayer","targeting":"none","cooldown":3,"effects":[{"kind":"heal","to":"allAllies","mult":1.4}]},"zephyr-skill":{"name":"Skyfall Strike","targeting":"enemy","cooldown":3,"effects":[{"kind":"damage","to":"target","mult":2.8},{"kind":"status","to":"self","status":"spdUp","turns":2}]},"gusty-skill":{"name":"Flutter Flurry","targeting":"none","cooldown":3,"effects":[{"kind":"damage","to":"allEnemies","mult":0.9}]}};
+const OLD_V13_SPELLS: Record<string, { name: string; targeting: string; cooldown: number; effects: unknown }> = {
+  'gaia-skill': {
+    name: 'Earthen Bulwark',
+    targeting: 'none',
+    cooldown: 4,
+    effects: [
+      { kind: 'shield', to: 'allAllies', mult: 2.2 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'gaia-ult': {
+    name: 'World Pillar',
+    targeting: 'none',
+    cooldown: 0,
+    effects: [
+      { kind: 'shield', to: 'allAllies', mult: 3 },
+      { kind: 'status', to: 'allAllies', status: 'defUp', turns: 3 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'pebble-ult': {
+    name: 'Mountain Stance',
+    targeting: 'none',
+    cooldown: 0,
+    effects: [
+      { kind: 'shield', to: 'self', mult: 2 },
+      { kind: 'status', to: 'self', status: 'defUp', turns: 3 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'drip-skill': {
+    name: 'Shell Up',
+    targeting: 'none',
+    cooldown: 3,
+    effects: [
+      { kind: 'shield', to: 'self', mult: 1.8 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'drip-ult': {
+    name: 'Iron Shell',
+    targeting: 'none',
+    cooldown: 0,
+    effects: [
+      { kind: 'shield', to: 'self', mult: 2.5 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'bramble-skill': {
+    name: 'Prickly Guard',
+    targeting: 'none',
+    cooldown: 3,
+    effects: [
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+      { kind: 'status', to: 'self', status: 'defUp', turns: 2 },
+      { kind: 'shield', to: 'self', mult: 1.5 },
+    ],
+  },
+  'bramble-ult': {
+    name: 'Thorn Fortress',
+    targeting: 'none',
+    cooldown: 0,
+    effects: [
+      { kind: 'shield', to: 'self', mult: 2.5 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 3 },
+      { kind: 'status', to: 'self', status: 'defUp', turns: 3 },
+    ],
+  },
+  'roland-skill': {
+    name: 'Shield Wall',
+    targeting: 'none',
+    cooldown: 4,
+    effects: [
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+      { kind: 'status', to: 'self', status: 'defUp', turns: 2 },
+    ],
+  },
+  'varek-skill': {
+    name: 'Bulwark of Faith',
+    targeting: 'none',
+    cooldown: 4,
+    effects: [
+      { kind: 'shield', to: 'allAllies', mult: 1.2 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ],
+  },
+  'mossy-skill': { name: 'Moss Wrap', targeting: 'none', cooldown: 3, effects: [{ kind: 'heal', to: 'allAllies', mult: 1 }] },
+  'celeste-skill': { name: 'Prayer', targeting: 'none', cooldown: 3, effects: [{ kind: 'heal', to: 'allAllies', mult: 1.4 }] },
+  'zephyr-skill': {
+    name: 'Skyfall Strike',
+    targeting: 'enemy',
+    cooldown: 3,
+    effects: [
+      { kind: 'damage', to: 'target', mult: 2.8 },
+      { kind: 'status', to: 'self', status: 'spdUp', turns: 2 },
+    ],
+  },
+  'gusty-skill': { name: 'Flutter Flurry', targeting: 'none', cooldown: 3, effects: [{ kind: 'damage', to: 'allEnemies', mult: 0.9 }] },
+};
 
 /** Enemy levels of the default stages before v11 (their recommended level was this + 2). */
 const OLD_STAGE_LEVELS: Record<string, number> = {
-  '1-1': 1, '1-2': 2, '1-3': 3, '1-4': 4, '2-1': 7, '2-2': 9, '2-3': 11, '2-4': 13,
-  '3-1': 16, '3-2': 18, '3-3': 20, '3-4': 23, '4-1': 27, '4-2': 29, '4-3': 31, '4-4': 34,
-  '5-1': 36, '5-2': 38, '5-3': 40, '5-4': 43, '6-1': 45, '6-2': 47, '6-3': 49, '6-4': 52,
+  '1-1': 1,
+  '1-2': 2,
+  '1-3': 3,
+  '1-4': 4,
+  '2-1': 7,
+  '2-2': 9,
+  '2-3': 11,
+  '2-4': 13,
+  '3-1': 16,
+  '3-2': 18,
+  '3-3': 20,
+  '3-4': 23,
+  '4-1': 27,
+  '4-2': 29,
+  '4-3': 31,
+  '4-4': 34,
+  '5-1': 36,
+  '5-2': 38,
+  '5-3': 40,
+  '5-4': 43,
+  '6-1': 45,
+  '6-2': 47,
+  '6-3': 49,
+  '6-4': 52,
 };
 
 /** Third-star action budgets before v11. */
 const OLD_ACTION_BUDGETS: Record<string, number> = {
-  '1-1': 15, '1-2': 18, '1-3': 20, '1-4': 35, '2-1': 22, '2-2': 35, '2-3': 32, '2-4': 45,
-  '3-1': 40, '3-2': 55, '3-3': 60, '3-4': 75, '4-1': 25, '4-2': 65, '4-3': 75, '4-4': 100,
-  '5-1': 35, '5-2': 75, '5-3': 90, '5-4': 95, '6-1': 35, '6-2': 75, '6-3': 85, '6-4': 100,
+  '1-1': 15,
+  '1-2': 18,
+  '1-3': 20,
+  '1-4': 35,
+  '2-1': 22,
+  '2-2': 35,
+  '2-3': 32,
+  '2-4': 45,
+  '3-1': 40,
+  '3-2': 55,
+  '3-3': 60,
+  '3-4': 75,
+  '4-1': 25,
+  '4-2': 65,
+  '4-3': 75,
+  '4-4': 100,
+  '5-1': 35,
+  '5-2': 75,
+  '5-3': 90,
+  '5-4': 95,
+  '6-1': 35,
+  '6-2': 75,
+  '6-3': 85,
+  '6-4': 100,
 };

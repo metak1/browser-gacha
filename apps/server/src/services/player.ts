@@ -1,4 +1,15 @@
-import { bulkLevelUp, chapterStars, friendCode, levelCap, levelUpCost, playerLevel, type PlayerPrefs, type ProfileDTO, TEAM_PRESETS, type TeamPresetDTO } from '@gacha/shared';
+import {
+  bulkLevelUp,
+  chapterStars,
+  friendCode,
+  levelCap,
+  levelUpCost,
+  playerLevel,
+  type PlayerPrefs,
+  type ProfileDTO,
+  TEAM_PRESETS,
+  type TeamPresetDTO,
+} from '@gacha/shared';
 import { activeTitle, titlesFor } from './account';
 import type { SocialService } from './social';
 import { badRequest, conflict, notFound, unauthorized } from '../errors';

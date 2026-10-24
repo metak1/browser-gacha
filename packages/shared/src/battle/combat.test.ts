@@ -10,7 +10,12 @@ import type { Skill } from '../types';
 const content = indexContent(createDefaultContent());
 
 function setup(seed = 1): BattleSetup {
-  const s = buildBattleSetup(content, seed, REFERENCE_TEAM.map((id) => ({ id, level: 10, constellation: 0 })), content.stagesById['1-1']!);
+  const s = buildBattleSetup(
+    content,
+    seed,
+    REFERENCE_TEAM.map((id) => ({ id, level: 10, constellation: 0 })),
+    content.stagesById['1-1']!,
+  );
   for (const u of [...s.allies, ...s.enemies]) u.passive = null;
   return s;
 }
@@ -100,7 +105,10 @@ describe('stat-scaling spells upgrade', () => {
     const gaia = b.skills.find((s) => s.id === 'gaia-skill')!;
     const mossy = b.skills.find((s) => s.id === 'mossy-skill')!;
     // As they were before v14.
-    gaia.effects = [{ kind: 'shield', to: 'allAllies', mult: 2.2 }, { kind: 'status', to: 'self', status: 'taunt', turns: 2 }];
+    gaia.effects = [
+      { kind: 'shield', to: 'allAllies', mult: 2.2 },
+      { kind: 'status', to: 'self', status: 'taunt', turns: 2 },
+    ];
     mossy.effects = [{ kind: 'heal', to: 'allAllies', mult: 1.5 }]; // an admin edit
     const { bundle } = upgradeContent(b, 13);
     expect(bundle.skills.find((s) => s.id === 'gaia-skill')!.effects[0]).toMatchObject({ kind: 'shield', scale: 'def' });

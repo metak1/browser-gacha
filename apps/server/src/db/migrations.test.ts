@@ -18,7 +18,12 @@ describe('migrations', () => {
     ).run(JSON.stringify({ stat: 'hpPct', value: 0.1 }));
 
     migrate(db);
-    const slots = Object.fromEntries(db.prepare('SELECT id, slot, equipped_to FROM gear').all().map((r) => [r.id, r]));
+    const slots = Object.fromEntries(
+      db
+        .prepare('SELECT id, slot, equipped_to FROM gear')
+        .all()
+        .map((r) => [r.id, r]),
+    );
     // Still worn by the same hero, now in their boots slot.
     expect(slots.feather).toMatchObject({ slot: 'boots', equipped_to: 'aldric' });
     expect(slots.locket).toMatchObject({ slot: 'charm' });

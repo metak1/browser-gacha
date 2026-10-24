@@ -93,7 +93,10 @@ describe('boots', () => {
   it('only allows SPD as a main stat on boots', () => {
     const b = createDefaultContent();
     expect(validateBundle(b)).toEqual([]);
-    Object.assign(b.gear.find((g) => g.id === 'moon-pendant')!, { mainStat: 'spd', mainBase: 4 });
+    Object.assign(
+      b.gear.find((g) => g.id === 'moon-pendant')!,
+      { mainStat: 'spd', mainBase: 4 },
+    );
     expect(validateBundle(b).join('\n')).toMatch(/only allowed on boots/);
   });
 
@@ -101,20 +104,38 @@ describe('boots', () => {
     const b = createDefaultContent();
     // As before v15: the two SPD charms, no other boots, and the old drop tables.
     b.gear = b.gear.filter((g) => g.slot !== 'boots' || ['lucky-clover', 'swift-feather'].includes(g.id));
-    Object.assign(b.gear.find((g) => g.id === 'lucky-clover')!, { slot: 'charm', name: 'Lucky Clover', mainStat: 'spd', mainBase: 3 });
-    Object.assign(b.gear.find((g) => g.id === 'swift-feather')!, { slot: 'charm', name: 'My Feather', mainStat: 'spd', mainBase: 6 });
+    Object.assign(
+      b.gear.find((g) => g.id === 'lucky-clover')!,
+      { slot: 'charm', name: 'Lucky Clover', mainStat: 'spd', mainBase: 3 },
+    );
+    Object.assign(
+      b.gear.find((g) => g.id === 'swift-feather')!,
+      { slot: 'charm', name: 'My Feather', mainStat: 'spd', mainBase: 6 },
+    );
     const s11 = b.stages.find((s) => s.id === '1-1')!;
-    s11.drops = [{ gear: 'bronze-blade', chance: 0.35 }, { gear: 'leather-vest', chance: 0.35 }, { gear: 'lucky-clover', chance: 0.25 }];
+    s11.drops = [
+      { gear: 'bronze-blade', chance: 0.35 },
+      { gear: 'leather-vest', chance: 0.35 },
+      { gear: 'lucky-clover', chance: 0.25 },
+    ];
     const s21 = b.stages.find((s) => s.id === '2-1')!;
-    s21.drops = [{ gear: 'runed-saber', chance: 0.25 }, { gear: 'knight-mail', chance: 0.25 }, { gear: 'lucky-clover', chance: 0.3 }, { gear: 'moon-pendant', chance: 0.15 }];
+    s21.drops = [
+      { gear: 'runed-saber', chance: 0.25 },
+      { gear: 'knight-mail', chance: 0.25 },
+      { gear: 'lucky-clover', chance: 0.3 },
+      { gear: 'moon-pendant', chance: 0.15 },
+    ];
     const { bundle } = upgradeContent(b, 14);
     expect(validateBundle(bundle)).toEqual([]);
     expect(bundle.gear.find((g) => g.id === 'lucky-clover')).toMatchObject({ slot: 'boots', name: 'Clover Sandals' });
     // Renamed by an admin: moved to boots, name kept.
     expect(bundle.gear.find((g) => g.id === 'swift-feather')).toMatchObject({ slot: 'boots', name: 'My Feather' });
-    expect(bundle.gear.filter((g) => g.slot === 'boots').map((g) => g.id).sort()).toEqual(
-      ['iron-greaves', 'lucky-clover', 'pilgrim-treads', 'ranger-boots', 'swift-feather', 'warlord-sabatons'],
-    );
+    expect(
+      bundle.gear
+        .filter((g) => g.slot === 'boots')
+        .map((g) => g.id)
+        .sort(),
+    ).toEqual(['iron-greaves', 'lucky-clover', 'pilgrim-treads', 'ranger-boots', 'swift-feather', 'warlord-sabatons']);
     expect(bundle.stages.find((s) => s.id === '2-1')!.drops.some((d) => d.gear === 'ranger-boots')).toBe(true);
   });
 });
@@ -132,7 +153,11 @@ describe('the Armory', () => {
       for (const e of [...a.tiers[i]!.enemies, ...a.tiers[i]!.waves.flat()]) e.level = lv;
     });
     const fixed = upgradeContent(draft, 20).bundle.dungeons.find((d) => d.id === 'armory')!;
-    expect(fixed.tiers.map((t) => t.enemies[0]!.level)).toEqual(createDefaultContent().dungeons.find((d) => d.id === 'armory')!.tiers.map((t) => t.enemies[0]!.level));
+    expect(fixed.tiers.map((t) => t.enemies[0]!.level)).toEqual(
+      createDefaultContent()
+        .dungeons.find((d) => d.id === 'armory')!
+        .tiers.map((t) => t.enemies[0]!.level),
+    );
   });
 });
 
@@ -146,13 +171,22 @@ describe('gear dungeons', () => {
       expect(d.mechanic).toBeTruthy();
     }
     expect(new Set(gear.map((d) => d.mechanic)).size).toBe(3);
-    expect(gear.flatMap((d) => d.sets).sort()).toEqual(createDefaultContent().gearSets.map((s) => s.id).sort());
+    expect(gear.flatMap((d) => d.sets).sort()).toEqual(
+      createDefaultContent()
+        .gearSets.map((s) => s.id)
+        .sort(),
+    );
   });
 
   it('turns a v21 Armory into the crit-set dungeon and adds the other two', () => {
     const b = createDefaultContent();
     const v21 = structuredClone(b.dungeons.find((d) => d.id === 'armory')!);
-    Object.assign(v21, { theme: 'ember', sets: [], mechanic: null, description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.' });
+    Object.assign(v21, {
+      theme: 'ember',
+      sets: [],
+      mechanic: null,
+      description: 'Gear only. Pick the set you want, win, and every drop belongs to it: random slot, main stat and bonus stats.',
+    });
     v21.tiers = v21.tiers.map((t, i) => ({
       ...t,
       enemies: [
@@ -161,7 +195,9 @@ describe('gear dungeons', () => {
         ['storm-knight', 'magma-golem', 'storm-knight'],
         ['black-knight', 'magma-golem', 'black-knight'],
       ][i]!.map((id) => ({ id, level: [17, 34, 50, 60][i]! })),
-      waves: [[], [['orc', 'orc', 'orc']], [['minotaur', 'black-knight', 'minotaur']], [['orc', 'warlord', 'orc']]][i]!.map((w) => w.map((id) => ({ id, level: [17, 34, 50, 60][i]! }))),
+      waves: [[], [['orc', 'orc', 'orc']], [['minotaur', 'black-knight', 'minotaur']], [['orc', 'warlord', 'orc']]][i]!.map((w) =>
+        w.map((id) => ({ id, level: [17, 34, 50, 60][i]! })),
+      ),
     }));
     b.dungeons = [...b.dungeons.filter((d) => !['armory', 'bastion', 'windspire'].includes(d.id)), v21];
     const { bundle } = upgradeContent(b, 21);

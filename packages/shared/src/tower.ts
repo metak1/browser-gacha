@@ -154,9 +154,7 @@ export function towerFloor(content: ContentIndex, floor: number): TowerFloor {
 
   const boss = floor % t.bossEvery === 0 && bosses.length > 0;
   const size = floor < 20 ? 3 : 4;
-  const first = boss
-    ? [pick(regulars, 1), bosses[(floor / t.bossEvery - 1) % bosses.length]!]
-    : Array.from({ length: size }, (_, i) => pick(regulars, i + 1));
+  const first = boss ? [pick(regulars, 1), bosses[(floor / t.bossEvery - 1) % bosses.length]!] : Array.from({ length: size }, (_, i) => pick(regulars, i + 1));
   // Deeper floors bring a second wave.
   const waves = !boss && floor >= t.wavesFrom ? [Array.from({ length: 3 }, (_, i) => pick(regulars, i + 11))] : [];
 

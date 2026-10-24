@@ -81,10 +81,7 @@ export function BattleTutorial({ onDone }: { onDone: () => void }) {
   return (
     <div className="tutorial" role="dialog" aria-label="Battle tutorial">
       {rect ? (
-        <div
-          className="tutorial-spot"
-          style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }}
-        />
+        <div className="tutorial-spot" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }} />
       ) : (
         <div className="tutorial-dim" />
       )}

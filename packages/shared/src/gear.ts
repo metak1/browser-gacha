@@ -179,7 +179,11 @@ export function upgradeGear<T extends Omit<GearItem, 'id' | 'equippedTo' | 'lock
     } else {
       const i = Math.floor(rng() * next.subs.length);
       const sub = next.subs[i]!;
-      const boost = rollSub(next.rarity, GEAR_STATS.filter((s) => s !== sub.stat), rng);
+      const boost = rollSub(
+        next.rarity,
+        GEAR_STATS.filter((s) => s !== sub.stat),
+        rng,
+      );
       next.subs[i] = { stat: sub.stat, value: roundStat(sub.stat, sub.value + boost.value), rolls: subRolls(sub, next.rarity) + 1 };
     }
   }
@@ -198,7 +202,10 @@ export function statPower(s: Stats, c: CombatStats = BASE_COMBAT): number {
 type Worn = Pick<GearItem, 'main' | 'subs' | 'set'>;
 
 /** How many pieces of each set a loadout wears, with the set's bonuses and whether each is earned. */
-export function wornSets(gear: Pick<GearItem, 'set'>[], sets: GearSets): { set: GearSetDef; pieces: number; bonuses: (GearSetDef['bonuses'][number] & { active: boolean })[] }[] {
+export function wornSets(
+  gear: Pick<GearItem, 'set'>[],
+  sets: GearSets,
+): { set: GearSetDef; pieces: number; bonuses: (GearSetDef['bonuses'][number] & { active: boolean })[] }[] {
   const counts = new Map<string, number>();
   for (const item of gear) if (item.set && sets[item.set]) counts.set(item.set, (counts.get(item.set) ?? 0) + 1);
   return [...counts].map(([id, pieces]) => {
@@ -308,9 +315,7 @@ const STAT_LABEL: Record<GearStat, string> = {
 };
 
 export function formatGearRoll(roll: GearRoll): string {
-  return isPercentStat(roll.stat)
-    ? `+${(roll.value * 100).toFixed(1)}% ${STAT_LABEL[roll.stat]}`
-    : `+${roll.value} ${STAT_LABEL[roll.stat]}`;
+  return isPercentStat(roll.stat) ? `+${(roll.value * 100).toFixed(1)}% ${STAT_LABEL[roll.stat]}` : `+${roll.value} ${STAT_LABEL[roll.stat]}`;
 }
 
 export const gearStatLabel = (stat: GearStat) => (isCombatStat(stat) ? STAT_LABEL[stat] : isPercentStat(stat) ? `${STAT_LABEL[stat]} %` : STAT_LABEL[stat]);
@@ -318,8 +323,17 @@ export const gearStatLabel = (stat: GearStat) => (isCombatStat(stat) ? STAT_LABE
 /** A rough "how good is this" number for sorting. */
 export function gearScore(item: Pick<GearItem, 'main' | 'subs'>): number {
   const weight: Record<GearStat, number> = {
-    hp: 0.15, atk: 1, def: 1, spd: 4, hpPct: 300, atkPct: 400, defPct: 300,
-    critRate: 600, critDmg: 300, effectHit: 250, effectRes: 250,
+    hp: 0.15,
+    atk: 1,
+    def: 1,
+    spd: 4,
+    hpPct: 300,
+    atkPct: 400,
+    defPct: 300,
+    critRate: 600,
+    critDmg: 300,
+    effectHit: 250,
+    effectRes: 250,
   };
   return Math.round([item.main, ...item.subs].reduce((s, r) => s + r.value * weight[r.stat], 0));
 }

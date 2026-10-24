@@ -19,11 +19,14 @@
     "grant-all": "npm run grant-all -w @gacha/server --",
     "make-admin": "npm run make-admin -w @gacha/server --",
     "max-heroes": "npm run max-heroes -w @gacha/server --",
-    "reset-password": "npm run reset-password -w @gacha/server --"
+    "reset-password": "npm run reset-password -w @gacha/server --",
+    "format": "prettier --write \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\"",
+    "format:check": "prettier --check \"apps/*/src/**/*.{ts,tsx}\" \"apps/*/scripts/**/*.ts\" \"packages/*/src/**/*.ts\" \"packages/*/scripts/**/*.ts\" \"tools/**/*.ts\""
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "concurrently": "^10.0.6",
+    "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"

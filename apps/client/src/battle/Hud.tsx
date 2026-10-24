@@ -64,12 +64,14 @@ export function Hud({ state, actor, playerTurn, mode, activeSkill, targetIds, wa
               className={`portrait ${u.uid === state.actorUid ? 'acting' : ''} ${dead ? 'dead' : ''} ${targetable ? 'targetable' : ''}`}
               onClick={targetable ? () => onSelect(u.uid) : undefined}
             >
-              <span className="portrait-emoji">
-                {u.sprite ? <UnitArt sprite={u.sprite} emoji={u.emoji} height="30px" /> : <PixelEmoji emoji={u.emoji} />}
-              </span>
+              <span className="portrait-emoji">{u.sprite ? <UnitArt sprite={u.sprite} emoji={u.emoji} height="30px" /> : <PixelEmoji emoji={u.emoji} />}</span>
               <div className="portrait-info">
                 <div className="portrait-name">
-                  {u.friend && <span className="friend-badge" title={`Borrowed from ${u.friend}`}>🤝</span>}
+                  {u.friend && (
+                    <span className="friend-badge" title={`Borrowed from ${u.friend}`}>
+                      🤝
+                    </span>
+                  )}
                   {u.name}
                 </div>
                 <div className="portrait-hp">

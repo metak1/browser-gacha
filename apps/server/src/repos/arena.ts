@@ -67,17 +67,22 @@ export class ArenaRepo {
   }
 
   create(userId: string, rating: number, defense: string[], week: string) {
-    this.db.run(
-      'INSERT OR IGNORE INTO arena_players (user_id, rating, defense, week) VALUES (?, ?, ?, ?)',
-      userId, rating, JSON.stringify(defense), week,
-    );
+    this.db.run('INSERT OR IGNORE INTO arena_players (user_id, rating, defense, week) VALUES (?, ?, ?, ?)', userId, rating, JSON.stringify(defense), week);
   }
 
   save(p: ArenaPlayer) {
     this.db.run(
       `UPDATE arena_players SET rating = ?, wins = ?, losses = ?, defense = ?, ticket_day = ?, tickets_used = ?, week = ?, offers = ?
        WHERE user_id = ?`,
-      p.rating, p.wins, p.losses, JSON.stringify(p.defense), p.ticketDay, p.ticketsUsed, p.week, JSON.stringify(p.offers), p.userId,
+      p.rating,
+      p.wins,
+      p.losses,
+      JSON.stringify(p.defense),
+      p.ticketDay,
+      p.ticketsUsed,
+      p.week,
+      JSON.stringify(p.offers),
+      p.userId,
     );
   }
 
@@ -87,7 +92,9 @@ export class ArenaRepo {
       .all<Row>(
         `SELECT * FROM arena_players WHERE user_id != ? AND defense != '[]'
          ORDER BY abs(rating - ?) LIMIT ?`,
-        userId, rating, limit,
+        userId,
+        rating,
+        limit,
       )
       .map(toPlayer);
   }
@@ -109,7 +116,14 @@ export class ArenaRepo {
     this.db.run(
       `INSERT INTO arena_history (attacker_id, defender_id, attacker_name, defender_name, attacker_won, attacker_delta, defender_delta, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      h.attackerId, h.defenderId, h.attackerName, h.defenderName, h.attackerWon ? 1 : 0, h.attackerDelta, h.defenderDelta, h.createdAt,
+      h.attackerId,
+      h.defenderId,
+      h.attackerName,
+      h.defenderName,
+      h.attackerWon ? 1 : 0,
+      h.attackerDelta,
+      h.defenderDelta,
+      h.createdAt,
     );
   }
 
@@ -131,10 +145,7 @@ export class ArenaRepo {
         attacker_delta: number;
         defender_delta: number;
         created_at: number;
-      }>(
-        'SELECT * FROM arena_history WHERE attacker_id = ? OR defender_id = ? ORDER BY id DESC LIMIT ?',
-        userId, userId, limit,
-      )
+      }>('SELECT * FROM arena_history WHERE attacker_id = ? OR defender_id = ? ORDER BY id DESC LIMIT ?', userId, userId, limit)
       .map((r) => ({
         id: r.id,
         attackerId: r.attacker_id,

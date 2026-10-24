@@ -77,7 +77,12 @@ export class MissionService {
   private activityFrom(userId: string, missions: MissionDTO[]) {
     const points = missions.reduce((n, m) => (m.repeat === 'daily' && m.claimed ? n + m.points : n), 0);
     const day = utcDay(this.ctx.now());
-    const opened = new Set(this.ctx.missions.forUser(userId).filter((r) => r.period === day && r.claimed && r.missionId.startsWith(CHEST_PREFIX)).map((r) => r.missionId));
+    const opened = new Set(
+      this.ctx.missions
+        .forUser(userId)
+        .filter((r) => r.period === day && r.claimed && r.missionId.startsWith(CHEST_PREFIX))
+        .map((r) => r.missionId),
+    );
     const claimed = this.ctx.content.current.settings.activityChests.map((c) => c.points).filter((p) => opened.has(CHEST_PREFIX + p));
     return { points, claimed };
   }

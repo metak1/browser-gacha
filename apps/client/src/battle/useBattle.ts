@@ -189,8 +189,7 @@ export function useBattle(setup: BattleSetup | null, speed: BattleSpeed, autoSta
       play();
     };
 
-    const animate = (uid: string, name: AnimName, extra: Partial<UnitAnim> = {}) =>
-      setAnims((a) => ({ ...a, [uid]: { name, key: id(), ...extra } }));
+    const animate = (uid: string, name: AnimName, extra: Partial<UnitAnim> = {}) => setAnims((a) => ({ ...a, [uid]: { name, key: id(), ...extra } }));
 
     const spawnFx = (item: Omit<FxItem, 'id'>) => {
       const fxId = id();

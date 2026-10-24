@@ -23,19 +23,21 @@ export class MissionRepo {
     this.db.run(
       `INSERT INTO mission_progress (user_id, mission_id, period, progress) VALUES (?, ?, ?, ?)
        ON CONFLICT (user_id, mission_id, period) DO UPDATE SET progress = progress + excluded.progress`,
-      userId, missionId, period, amount,
+      userId,
+      missionId,
+      period,
+      amount,
     );
   }
 
   /** Marks a mission claimed. Returns false if it already was. */
   markClaimed(userId: string, missionId: string, period: string): boolean {
-    this.db.run(
-      'INSERT OR IGNORE INTO mission_progress (user_id, mission_id, period) VALUES (?, ?, ?)',
-      userId, missionId, period,
-    );
+    this.db.run('INSERT OR IGNORE INTO mission_progress (user_id, mission_id, period) VALUES (?, ?, ?)', userId, missionId, period);
     const { changes } = this.db.run(
       'UPDATE mission_progress SET claimed = 1 WHERE user_id = ? AND mission_id = ? AND period = ? AND claimed = 0',
-      userId, missionId, period,
+      userId,
+      missionId,
+      period,
     );
     return changes === 1;
   }

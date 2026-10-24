@@ -16,9 +16,7 @@ export function CharacterCard({ charId, locked, badge, footer, selected, onClick
   const c = useContent().charactersById[charId];
   if (!c) return null;
   const el = ELEMENTS[c.element];
-  const className = ['card', `r${c.rarity}`, locked && 'locked', selected && 'selected', onClick && 'clickable']
-    .filter(Boolean)
-    .join(' ');
+  const className = ['card', `r${c.rarity}`, locked && 'locked', selected && 'selected', onClick && 'clickable'].filter(Boolean).join(' ');
   return (
     <div className={className} style={{ '--el': el.color } as CSSProperties} onClick={onClick}>
       <div className="card-art">
@@ -28,7 +26,9 @@ export function CharacterCard({ charId, locked, badge, footer, selected, onClick
         {c.sprite && !locked ? (
           <UnitArt sprite={c.sprite} emoji={c.emoji} height="var(--art-h, 54px)" className="card-sprite" />
         ) : (
-          <span className="card-emoji"><PixelEmoji emoji={c.emoji} /></span>
+          <span className="card-emoji">
+            <PixelEmoji emoji={c.emoji} />
+          </span>
         )}
       </div>
       <div className="card-info">

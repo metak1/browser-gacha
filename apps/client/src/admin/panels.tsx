@@ -66,7 +66,11 @@ export function SettingsPanel() {
       {errors.length > 0 && (
         <div className="ed-errors">
           <b>Can't save:</b>
-          <ul>{errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+          <ul>
+            {errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
         </div>
       )}
       <Section title="Economy">
@@ -90,7 +94,11 @@ export function SettingsPanel() {
             <Check checked={draft.firstSummon.free} onChange={(free) => set('firstSummon', { ...draft.firstSummon, free })} label="Free" />
           </Field>
           <Field label="First 10× ★5" hint="If none rolls, the last pull is a ★5. Banner rules and the 50/50 still apply.">
-            <Check checked={draft.firstSummon.guarantee5} onChange={(guarantee5) => set('firstSummon', { ...draft.firstSummon, guarantee5 })} label="Guaranteed" />
+            <Check
+              checked={draft.firstSummon.guarantee5}
+              onChange={(guarantee5) => set('firstSummon', { ...draft.firstSummon, guarantee5 })}
+              label="Guaranteed"
+            />
           </Field>
         </FormGrid>
       </Section>
@@ -99,9 +107,17 @@ export function SettingsPanel() {
           {num('Max level', 'maxLevel')}
           {num('Team size', 'maxTeamSize', '1–6 heroes.')}
           {num('Level-up base cost 🪙', 'levelCostBase')}
-          {num('Level-up cost per level 🪙', 'levelCostPerLevel', `Lv1→2 costs ${draft.levelCostBase + draft.levelCostPerLevel}, Lv20→21 costs ${draft.levelCostBase + draft.levelCostPerLevel * 20}.`)}
+          {num(
+            'Level-up cost per level 🪙',
+            'levelCostPerLevel',
+            `Lv1→2 costs ${draft.levelCostBase + draft.levelCostPerLevel}, Lv20→21 costs ${draft.levelCostBase + draft.levelCostPerLevel * 20}.`,
+          )}
         </FormGrid>
-        <Field label={`Starter heroes (${draft.starterCharacters.length}) for new players`} hint="Leave empty to have new players summon their first team with the free 10× summon." wide>
+        <Field
+          label={`Starter heroes (${draft.starterCharacters.length}) for new players`}
+          hint="Leave empty to have new players summon their first team with the free 10× summon."
+          wide
+        >
           <MultiPick
             values={draft.starterCharacters}
             onChange={(v) => set('starterCharacters', v)}
@@ -146,7 +162,12 @@ export function SettingsPanel() {
             <NumberInput value={draft.hardMode.rewardMult} onChange={(rewardMult) => set('hardMode', { ...draft.hardMode, rewardMult })} step={0.1} min={0} />
           </Field>
           <Field label="Gear drop chance ×" hint="Capped at 100%.">
-            <NumberInput value={draft.hardMode.gearChanceMult} onChange={(gearChanceMult) => set('hardMode', { ...draft.hardMode, gearChanceMult })} step={0.1} min={0} />
+            <NumberInput
+              value={draft.hardMode.gearChanceMult}
+              onChange={(gearChanceMult) => set('hardMode', { ...draft.hardMode, gearChanceMult })}
+              step={0.1}
+              min={0}
+            />
           </Field>
           <Field label="Hard first-clear gems 💎">
             <NumberInput value={draft.hardMode.firstClearGems} onChange={(firstClearGems) => set('hardMode', { ...draft.hardMode, firstClearGems })} min={0} />
@@ -168,7 +189,12 @@ export function SettingsPanel() {
             ] as const
           ).map(([k, label, hint]) => (
             <Field key={k} label={label} hint={hint}>
-              <NumberInput value={draft.stamina[k]} onChange={(v) => set('stamina', { ...draft.stamina, [k]: v })} min={0} step={k === 'regenMinutes' ? 0.5 : 1} />
+              <NumberInput
+                value={draft.stamina[k]}
+                onChange={(v) => set('stamina', { ...draft.stamina, [k]: v })}
+                min={0}
+                step={k === 'regenMinutes' ? 0.5 : 1}
+              />
             </Field>
           ))}
         </FormGrid>
@@ -178,10 +204,7 @@ export function SettingsPanel() {
         <FormGrid>
           {FEATURES.map((f) => (
             <Field key={f} label={`${FEATURE_INFO[f].label} opens after`}>
-              <select
-                value={draft.unlocks[f] ?? ''}
-                onChange={(e) => set('unlocks', { ...draft.unlocks, [f]: e.target.value || null })}
-              >
+              <select value={draft.unlocks[f] ?? ''} onChange={(e) => set('unlocks', { ...draft.unlocks, [f]: e.target.value || null })}>
                 <option value="">Always open</option>
                 {content.stages.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -194,9 +217,7 @@ export function SettingsPanel() {
         </FormGrid>
       </Section>
       <Section title="Gear forge">
-        <p className="small muted">
-          Reforging rerolls one bonus stat into a random different stat, keeping its upgrade rolls. The result is always random.
-        </p>
+        <p className="small muted">Reforging rerolls one bonus stat into a random different stat, keeping its upgrade rolls. The result is always random.</p>
         <FormGrid>
           {(
             [
@@ -221,8 +242,8 @@ export function SettingsPanel() {
       </Section>
       <Section title="Endless tower">
         <p className="small muted">
-          Floors are generated: enemies gain a level per floor up to the level cap, then keep growing through the stat multiplier. Tune with the tower simulation
-          in the README.
+          Floors are generated: enemies gain a level per floor up to the level cap, then keep growing through the stat multiplier. Tune with the tower
+          simulation in the README.
         </p>
         <FormGrid>
           {(
@@ -271,11 +292,20 @@ function ProgressionEditor({ value, maxLevel, onChange }: { value: ProgressionSe
   const matOptions = content.bundle.materials.map((m) => ({ value: m.id, label: `${m.emoji} ${m.name}` }));
   const set = <K extends keyof ProgressionSettings>(k: K, v: ProgressionSettings[K]) => onChange({ ...value, [k]: v });
   const setStep = (i: number, patch: Partial<ProgressionSettings['ascension'][number]>) =>
-    set('ascension', value.ascension.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+    set(
+      'ascension',
+      value.ascension.map((s, j) => (j === i ? { ...s, ...patch } : s)),
+    );
   const setSkill = (i: number, patch: Partial<ProgressionSettings['skillLevels'][number]>) =>
-    set('skillLevels', value.skillLevels.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+    set(
+      'skillLevels',
+      value.skillLevels.map((s, j) => (j === i ? { ...s, ...patch } : s)),
+    );
   const setShop = (i: number, patch: Partial<ProgressionSettings['shop'][number]>) =>
-    set('shop', value.shop.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+    set(
+      'shop',
+      value.shop.map((s, j) => (j === i ? { ...s, ...patch } : s)),
+    );
   const lastCap = value.ascension[value.ascension.length - 1]?.cap ?? value.baseCap;
   return (
     <Section title="Hero progression">
@@ -285,12 +315,20 @@ function ProgressionEditor({ value, maxLevel, onChange }: { value: ProgressionSe
         </Field>
         <Field label="Ascension crystal" hint="Material used as “crystals” in the steps below.">
           <select className="f-select" value={value.crystal} onChange={(e) => set('crystal', e.target.value)}>
-            {matOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {matOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Skill tome" hint="Material used to level skills.">
           <select className="f-select" value={value.tome} onChange={(e) => set('tome', e.target.value)}>
-            {matOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {matOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Skill power per level %" hint="Damage/heal/shield multipliers gain this much per level above 1.">
@@ -298,47 +336,125 @@ function ProgressionEditor({ value, maxLevel, onChange }: { value: ProgressionSe
         </Field>
       </FormGrid>
 
-      <div className="ed-section-head"><span className="f-label">Ascension steps (essence = the hero's own element)</span>
-        <button className="btn small" disabled={value.ascension.length >= 12}
-          onClick={() => set('ascension', [...value.ascension, { cap: Math.min(maxLevel, lastCap + 10), gold: 10000, essence: 10, crystals: 2, statBonus: 0.05 }])}>+ Step</button>
+      <div className="ed-section-head">
+        <span className="f-label">Ascension steps (essence = the hero's own element)</span>
+        <button
+          className="btn small"
+          disabled={value.ascension.length >= 12}
+          onClick={() =>
+            set('ascension', [...value.ascension, { cap: Math.min(maxLevel, lastCap + 10), gold: 10000, essence: 10, crystals: 2, statBonus: 0.05 }])
+          }
+        >
+          + Step
+        </button>
       </div>
       {value.ascension.map((s, i) => (
         <div key={i} className="effect-row">
           <span className="effect-n">{i + 1}</span>
-          <label className="inline">cap <NumberInput value={s.cap} onChange={(v) => setStep(i, { cap: v })} min={1} /></label>
-          <label className="inline">🪙 <NumberInput value={s.gold} onChange={(v) => setStep(i, { gold: v })} min={0} /></label>
-          <label className="inline">essence <NumberInput value={s.essence} onChange={(v) => setStep(i, { essence: v })} min={0} /></label>
-          <label className="inline">crystals <NumberInput value={s.crystals} onChange={(v) => setStep(i, { crystals: v })} min={0} /></label>
-          <label className="inline">stats +% <NumberInput value={Math.round(s.statBonus * 100)} onChange={(v) => setStep(i, { statBonus: Math.max(0, v) / 100 })} min={0} /></label>
-          <span className="effect-tools"><button className="icon-mini danger" onClick={() => set('ascension', value.ascension.filter((_, j) => j !== i))}>✕</button></span>
+          <label className="inline">
+            cap <NumberInput value={s.cap} onChange={(v) => setStep(i, { cap: v })} min={1} />
+          </label>
+          <label className="inline">
+            🪙 <NumberInput value={s.gold} onChange={(v) => setStep(i, { gold: v })} min={0} />
+          </label>
+          <label className="inline">
+            essence <NumberInput value={s.essence} onChange={(v) => setStep(i, { essence: v })} min={0} />
+          </label>
+          <label className="inline">
+            crystals <NumberInput value={s.crystals} onChange={(v) => setStep(i, { crystals: v })} min={0} />
+          </label>
+          <label className="inline">
+            stats +% <NumberInput value={Math.round(s.statBonus * 100)} onChange={(v) => setStep(i, { statBonus: Math.max(0, v) / 100 })} min={0} />
+          </label>
+          <span className="effect-tools">
+            <button
+              className="icon-mini danger"
+              onClick={() =>
+                set(
+                  'ascension',
+                  value.ascension.filter((_, j) => j !== i),
+                )
+              }
+            >
+              ✕
+            </button>
+          </span>
         </div>
       ))}
 
-      <div className="ed-section-head"><span className="f-label">Skill level costs (max level {value.skillLevels.length + 1})</span>
-        <button className="btn small" disabled={value.skillLevels.length >= 9}
-          onClick={() => set('skillLevels', [...value.skillLevels, { gold: 10000, tomes: 5 }])}>+ Level</button>
+      <div className="ed-section-head">
+        <span className="f-label">Skill level costs (max level {value.skillLevels.length + 1})</span>
+        <button
+          className="btn small"
+          disabled={value.skillLevels.length >= 9}
+          onClick={() => set('skillLevels', [...value.skillLevels, { gold: 10000, tomes: 5 }])}
+        >
+          + Level
+        </button>
       </div>
       {value.skillLevels.map((s, i) => (
         <div key={i} className="effect-row">
           <span className="effect-n">{i + 2}</span>
-          <label className="inline">🪙 <NumberInput value={s.gold} onChange={(v) => setSkill(i, { gold: v })} min={0} /></label>
-          <label className="inline">tomes <NumberInput value={s.tomes} onChange={(v) => setSkill(i, { tomes: v })} min={0} /></label>
-          <span className="effect-tools"><button className="icon-mini danger" onClick={() => set('skillLevels', value.skillLevels.filter((_, j) => j !== i))}>✕</button></span>
+          <label className="inline">
+            🪙 <NumberInput value={s.gold} onChange={(v) => setSkill(i, { gold: v })} min={0} />
+          </label>
+          <label className="inline">
+            tomes <NumberInput value={s.tomes} onChange={(v) => setSkill(i, { tomes: v })} min={0} />
+          </label>
+          <span className="effect-tools">
+            <button
+              className="icon-mini danger"
+              onClick={() =>
+                set(
+                  'skillLevels',
+                  value.skillLevels.filter((_, j) => j !== i),
+                )
+              }
+            >
+              ✕
+            </button>
+          </span>
         </div>
       ))}
 
-      <div className="ed-section-head"><span className="f-label">Material shop (prices per unit)</span>
-        <button className="btn small" disabled={!matOptions.length || value.shop.length >= 30}
-          onClick={() => set('shop', [...value.shop, { material: matOptions[0]!.value, gold: 1000, stardust: 0 }])}>+ Item</button>
+      <div className="ed-section-head">
+        <span className="f-label">Material shop (prices per unit)</span>
+        <button
+          className="btn small"
+          disabled={!matOptions.length || value.shop.length >= 30}
+          onClick={() => set('shop', [...value.shop, { material: matOptions[0]!.value, gold: 1000, stardust: 0 }])}
+        >
+          + Item
+        </button>
       </div>
       {value.shop.map((s, i) => (
         <div key={i} className="effect-row">
           <select className="f-select" value={s.material} onChange={(e) => setShop(i, { material: e.target.value })}>
-            {matOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {matOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
-          <label className="inline">🪙 <NumberInput value={s.gold} onChange={(v) => setShop(i, { gold: v })} min={0} /></label>
-          <label className="inline">✨ <NumberInput value={s.stardust} onChange={(v) => setShop(i, { stardust: v })} min={0} /></label>
-          <span className="effect-tools"><button className="icon-mini danger" onClick={() => set('shop', value.shop.filter((_, j) => j !== i))}>✕</button></span>
+          <label className="inline">
+            🪙 <NumberInput value={s.gold} onChange={(v) => setShop(i, { gold: v })} min={0} />
+          </label>
+          <label className="inline">
+            ✨ <NumberInput value={s.stardust} onChange={(v) => setShop(i, { stardust: v })} min={0} />
+          </label>
+          <span className="effect-tools">
+            <button
+              className="icon-mini danger"
+              onClick={() =>
+                set(
+                  'shop',
+                  value.shop.filter((_, j) => j !== i),
+                )
+              }
+            >
+              ✕
+            </button>
+          </span>
         </div>
       ))}
     </Section>
@@ -438,7 +554,11 @@ export function PlayersPanel() {
         <small className="muted">Showing up to 50, newest first</small>
       </aside>
       <section className="ed-form">
-        {selected ? <PlayerDetail key={selected.id} player={selected} onUpdate={update} isSelf={selected.id === profile.user.id} /> : <p className="muted center">Pick a player.</p>}
+        {selected ? (
+          <PlayerDetail key={selected.id} player={selected} onUpdate={update} isSelf={selected.id === profile.user.id} />
+        ) : (
+          <p className="muted center">Pick a player.</p>
+        )}
       </section>
     </div>
   );
@@ -494,7 +614,9 @@ function PlayerDetail({ player, onUpdate, isSelf }: { player: AdminPlayerDTO; on
       </div>
       <Section title="Overview">
         <div className="player-stats">
-          <span>ID <code>{player.id}</code></span>
+          <span>
+            ID <code>{player.id}</code>
+          </span>
           <span>Joined {new Date(player.createdAt).toLocaleDateString()}</span>
           <span>💎 {player.wallet.gems.toLocaleString()}</span>
           <span>🪙 {player.wallet.gold.toLocaleString()}</span>
@@ -596,9 +718,7 @@ export function DataPanel() {
           <span>{b.banners.length} banners</span>
           <span>{b.missions.length} missions</span>
         </div>
-        <p className="small muted">
-          Every save bumps the version. Battles already in progress keep the units and spells they started with.
-        </p>
+        <p className="small muted">Every save bumps the version. Battles already in progress keep the units and spells they started with.</p>
       </Section>
       <Section title="Backup & restore">
         <div className="data-actions">
@@ -626,7 +746,11 @@ export function DataPanel() {
         {errors.length > 0 && (
           <div className="ed-errors">
             <b>Import rejected:</b>
-            <ul>{errors.slice(0, 30).map((e, i) => <li key={i}>{e}</li>)}</ul>
+            <ul>
+              {errors.slice(0, 30).map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
           </div>
         )}
       </Section>

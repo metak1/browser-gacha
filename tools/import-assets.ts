@@ -80,7 +80,10 @@ function decodePng(file: string): Image {
 
 /** Bounds of non-transparent pixels across all frames of a strip, in frame coordinates. */
 function opaqueBounds(img: Image, frame: number) {
-  let x0 = frame, y0 = frame, x1 = -1, y1 = -1;
+  let x0 = frame,
+    y0 = frame,
+    x1 = -1,
+    y1 = -1;
   for (let y = 0; y < img.height; y++) {
     for (let x = 0; x < img.width; x++) {
       if (img.data[(y * img.width + x) * 4 + 3]! > 0) {
@@ -116,7 +119,12 @@ const CLIP_SOURCES: [clip: string, names: string[]][] = [
 const STRIP = /_([A-Za-z0-9]+)(?:\((With magic effects|No [a-z]+ effects)\))?\.png$/;
 const variantRank = (v: string | undefined) => (v === 'With magic effects' ? 0 : v === undefined ? 1 : 2);
 
-const slug = (s: string) => s.toLowerCase().replace(/_a$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/_a$/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

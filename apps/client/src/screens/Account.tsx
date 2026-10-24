@@ -46,9 +46,7 @@ export function AccountScreen() {
       <ProfileCard />
       <section className="panel">
         <h3>Save your progress</h3>
-        <p className="muted">
-          You're playing as a guest. Link a username and password to keep this progress and play it on other devices.
-        </p>
+        <p className="muted">You're playing as a guest. Link a username and password to keep this progress and play it on other devices.</p>
         <CredentialsForm
           submitLabel="Link account"
           confirmPassword
@@ -58,9 +56,7 @@ export function AccountScreen() {
 
       <section className="panel">
         <h3>Already have an account?</h3>
-        <p className="muted warn-text">
-          Logging in switches to that account. This guest's progress will be lost unless you link it first.
-        </p>
+        <p className="muted warn-text">Logging in switches to that account. This guest's progress will be lost unless you link it first.</p>
         <LoginForm />
       </section>
       <ResetAccount />
@@ -139,13 +135,7 @@ function CredentialsForm({ submitLabel, confirmPassword, onSubmit }: FormProps) 
       {confirmPassword && (
         <label>
           Confirm password
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />
         </label>
       )}
       {error && <p className="error-text">{error}</p>}
@@ -163,11 +153,22 @@ function Credits() {
       <h3>Credits</h3>
       <ul className="small">
         <li>
-          Character sprites: <a href="https://zerie.itch.io/tiny-rpg-character-asset-pack" target="_blank" rel="noreferrer">Tiny RPG Character Asset Pack</a>{' '}
-          and <a href="https://zerie.itch.io/tiny-rpg-character-asset-pack-02" target="_blank" rel="noreferrer">Tiny RPG Character Asset Pack 02</a> by Zerie
+          Character sprites:{' '}
+          <a href="https://zerie.itch.io/tiny-rpg-character-asset-pack" target="_blank" rel="noreferrer">
+            Tiny RPG Character Asset Pack
+          </a>{' '}
+          and{' '}
+          <a href="https://zerie.itch.io/tiny-rpg-character-asset-pack-02" target="_blank" rel="noreferrer">
+            Tiny RPG Character Asset Pack 02
+          </a>{' '}
+          by Zerie
         </li>
         <li>
-          Icons: <a href="https://clockworkraven.itch.io/raven-fantasy-icons" target="_blank" rel="noreferrer">Raven Fantasy Icons</a> by Clockwork Raven Studios
+          Icons:{' '}
+          <a href="https://clockworkraven.itch.io/raven-fantasy-icons" target="_blank" rel="noreferrer">
+            Raven Fantasy Icons
+          </a>{' '}
+          by Clockwork Raven Studios
         </li>
       </ul>
     </section>

@@ -29,6 +29,7 @@ Other commands:
 | `npm run max-heroes` | Dev cheat: maxes every hero a player owns (level, ascension, skill and ultimate levels, C6). Never lowers anything. With no name it picks whoever played most recently. Add `--no-constellation` to leave constellations alone. Run `grant-all` first to max the whole roster. |
 | `npm run reset-password` | Sets a new password for a linked account: `npm run reset-password -- <username> <new password>` (8+ characters). |
 | `npm run assets`    | Imports art from `asset-packs/` (sprite strips and the icon sheet) into the client and regenerates the sprite manifest. Re-run after adding packs. |
+| `npm run format`    | Formats all TypeScript with Prettier (`.prettierrc.json`: single quotes, 160 columns). `npm run format:check` only checks. CSS and Markdown are left as written |
 | `npm run balance`   | Auto-battles every stage of the *default* content at several levels and prints win rates and 3★ rates (`win% / 3★%`). For live content, use the stage simulator in the admin panel. Heroes are ascended as their level needs. Pass a team: `npm run balance -- zephyr,gaia,marina,yuki`, and add `--hard` (hard mode) or `--dungeons` (dungeon tiers). `--progression` models a free player day by day and prints how many days each chapter takes under the current stamina rules and a few alternatives |
 
 Server environment variables: `PORT` (3000), `HOST`, `DB_PATH` (`apps/server/data/game.db`), `COOKIE_SECURE=true` (set this behind HTTPS), and `LOG=false`.

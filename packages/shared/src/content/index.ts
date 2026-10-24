@@ -134,8 +134,7 @@ export function bulkLevelUp(settings: GameSettings, level: number, cap: number, 
 /** Usage of each skill id by units, for "used by" displays and safe deletes. */
 export function skillUsage(content: ContentIndex, skillId: string): string[] {
   const users: string[] = [];
-  const uses = (u: { basic: string; skill: string | null; ultimate: string | null }) =>
-    u.basic === skillId || u.skill === skillId || u.ultimate === skillId;
+  const uses = (u: { basic: string; skill: string | null; ultimate: string | null }) => u.basic === skillId || u.skill === skillId || u.ultimate === skillId;
   for (const c of content.bundle.characters) if (uses(c)) users.push(c.name);
   for (const e of content.bundle.enemies) if (uses(e)) users.push(e.name);
   return users;
@@ -170,7 +169,11 @@ export function resolveUnit(
     role: def.role,
     boss: 'boss' in def ? def.boss : false,
     level,
-    stats: applyGear(applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, progress.ascension ?? 0)), def.passive), gear, content.gearSetsById),
+    stats: applyGear(
+      applyPassiveStats(scaleStats(def.base, level, constellation, ascensionBonus(prog, progress.ascension ?? 0)), def.passive),
+      gear,
+      content.gearSetsById,
+    ),
     combat: applyGearCombat(applyPassiveCombat(roleCombat(def.role), def.passive), gear, content.gearSetsById),
     passive: def.passive ? structuredClone(def.passive) : null,
     // Copies, so editing content later can never reach into a battle in progress.

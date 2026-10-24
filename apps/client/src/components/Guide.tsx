@@ -98,7 +98,11 @@ function cardFor(step: GuideStep, path: string, sub: number, ctx: Ctx): Card | n
       };
     case 'battle':
       return path === '/'
-        ? { title: 'Your first battle', text: `Adventure takes your team to the next campaign stage. Tap it to fight stage ${ctx.firstStage}.`, target: ['.lobby-actions .btn.primary'] }
+        ? {
+            title: 'Your first battle',
+            text: `Adventure takes your team to the next campaign stage. Tap it to fight stage ${ctx.firstStage}.`,
+            target: ['.lobby-actions .btn.primary'],
+          }
         : {
             title: 'Your first battle',
             text: `Fight stage ${ctx.firstStage} to begin your adventure.`,
@@ -114,7 +118,11 @@ function cardFor(step: GuideStep, path: string, sub: number, ctx: Ctx): Card | n
         : { title: 'Power up your heroes', text: 'Open Heroes to see your team and make them stronger.', target: navLink('/roster') };
     case 'summon':
       if (path !== '/summon') {
-        return { title: 'Summon your first heroes', text: 'Every adventure needs heroes. Open Summon: your first 10× summon is free!', target: navLink('/summon') };
+        return {
+          title: 'Summon your first heroes',
+          text: 'Every adventure needs heroes. Open Summon: your first 10× summon is free!',
+          target: navLink('/summon'),
+        };
       }
       if (sub === 0) {
         return {
@@ -203,7 +211,10 @@ function GuideCard({ card, onSkip }: { card: Card; onSkip: () => void }) {
   return (
     <div className={`guide ${card.modal ? 'blocking' : ''}`} role="dialog" aria-label="Tutorial">
       {rect ? (
-        <div className="tutorial-spot guide-spot" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }} />
+        <div
+          className="tutorial-spot guide-spot"
+          style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }}
+        />
       ) : (
         card.modal && <div className="tutorial-dim" />
       )}

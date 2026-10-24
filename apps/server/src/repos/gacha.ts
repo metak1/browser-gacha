@@ -25,10 +25,7 @@ export class GachaRepo {
   }
 
   bannerState(userId: string, bannerId: string): BannerState {
-    const row = this.db.get<BannerRow>(
-      'SELECT * FROM banner_states WHERE user_id = ? AND banner_id = ?',
-      userId, bannerId,
-    );
+    const row = this.db.get<BannerRow>('SELECT * FROM banner_states WHERE user_id = ? AND banner_id = ?', userId, bannerId);
     return row ? toState(row) : newBannerState();
   }
 
@@ -38,14 +35,24 @@ export class GachaRepo {
        ON CONFLICT (user_id, banner_id) DO UPDATE SET
          pity5 = excluded.pity5, pity4 = excluded.pity4,
          guaranteed5 = excluded.guaranteed5, guaranteed4 = excluded.guaranteed4`,
-      userId, bannerId, s.pity5, s.pity4, s.guaranteed5 ? 1 : 0, s.guaranteed4 ? 1 : 0,
+      userId,
+      bannerId,
+      s.pity5,
+      s.pity4,
+      s.guaranteed5 ? 1 : 0,
+      s.guaranteed4 ? 1 : 0,
     );
   }
 
   recordPull(userId: string, bannerId: string, pull: PullResult, now: number) {
     this.db.run(
       'INSERT INTO pulls (user_id, banner_id, char_id, rarity, pity, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      userId, bannerId, pull.id, pull.rarity, pull.pity, now,
+      userId,
+      bannerId,
+      pull.id,
+      pull.rarity,
+      pull.pity,
+      now,
     );
   }
 
@@ -53,7 +60,8 @@ export class GachaRepo {
     return this.db.all<PullHistoryEntryDTO>(
       `SELECT char_id AS charId, rarity, banner_id AS bannerId, pity, created_at AS createdAt
        FROM pulls WHERE user_id = ? ORDER BY id DESC LIMIT ?`,
-      userId, limit,
+      userId,
+      limit,
     );
   }
 }

@@ -63,9 +63,20 @@ describe('gear', () => {
   });
 
   it('applies flat and percent bonuses', () => {
-    const stats = applyGear({ hp: 1000, atk: 100, def: 50, spd: 100 }, [
-      { main: { stat: 'atk', value: 20 }, subs: [{ stat: 'atkPct', value: 0.1 }, { stat: 'spd', value: 5 }], set: null },
-    ], {});
+    const stats = applyGear(
+      { hp: 1000, atk: 100, def: 50, spd: 100 },
+      [
+        {
+          main: { stat: 'atk', value: 20 },
+          subs: [
+            { stat: 'atkPct', value: 0.1 },
+            { stat: 'spd', value: 5 },
+          ],
+          set: null,
+        },
+      ],
+      {},
+    );
     expect(stats).toEqual({ hp: 1000, atk: 130, def: 50, spd: 105 });
   });
 
@@ -90,18 +101,38 @@ describe('gear', () => {
     const stats = applyGear({ hp: 1000, atk: 100, def: 50, spd: 100 }, [piece('fury'), piece('fury'), piece('gale'), piece('gale')], sets);
     expect(stats).toEqual({ hp: 1000, atk: 108, def: 50, spd: 105 });
     expect(wornSets([piece('fury'), piece('fury'), piece(null)], sets)).toEqual([
-      { set: sets.fury, pieces: 2, bonuses: [{ ...sets.fury!.bonuses[0]!, active: true }, { ...sets.fury!.bonuses[1]!, active: false }] },
+      {
+        set: sets.fury,
+        pieces: 2,
+        bonuses: [
+          { ...sets.fury!.bonuses[0]!, active: true },
+          { ...sets.fury!.bonuses[1]!, active: false },
+        ],
+      },
     ]);
   });
 
   it('auto-equip completes a set when the bonus outweighs a stronger single piece', () => {
     const sets = content.gearSetsById;
     const item = (id: string, slot: GearItem['slot'], set: string, atk: number): GearItem => ({
-      id, templateId: 'x', slot, rarity: 4, level: 0, mainBase: 0, main: { stat: 'atk', value: atk }, subs: [], equippedTo: null, set, locked: false,
+      id,
+      templateId: 'x',
+      slot,
+      rarity: 4,
+      level: 0,
+      mainBase: 0,
+      main: { stat: 'atk', value: atk },
+      subs: [],
+      equippedTo: null,
+      set,
+      locked: false,
     });
     const bag = [
-      item('w', 'weapon', 'fury', 10), item('a', 'armor', 'fury', 10), item('c', 'charm', 'fury', 10),
-      item('b-fury', 'boots', 'fury', 10), item('b-big', 'boots', 'gale', 14),
+      item('w', 'weapon', 'fury', 10),
+      item('a', 'armor', 'fury', 10),
+      item('c', 'charm', 'fury', 10),
+      item('b-fury', 'boots', 'fury', 10),
+      item('b-big', 'boots', 'gale', 14),
     ];
     const best = bestLoadout({ hp: 1000, atk: 400, def: 50, spd: 100 }, bag, 'hero', sets);
     expect(best.map((s) => s.best?.id)).toEqual(['w', 'a', 'c', 'b-fury']);
@@ -131,7 +162,8 @@ describe('tower challenges', () => {
   });
 
   it('changes the enemies, never who may fight', () => {
-    const floorOf = (id: string) => Array.from({ length: 14 }, (_, i) => i + 1).find((n) => towerChallenge(n).id === id && n % content.settings.tower.bossEvery !== 0)!;
+    const floorOf = (id: string) =>
+      Array.from({ length: 14 }, (_, i) => i + 1).find((n) => towerChallenge(n).id === id && n % content.settings.tower.bossEvery !== 0)!;
     const iron = setupFor(floorOf('ironhide'));
     const plain = buildEncounterSetup(content, 5, team, iron.f.encounter, { statMult: iron.f.mods.statMult });
     expect(Math.abs(iron.setup.enemies[0]!.stats.def - plain.enemies[0]!.stats.def * iron.f.challenge.mods.stats!.def!)).toBeLessThanOrEqual(1);

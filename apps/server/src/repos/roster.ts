@@ -7,10 +7,7 @@ export class RosterRepo {
   constructor(private readonly db: Database) {}
 
   list(userId: string): OwnedCharacterDTO[] {
-    return this.db.all<OwnedCharacterDTO>(
-      `SELECT ${COLUMNS} FROM characters WHERE user_id = ? ORDER BY obtained_at, char_id`,
-      userId,
-    );
+    return this.db.all<OwnedCharacterDTO>(`SELECT ${COLUMNS} FROM characters WHERE user_id = ? ORDER BY obtained_at, char_id`, userId);
   }
 
   get(userId: string, charId: string): OwnedCharacterDTO | undefined {
@@ -31,7 +28,9 @@ export class RosterRepo {
     this.db.run(
       `INSERT INTO characters (user_id, char_id, copies, level, obtained_at) VALUES (?, ?, 1, 1, ?)
        ON CONFLICT (user_id, char_id) DO UPDATE SET copies = copies + 1`,
-      userId, charId, now,
+      userId,
+      charId,
+      now,
     );
     return this.get(userId, charId)!.copies;
   }
@@ -54,10 +53,7 @@ export class RosterRepo {
   }
 
   setTeam(userId: string, team: string[]) {
-    this.db.run(
-      'INSERT INTO teams (user_id, slots) VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET slots = excluded.slots',
-      userId, JSON.stringify(team),
-    );
+    this.db.run('INSERT INTO teams (user_id, slots) VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET slots = excluded.slots', userId, JSON.stringify(team));
   }
 
   activePreset(userId: string): number {
@@ -78,7 +74,10 @@ export class RosterRepo {
     this.db.run(
       `INSERT INTO team_presets (user_id, slot, name, members) VALUES (?, ?, ?, ?)
        ON CONFLICT (user_id, slot) DO UPDATE SET name = excluded.name, members = excluded.members`,
-      userId, slot, preset.name, JSON.stringify(preset.members),
+      userId,
+      slot,
+      preset.name,
+      JSON.stringify(preset.members),
     );
   }
 }

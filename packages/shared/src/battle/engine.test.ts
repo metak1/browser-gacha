@@ -89,7 +89,12 @@ describe('passives', () => {
     const plain = { ...content.charactersById.pebble!, passive: null };
     const setup = setupFor('1-1', 10, 1, ['pebble']);
     expect(setup.allies[0]!.passive?.name).toBe('Sturdy');
-    const unbuffed = buildBattleSetup(indexContent({ ...createDefaultContent(), characters: [plain] }), 1, [{ id: 'pebble', level: 10, constellation: 0 }], content.stagesById['1-1']!);
+    const unbuffed = buildBattleSetup(
+      indexContent({ ...createDefaultContent(), characters: [plain] }),
+      1,
+      [{ id: 'pebble', level: 10, constellation: 0 }],
+      content.stagesById['1-1']!,
+    );
     expect(setup.allies[0]!.stats.hp).toBe(Math.round(unbuffed.allies[0]!.stats.hp * 1.12));
   });
 
@@ -104,7 +109,10 @@ describe('passives', () => {
   });
 
   it('retaliates when hit without looping between two thorny units', () => {
-    const thorns = { name: 'Thorns', rules: [{ kind: 'trigger' as const, on: 'hit' as const, effects: [{ kind: 'damage' as const, to: 'target' as const, mult: 0.3 }] }] };
+    const thorns = {
+      name: 'Thorns',
+      rules: [{ kind: 'trigger' as const, on: 'hit' as const, effects: [{ kind: 'damage' as const, to: 'target' as const, mult: 0.3 }] }],
+    };
     const setup = strip(setupFor('1-1', 5, 7));
     for (const u of [...setup.allies, ...setup.enemies]) u.passive = structuredClone(thorns);
     const played = autoBattle(setup);
@@ -116,7 +124,10 @@ describe('passives', () => {
   it('always crits with 100% crit rate and heals the most injured ally', () => {
     const setup = withPassive(strip(setupFor('1-1', 5, 9)), 'allies', 0, {
       name: 'Precision',
-      rules: [{ kind: 'critRate', amount: 1 }, { kind: 'trigger', on: 'turnStart', effects: [{ kind: 'heal', to: 'lowestAlly', mult: 0.1 }] }],
+      rules: [
+        { kind: 'critRate', amount: 1 },
+        { kind: 'trigger', on: 'turnStart', effects: [{ kind: 'heal', to: 'lowestAlly', mult: 0.1 }] },
+      ],
     });
     const { state } = startBattle(setup);
     const hurt = state.units.find((u) => u.uid === 'a2')!;
@@ -161,7 +172,10 @@ describe('waves and summons', () => {
     const setup = setupFor('4-4', 34, 5, ['pebble']);
     const summonKeyName = Object.keys(setup.summons ?? {})[0]!;
     expect(summonKeyName).toBe(`spark@${content.stagesById['4-4']!.enemies[0]!.level}`);
-    const placed = buildBattleSetup(content, 1, [{ id: 'pebble', level: 1, constellation: 0 }], { ...content.stagesById['4-4']!, enemies: [{ id: 'spark', level: 34 }] });
+    const placed = buildBattleSetup(content, 1, [{ id: 'pebble', level: 1, constellation: 0 }], {
+      ...content.stagesById['4-4']!,
+      enemies: [{ id: 'spark', level: 34 }],
+    });
     expect(setup.summons![summonKeyName]!.stats.hp).toBeLessThan(placed.enemies[0]!.stats.hp);
 
     const { state } = startBattle(setup);

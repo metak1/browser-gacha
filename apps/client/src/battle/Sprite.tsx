@@ -71,7 +71,9 @@ export function Sprite({ unit, slot, anim, acting, targetable, fx, popups, onSel
               className="sprite-art"
             />
           ) : (
-            <span className="sprite-emoji"><PixelEmoji emoji={unit.emoji} /></span>
+            <span className="sprite-emoji">
+              <PixelEmoji emoji={unit.emoji} />
+            </span>
           )}
           {unit.shield > 0 && !dead && <span className="sprite-bubble" />}
         </div>
