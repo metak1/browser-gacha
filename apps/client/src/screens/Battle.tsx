@@ -1,8 +1,6 @@
 import {
-  chapterOf,
   FEATURE_INFO,
   newlyUnlocked,
-  staminaCost,
   currentActor,
   isHardUnlocked,
   isStageUnlocked,
@@ -12,11 +10,7 @@ import {
   type ActionKind,
   type BattleUnit,
   type CompleteBattleResponse,
-  type DungeonDef,
-  type EventDef,
   type Feature,
-  type SceneTheme,
-  type StageDef,
   type StartBattleResponse,
   UI_ICONS,
   guideStep,
@@ -36,21 +30,12 @@ import { useBattle, type LogLine, type UnitTally } from '../battle/useBattle';
 import '../battle/battle.css';
 import { Icon } from '../components/Art';
 import { LootGear } from '../components/Gear';
-import { dungeonsPath } from './Dungeons';
+import { battleExit, battleLineup, battleTheme, battleTitle, repeatCost, startBattle, type BattleSource } from './battleSource';
 import { MaterialChip } from '../components/Materials';
 import { ObjectiveList, Stars } from '../components/Stars';
 import { useContent } from '../state/content';
 import { useProfile } from '../state/profile';
 import { useSettings } from '../state/settings';
-
-/** Where a battle comes from: a campaign stage (maybe on hard), an arena opponent or a dungeon tier. */
-type BattleSource =
-  | { kind: 'campaign'; stage: StageDef; hard: boolean; friendId?: string }
-  | { kind: 'arena'; opponentId: string; opponentName: string }
-  | { kind: 'dungeon'; dungeon: DungeonDef; tier: number }
-  | { kind: 'event'; event: EventDef; stage: number; friendId?: string }
-  | { kind: 'guild'; boss: string }
-  | { kind: 'tower'; floor: number };
 
 export function BattleScreen() {
   const { stageId = '' } = useParams();
@@ -206,57 +191,18 @@ function BattleRunner({
   const b = useBattle(battle?.setup ?? null, speed, autoStart);
   const session = useBattleSession();
 
-  const theme: SceneTheme =
-    source.kind === 'tower'
-      ? towerFloor(content, source.floor).theme
-      : source.kind === 'arena'
-        ? 'kingdom'
-        : source.kind === 'guild'
-          ? 'cosmos'
-          : source.kind === 'dungeon'
-            ? source.dungeon.theme
-            : source.kind === 'event'
-              ? source.event.theme
-              : (chapterOf(content, source.stage.id)?.theme ?? 'meadow');
-  const exitTo = {
-    arena: '/arena',
-    dungeon: dungeonsPath(source.kind === 'dungeon' ? source.dungeon : undefined),
-    event: '/events',
-    guild: '/social?tab=guild',
-    campaign: '/campaign',
-    tower: '/tower',
-  }[source.kind];
+  const theme = battleTheme(source, content);
+  const exitTo = battleExit(source);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const start =
-      source.kind === 'arena'
-        ? api.arena.start(source.opponentId)
-        : source.kind === 'dungeon'
-          ? api.startDungeon(source.dungeon.id, source.tier)
-          : source.kind === 'event'
-            ? api.startEvent(source.event.id, source.stage, source.friendId)
-            : source.kind === 'guild'
-              ? api.guild.attack()
-              : source.kind === 'tower'
-                ? api.startTower(source.floor)
-                : api.startBattle(source.stage.id, source.hard, source.friendId);
-    start.then(setBattle, (err) => setError(errorMessage(err)));
+    startBattle(source).then(setBattle, (err) => setError(errorMessage(err)));
   }, [source]);
 
   // Boss fights get the tense track.
   useEffect(() => {
-    const lineup =
-      source.kind === 'campaign'
-        ? [...source.stage.enemies, ...source.stage.waves.flat()]
-        : source.kind === 'dungeon'
-          ? [...source.dungeon.tiers[source.tier]!.enemies, ...source.dungeon.tiers[source.tier]!.waves.flat()]
-          : source.kind === 'event'
-            ? [...source.event.stages[source.stage]!.enemies, ...source.event.stages[source.stage]!.waves.flat()]
-            : source.kind === 'tower'
-              ? towerFloor(content, source.floor).encounter.enemies
-              : [];
+    const lineup = battleLineup(source, content);
     // A minimized battle leaves the music to whatever is on screen.
     if (session.main) music.play(source.kind === 'guild' || lineup.some((e) => content.enemiesById[e.id]?.boss) ? 'boss' : 'battle');
   }, [source, content, session.main]);
@@ -308,15 +254,8 @@ function BattleRunner({
             setResult(res);
             if (res.rewards.gold) sfx.coins();
             // Repeat mode: queue the next auto run while it's affordable.
-            const settings = content.settings;
-            const affordable =
-              source.kind === 'campaign'
-                ? res.profile.stamina.current >= staminaCost(settings.stamina, source.hard)
-                : source.kind === 'event'
-                  ? res.profile.stamina.current >= staminaCost(settings.stamina, false)
-                  : source.kind === 'dungeon'
-                    ? res.profile.stamina.current >= (source.dungeon.tiers[source.tier]?.stamina ?? 0)
-                    : source.kind === 'tower';
+            const cost = repeatCost(source, content);
+            const affordable = cost !== null && res.profile.stamina.current >= cost;
             // The tower costs nothing, but a cleared floor can't be fought again: it can only go on, not repeat.
             if (res.outcome !== 'victory' || !affordable) return;
             // Continue mode: on to the next stage (or floor) after any win, manual or auto.
@@ -587,19 +526,7 @@ function ResultModal({
       <div className={`modal result ${won || source.kind === 'guild' ? 'victory' : 'defeat'}`}>
         <div className="result-icon">{source.kind === 'guild' ? '⚔️' : won ? '🏆' : '💀'}</div>
         <h2>{source.kind === 'guild' ? 'Attack complete!' : won ? 'Victory!' : 'Defeat'}</h2>
-        <p className="muted">
-          {source.kind === 'campaign'
-            ? `${source.stage.id} · ${source.stage.name}${source.hard ? ' (Hard)' : ''}`
-            : source.kind === 'dungeon'
-              ? `${source.dungeon.name} · ${source.dungeon.tiers[source.tier]!.name}`
-              : source.kind === 'event'
-                ? `${source.event.name} · ${source.event.stages[source.stage]!.name}`
-                : source.kind === 'guild'
-                  ? 'Guild boss attack'
-                  : source.kind === 'tower'
-                    ? `Endless Tower · Floor ${source.floor}${result.tower && won ? ` · best ${result.tower.best}` : ''}`
-                    : `Arena vs ${source.opponentName}`}
-        </p>
+        <p className="muted">{battleTitle(source, won ? result.tower?.best : undefined)}</p>
 
         {arena && (
           <div className={`rating-change ${arena.delta >= 0 ? 'up' : 'down'}`}>
@@ -718,7 +645,7 @@ function ResultModal({
               </button>
             </>
           ) : source.kind === 'guild' ? (
-            <button className="btn primary" onClick={() => navigate('/social?tab=guild')}>
+            <button className="btn primary" onClick={() => navigate(battleExit(source))}>
               Back to guild
             </button>
           ) : source.kind === 'event' ? (
@@ -726,7 +653,7 @@ function ResultModal({
               <button className="btn" onClick={() => onRetry?.()}>
                 {won ? 'Fight again' : 'Retry'}
               </button>
-              <button className="btn primary" onClick={() => navigate('/events')}>
+              <button className="btn primary" onClick={() => navigate(battleExit(source))}>
                 Event
               </button>
             </>
@@ -741,7 +668,7 @@ function ResultModal({
                   Retry
                 </button>
               )}
-              <button className="btn" onClick={() => navigate('/tower')}>
+              <button className="btn" onClick={() => navigate(battleExit(source))}>
                 Tower
               </button>
             </>
@@ -750,12 +677,12 @@ function ResultModal({
               <button className="btn" onClick={() => onRetry?.()}>
                 {won ? 'Run again' : 'Retry'}
               </button>
-              <button className="btn primary" onClick={() => navigate(dungeonsPath(source.dungeon))}>
+              <button className="btn primary" onClick={() => navigate(battleExit(source))}>
                 Dungeons
               </button>
             </>
           ) : (
-            <button className="btn primary" onClick={() => navigate('/arena')}>
+            <button className="btn primary" onClick={() => navigate(battleExit(source))}>
               Back to arena
             </button>
           )}
